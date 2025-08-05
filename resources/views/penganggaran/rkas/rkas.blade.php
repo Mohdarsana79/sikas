@@ -36,8 +36,7 @@
                         <button class="btn btn-outline-secondary" style="font-size: 9pt;">
                             <i class="bi bi-printer me-2"></i>Cetak
                         </button>
-                        <a class="btn btn-primary" href="{{ route('penganggaran.rkas.generate-pdf') }}" target="_blank"
-                            style="font-size: 9pt;">Review</a>
+                        <a class="btn btn-primary" href="{{ route('penganggaran.rkas.rekapan') }}" style="font-size: 9pt;">Review</a>
                     </div>
                 </div>
 

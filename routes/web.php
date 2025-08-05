@@ -60,6 +60,8 @@ Route::middleware(['auth'])->prefix('penganggaran/rkas')->group(function () {
     Route::get('/preview/pdf', [RkasController::class, 'previewPdf'])->name('penganggaran.rkas.preview.pdf');
     Route::get('/download/pdf', [RkasController::class, 'downloadPdf'])->name('penganggaran.rkas.download.pdf');
     Route::get('/generate-pdf', [RkasController::class, 'generatePdf'])->name('penganggaran.rkas.generate-pdf');
+    Route::post('/simpan-tanggal-cetak', [RkasController::class, 'simpanTanggalCetak'])->name('penganggaran.rkas.simpan-tanggal-cetak');
+    Route::get('/rekapan', [RkasController::class, 'showRekapan'])->name('penganggaran.rkas.rekapan');
 });
 
 

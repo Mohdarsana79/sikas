@@ -39,6 +39,9 @@ class RkasController extends Controller
             $paguAnggaranTahap1 = $penganggaran ? ($penganggaran->pagu_anggaran * 0.5) : 0;
             $paguAnggaranTahap2 = $penganggaran ? ($penganggaran->pagu_anggaran * 0.5) : 0;
 
+            // Ambil data cetakan terakhir
+        $pdfData = \App\Models\PdfRecord::latest()->first();
+
             return view('penganggaran.rkas.rkas', compact(
                 'kodeKegiatans',
                 'rekeningBelanjas',
@@ -48,7 +51,8 @@ class RkasController extends Controller
                 'totalTahap1',
                 'totalTahap2',
                 'paguAnggaranTahap1',
-                'paguAnggaranTahap2'
+                'paguAnggaranTahap2',
+                'pdfData'
             ));
         } catch (\Exception $e) {
             Log::error('Error in RKAS index: ' . $e->getMessage());
@@ -628,4 +632,36 @@ class RkasController extends Controller
 
         return $terorganisir;
     }
+
+    
+
+    public function simpanTanggalCetak(Request $request)
+{
+    try {
+        $request->validate([
+            'tanggal_cetak' => 'required|date',
+            'keterangan' => 'nullable|string'
+        ]);
+
+        // Simpan ke database (sesuaikan dengan model Anda)
+        // Contoh: menggunakan model PdfRecord jika Anda membuatnya
+        $pdfRecord = new \App\Models\PdfRecord();
+        $pdfRecord->tanggal_cetak = $request->tanggal_cetak;
+        $pdfRecord->keterangan = $request->keterangan;
+        $pdfRecord->total_tahap1 = Rkas::getTotalTahap1();
+        $pdfRecord->total_tahap2 = Rkas::getTotalTahap2();
+        $pdfRecord->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tanggal cetak berhasil disimpan'
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Error saving print date: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan saat menyimpan tanggal cetak'
+        ], 500);
+    }
+}
 }
