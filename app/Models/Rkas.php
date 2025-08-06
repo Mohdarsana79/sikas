@@ -29,12 +29,18 @@ class Rkas extends Model
         'updated_at' => 'datetime',
     ];
 
-    /**
-     * Relasi dengan KodeKegiatan
-     */
+    public function penganggaran()
+{
+    return $this->belongsTo(Penganggaran::class);
+}
+
     public function kodeKegiatan()
     {
-        return $this->belongsTo(KodeKegiatan::class, 'kode_id');
+        return $this->belongsTo(KodeKegiatan::class, 'kode_id')->withDefault([
+            'program' => '-',
+            'sub_program' => '-',
+            'uraian' => '-'
+        ]);
     }
 
     /**
@@ -42,7 +48,10 @@ class Rkas extends Model
      */
     public function rekeningBelanja()
     {
-        return $this->belongsTo(RekeningBelanja::class, 'kode_rekening_id');
+        return $this->belongsTo(RekeningBelanja::class, 'kode_rekening_id')->withDefault([
+            'kode_rekening' => '-',
+            'rincian_objek' => '-'
+        ]);
     }
 
     /**

@@ -16,4 +16,9 @@ class KodeKegiatan extends Model
         'sub_program',
         'uraian',
     ];
+
+    public function rkas()
+{
+    return $this->hasMany(Rkas::class, 'kode_id');
+}
 }

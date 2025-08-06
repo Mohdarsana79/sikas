@@ -39,9 +39,6 @@ class RkasController extends Controller
             $paguAnggaranTahap1 = $penganggaran ? ($penganggaran->pagu_anggaran * 0.5) : 0;
             $paguAnggaranTahap2 = $penganggaran ? ($penganggaran->pagu_anggaran * 0.5) : 0;
 
-            // Ambil data cetakan terakhir
-        $pdfData = \App\Models\PdfRecord::latest()->first();
-
             return view('penganggaran.rkas.rkas', compact(
                 'kodeKegiatans',
                 'rekeningBelanjas',
@@ -52,7 +49,6 @@ class RkasController extends Controller
                 'totalTahap2',
                 'paguAnggaranTahap1',
                 'paguAnggaranTahap2',
-                'pdfData'
             ));
         } catch (\Exception $e) {
             Log::error('Error in RKAS index: ' . $e->getMessage());
@@ -124,15 +120,22 @@ class RkasController extends Controller
     public function show($id)
     {
         try {
-            $rkas = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])->findOrFail($id);
+            $rkas = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])->find($id);
+
+            if (!$rkas) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data RKAS tidak ditemukan.'
+                ], 404);
+            }
 
             $data = [
                 'id' => $rkas->id,
                 'kode_id' => $rkas->kode_id,
                 'kode_rekening_id' => $rkas->kode_rekening_id,
-                'program_kegiatan' => $rkas->kodeKegiatan ? $rkas->kodeKegiatan->program : '-',
-                'kegiatan' => $rkas->kodeKegiatan ? $rkas->kodeKegiatan->sub_program : '-',
-                'rekening_belanja' => $rkas->rekeningBelanja ? $rkas->rekeningBelanja->rincian_objek : '-',
+                'program_kegiatan' => $rkas->kodeKegiatan->program,
+                'kegiatan' => $rkas->kodeKegiatan->sub_program,
+                'rekening_belanja' => $rkas->rekeningBelanja->rincian_objek,
                 'uraian' => $rkas->uraian,
                 'bulan' => $rkas->bulan,
                 'dianggaran' => $rkas->jumlah,
@@ -151,8 +154,8 @@ class RkasController extends Controller
             Log::error('Error showing RKAS: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Data tidak ditemukan.'
-            ], 404);
+                'message' => 'Terjadi kesalahan saat mengambil data.'
+            ], 500);
         }
     }
 
@@ -231,9 +234,24 @@ class RkasController extends Controller
     public function getByMonth($bulan)
     {
         try {
-            $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+            $rkasData = Rkas::with([
+                'kodeKegiatan' => function ($query) {
+                    $query->select('id', 'kode', 'program', 'sub_program', 'uraian');
+                },
+                'rekeningBelanja' => function ($query) {
+                    $query->select('id', 'kode_rekening', 'rincian_objek');
+                }
+            ])
                 ->where('bulan', $bulan)
                 ->get();
+
+            if ($rkasData->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'Tidak ada data untuk bulan ' . $bulan
+                ]);
+            }
 
             $formattedData = $rkasData->map(function ($rkas) {
                 return [
@@ -247,7 +265,7 @@ class RkasController extends Controller
                     'satuan' => $rkas->satuan,
                     'harga_satuan' => 'Rp ' . number_format($rkas->harga_satuan, 0, ',', '.'),
                     'total' => 'Rp ' . number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
-                    'bulan' => $rkas->bulan,
+                    'bulan' => $rkas->bulan
                 ];
             });
 
@@ -259,7 +277,8 @@ class RkasController extends Controller
             Log::error('Error getting RKAS by month: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mengambil data.'
+                'message' => 'Terjadi kesalahan saat mengambil data.',
+                'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -434,7 +453,7 @@ class RkasController extends Controller
         return collect($rkasData);
     }
 
-    // Tambahkan method ini di RkasController.php
+    // Method untuk generate PDF
     public function generatePdf()
     {
         try {
@@ -444,7 +463,10 @@ class RkasController extends Controller
                 ->orderBy('kode_id')
                 ->get()
                 ->groupBy(function ($item) {
-                    return $item->kodeKegiatan->kode;
+                    return optional($item->kodeKegiatan)->kode;
+                })
+                ->filter(function ($group, $key) {
+                    return !is_null($key); // Filter out null keys
                 });
 
             // Ambil data penganggaran terbaru
@@ -517,13 +539,16 @@ class RkasController extends Controller
         $terorganisir = [];
 
         foreach ($rkasData as $kode => $items) {
+            if (empty($items) || $items->isEmpty()) continue;
+
             $bagian = explode('.', $kode);
 
             // Level program (contoh: "03")
             $kodeProgram = $bagian[0];
             if (!isset($terorganisir[$kodeProgram])) {
+                $firstItem = $items->first();
                 $terorganisir[$kodeProgram] = [
-                    'uraian' => $items->first()->kodeKegiatan->program,
+                    'uraian' => optional($firstItem->kodeKegiatan)->program ?? '-',
                     'sub_programs' => [],
                     'total' => 0,
                     'tahap1' => 0,
@@ -535,8 +560,9 @@ class RkasController extends Controller
             // Level sub-program (contoh: "03.03")
             $kodeSubProgram = count($bagian) > 1 ? $bagian[0] . '.' . $bagian[1] : null;
             if ($kodeSubProgram && !isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram])) {
+                $firstItem = $items->first();
                 $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram] = [
-                    'uraian' => $items->first()->kodeKegiatan->sub_program,
+                    'uraian' => optional($firstItem->kodeKegiatan)->sub_program ?? '-',
                     'uraian_programs' => [],
                     'items' => [],
                     'total' => 0,
@@ -547,10 +573,11 @@ class RkasController extends Controller
             }
 
             // Level uraian (contoh: "03.03.06")
-            $kodeUraian = $items->first()->kodeKegiatan->kode;
-            if (!isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian])) {
+            $kodeUraian = $kode;
+            if ($kodeSubProgram && !isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian])) {
+                $firstItem = $items->first();
                 $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian] = [
-                    'uraian' => $items->first()->kodeKegiatan->uraian,
+                    'uraian' => optional($firstItem->kodeKegiatan)->uraian ?? '-',
                     'items' => [],
                     'total' => 0,
                     'tahap1' => 0,
@@ -562,6 +589,8 @@ class RkasController extends Controller
             // Kelompokkan item berdasarkan kode_rekening dan uraian
             $groupedItems = [];
             foreach ($items as $item) {
+                if (!$item->rekeningBelanja) continue;
+
                 $key = $item->rekeningBelanja->kode_rekening . '-' . $item->uraian;
                 if (!isset($groupedItems[$key])) {
                     $groupedItems[$key] = [
@@ -590,30 +619,30 @@ class RkasController extends Controller
             }
 
             // Tambahkan item ke struktur data
-            foreach ($groupedItems as $item) {
-                $jumlah = $item['tahap1'] + $item['tahap2'];
+            if ($kodeSubProgram) {
+                foreach ($groupedItems as $item) {
+                    // Update program
+                    $terorganisir[$kodeProgram]['tahap1'] += $item['tahap1'];
+                    $terorganisir[$kodeProgram]['tahap2'] += $item['tahap2'];
+                    $terorganisir[$kodeProgram]['jumlah'] = $terorganisir[$kodeProgram]['tahap1'] + $terorganisir[$kodeProgram]['tahap2'];
 
-                // Update program
-                $terorganisir[$kodeProgram]['tahap1'] += $item['tahap1'];
-                $terorganisir[$kodeProgram]['tahap2'] += $item['tahap2'];
-                $terorganisir[$kodeProgram]['jumlah'] = $terorganisir[$kodeProgram]['tahap1'] + $terorganisir[$kodeProgram]['tahap2'];
+                    // Update sub program
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap1'] += $item['tahap1'];
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap2'] += $item['tahap2'];
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['jumlah'] =
+                        $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap1'] +
+                        $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap2'];
 
-                // Update sub program
-                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap1'] += $item['tahap1'];
-                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap2'] += $item['tahap2'];
-                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['jumlah'] =
-                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap1'] +
-                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap2'];
+                    // Update uraian program
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap1'] += $item['tahap1'];
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap2'] += $item['tahap2'];
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['jumlah'] =
+                        $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap1'] +
+                        $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap2'];
 
-                // Update uraian program
-                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap1'] += $item['tahap1'];
-                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap2'] += $item['tahap2'];
-                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['jumlah'] =
-                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap1'] +
-                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap2'];
-
-                // Tambahkan item detail
-                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['items'][] = $item;
+                    // Tambahkan item detail
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['items'][] = $item;
+                }
             }
         }
 
@@ -633,35 +662,54 @@ class RkasController extends Controller
         return $terorganisir;
     }
 
-    
+    public function showRekapan()
+    {
+        try {
+            // Ambil data penganggaran terbaru
+            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
 
-    public function simpanTanggalCetak(Request $request)
-{
-    try {
-        $request->validate([
-            'tanggal_cetak' => 'required|date',
-            'keterangan' => 'nullable|string'
-        ]);
+            // Ambil data RKAS dengan relasi lengkap
+            $rkasData = Rkas::with([
+                'kodeKegiatan' => function ($query) {
+                    $query->select('id', 'kode', 'program', 'sub_program', 'uraian');
+                },
+                'rekeningBelanja' => function ($query) {
+                    $query->select('id', 'kode_rekening', 'rincian_objek');
+                }
+            ])
+                ->orderBy('kode_id')
+                ->get();
 
-        // Simpan ke database (sesuaikan dengan model Anda)
-        // Contoh: menggunakan model PdfRecord jika Anda membuatnya
-        $pdfRecord = new \App\Models\PdfRecord();
-        $pdfRecord->tanggal_cetak = $request->tanggal_cetak;
-        $pdfRecord->keterangan = $request->keterangan;
-        $pdfRecord->total_tahap1 = Rkas::getTotalTahap1();
-        $pdfRecord->total_tahap2 = Rkas::getTotalTahap2();
-        $pdfRecord->save();
+            // Organisasikan data RKAS ke dalam struktur hierarkis
+            $dataTerkelola = $this->kelolaDataRkas($rkasData->groupBy(function ($item) {
+                return optional($item->kodeKegiatan)->kode;
+            }));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tanggal cetak berhasil disimpan'
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Error saving print date: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'Terjadi kesalahan saat menyimpan tanggal cetak'
-        ], 500);
+            // Hitung total tahap
+            $totalTahap1 = Rkas::getTotalTahap1();
+            $totalTahap2 = Rkas::getTotalTahap2();
+
+            // Data untuk view
+            $data = [
+                'penerimaan' => [
+                    'total' => $penganggaran ? $penganggaran->pagu_anggaran : 0,
+                    'items' => [
+                        [
+                            'kode' => '4.3.1.01.',
+                            'uraian' => 'BOS Reguler',
+                            'jumlah' => $penganggaran ? $penganggaran->pagu_anggaran : 0
+                        ]
+                    ]
+                ],
+                'belanja' => $dataTerkelola,
+                'totalTahap1' => $totalTahap1,
+                'totalTahap2' => $totalTahap2
+            ];
+
+            return view('penganggaran.rkas.rekapan', $data);
+        } catch (\Exception $e) {
+            Log::error('Error showing rekapan: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat menampilkan rekapan RKAS: ' . $e->getMessage());
+        }
     }
-}
 }

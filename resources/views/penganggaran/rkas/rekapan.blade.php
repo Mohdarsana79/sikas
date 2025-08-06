@@ -9,14 +9,12 @@
             <!-- Page Title -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h1 class="h3 mb-1 text-gradient">Rekapan</h1>
-                    <p class="mb-0 text-muted">Kelola Rekapan Anda</p>
+                    <h1 class="h3 mb-1 text-gradient">Rekapan RKAS</h1>
+                    <p class="mb-0 text-muted">Rekap Rencana Kegiatan dan Anggaran Sekolah</p>
                 </div>
-                <div class="btn">
-                    <button class="btn btn-primary" id="btnCetak" data-bs-toggle="modal" data-bs-target="#cetakModal"
-                        style="font-size: 9pt;">
-                        <i class="bi bi-printer me-2"></i>
-                        Tanggal Cetak
+                <div class="tanggal-c">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahTanggalCetak">
+                        <i class="bi bi-plus-circle me-2"></i>Tanggal Cetak
                     </button>
                 </div>
             </div>
@@ -63,158 +61,277 @@
                         <!-- Rka Tahapan Tab -->
                         <div class="tab-pane fade show active" id="rka-tahapan" role="tabpanel">
                             <div class="p-4">
-                                <!-- Card Hasil PDF Rkas Tahapan -->
-                                @if(isset($pdfData)
-                                <div class="card mb-4">
-                                    <div class="card-header bg-primary text-white">
-                                        <h5 class="mb-0">
-                                            <i class="bi bi-file-earmark-pdf me-2"></i>
-                                            Hasil Cetak RKAS Tahapan
-                                        </h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label class="fw-bold">Tanggal Cetak:</label>
-                                                    <p>{{ $pdfData->tanggal_cetak ?? 'Belum dicetak' }}</p>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="fw-bold">Total Anggaran Tahap 1:</label>
-                                                    <p>Rp {{ number_format($pdfData->total_tahap1, 0, ',', '.') }}</p>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label class="fw-bold">Status:</label>
-                                                    <p>
-                                                        <span class="badge bg-success">Tercetak</span>
-                                                    </p>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="fw-bold">Total Anggaran Tahap 2:</label>
-                                                    <p>Rp {{ number_format($pdfData->total_tahap2, 0, ',', '.') }}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-center mt-3">
-                                            <a href="{{ route('penganggaran.rkas.generate-pdf') }}" target="_blank" class="btn btn-primary me-2">
-                                                <i class="bi bi-eye me-2"></i>Lihat PDF
-                                            </a>
-                                            <a href="{{ route('penganggaran.rkas.generate-pdf') }}" download class="btn btn-success">
-                                                <i class="bi bi-download me-2"></i>Download PDF
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                @else
-                                <div class="text-center py-5">
-                                    <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
-                                    <p class="text-muted mt-3">Belum Ada RKAS Tahapan</p>
-                                    <a href="{{ route('penganggaran.rkas.generate-pdf') }}" target="_blank" class="btn btn-primary">
-                                        <i class="bi bi-file-earmark-pdf me-2"></i>Generate PDF
+                                <div class="d-flex justify-content-end">
+                                    <a class="btn btn-primary" target="_blank" href="{{ route('penganggaran.rkas.generate-pdf') }}" style="font-size: 9pt;">
+                                        <i class="bi bi-printer me-2"></i>
+                                        Cetak
                                     </a>
                                 </div>
-                                @endif
+                                <section class="penerimaan mb-4">
+                                    <p class="section-title"><strong>A. PENERIMAAN</strong></p>
+                                    <p class="subsection-title"><strong>Sumber Dana :</strong></p>
+                                    <table class="table table-bordered" style="font-size: 10pt;">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 15%;">No Kode</th>
+                                                <th style="width: 60%;">Penerimaan</th>
+                                                <th style="width: 25%;">Jumlah</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($penerimaan['items'] as $item)
+                                                <tr>
+                                                    <td>{{ $item['kode'] }}</td>
+                                                    <td>{{ $item['uraian'] }}</td>
+                                                    <td class="text-right">{{ number_format($item['jumlah'], 0, ',', '.') }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="table-secondary">
+                                                <td colspan="2"><strong>Total Penerimaan</strong></td>
+                                                <td class="text-right"><strong>{{ number_format($penerimaan['total'], 0, ',', '.') }}</strong></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </section>
+
+                                <section class="belanja">
+                                    <p class="section-title"><strong>B. BELANJA</strong></p>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" style="font-size: 10pt;">
+                                            <thead>
+                                                <tr class="justify-content-center align-items-center">
+                                                    <th rowspan="2" style="width: 3%;">No.</th>
+                                                    <th rowspan="2" style="width: 8%;">Kode Rekening</th>
+                                                    <th rowspan="2" style="width: 8%;">Kode Program</th>
+                                                    <th rowspan="2" style="width: 22%;">Uraian</th>
+                                                    <th colspan="3" style="width: 20%;">Rincian Perhitungan</th>
+                                                    <th rowspan="2" style="width: 10%;">Jumlah</th>
+                                                    <th colspan="2" style="width: 20%;">Tahap</th>
+                                                </tr>
+                                                <tr>
+                                                    <th style="width: 6%;">Volume</th>
+                                                    <th style="width: 6%;">Satuan</th>
+                                                    <th style="width: 8%;">Tarif Harga</th>
+                                                    <th style="width: 10%;">1</th>
+                                                    <th style="width: 10%;">2</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @php $counter = 1; @endphp
+                                                @foreach ($belanja as $kodeProgram => $program)
+                                                    <!-- Baris Program -->
+                                                    <tr class="table-primary">
+                                                        <td class="text-center">{{ $counter++ }}</td>
+                                                        <td></td>
+                                                        <td>{{ $kodeProgram }}</td>
+                                                        <td>{{ $program['uraian'] }}</td>
+                                                        <td>-</td>
+                                                        <td>-</td>
+                                                        <td>-</td>
+                                                        <td class="text-right">
+                                                            {{ number_format($program['tahap1'] + $program['tahap2'], 0, ',', '.') }}</td>
+                                                        <td class="text-right">{{ number_format($program['tahap1'], 0, ',', '.') }}</td>
+                                                        <td class="text-right">{{ number_format($program['tahap2'], 0, ',', '.') }}</td>
+                                                    </tr>
+
+                                                    @foreach ($program['sub_programs'] as $kodeSubProgram => $subProgram)
+                                                        <!-- Baris Sub Program -->
+                                                        <tr class="table-secondary">
+                                                            <td class="text-center">{{ $counter++ }}</td>
+                                                            <td></td>
+                                                            <td>{{ $kodeSubProgram }}</td>
+                                                            <td>{{ $subProgram['uraian'] }}</td>
+                                                            <td></td>
+                                                            <td></td>
+                                                            <td></td>
+                                                            <td class="text-right">
+                                                                {{ number_format($subProgram['tahap1'] + $subProgram['tahap2'], 0, ',', '.') }}
+                                                            </td>
+                                                            <td class="text-right">{{ number_format($subProgram['tahap1'], 0, ',', '.') }}</td>
+                                                            <td class="text-right">{{ number_format($subProgram['tahap2'], 0, ',', '.') }}</td>
+                                                        </tr>
+
+                                                        @foreach ($subProgram['uraian_programs'] as $kodeUraian => $uraian)
+                                                            <!-- Baris Uraian Program -->
+                                                            <tr class="table-light">
+                                                                <td class="text-center">{{ $counter++ }}</td>
+                                                                <td></td>
+                                                                <td>{{ $kodeUraian }}</td>
+                                                                <td>{{ $uraian['uraian'] }}</td>
+                                                                <td></td>
+                                                                <td></td>
+                                                                <td></td>
+                                                                <td class="text-right">
+                                                                    {{ number_format($uraian['tahap1'] + $uraian['tahap2'], 0, ',', '.') }}</td>
+                                                                <td class="text-right">{{ number_format($uraian['tahap1'], 0, ',', '.') }}</td>
+                                                                <td class="text-right">{{ number_format($uraian['tahap2'], 0, ',', '.') }}</td>
+                                                            </tr>
+
+                                                            @foreach ($uraian['items'] as $item)
+                                                                <!-- Baris Item Detail -->
+                                                                <tr>
+                                                                    <td class="text-center">{{ $counter++ }}</td>
+                                                                    <td>{{ $item['kode_rekening'] }}</td>
+                                                                    <td>{{ $kodeUraian }}</td>
+                                                                    <td class="detail-item">{{ $item['uraian'] }}</td>
+                                                                    <td class="text-center">{{ $item['volume'] }}</td>
+                                                                    <td class="text-center">{{ $item['satuan'] }}</td>
+                                                                    <td class="text-right">{{ number_format($item['harga_satuan'], 0, ',', '.') }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ number_format($item['tahap1'] + $item['tahap2'], 0, ',', '.') }}</td>
+                                                                    <td class="text-right">{{ number_format($item['tahap1'], 0, ',', '.') }}</td>
+                                                                    <td class="text-right">{{ number_format($item['tahap2'], 0, ',', '.') }}</td>
+                                                                </tr>
+                                                            @endforeach
+                                                        @endforeach
+                                                    @endforeach
+                                                @endforeach
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="table-secondary">
+                                                    <td colspan="7"><strong>Jumlah</strong></td>
+                                                    <td class="text-right"><strong>{{ number_format($totalTahap1 + $totalTahap2, 0, ',', '.') }}</strong></td>
+                                                    <td class="text-right"><strong>{{ number_format($totalTahap1, 0, ',', '.') }}</strong></td>
+                                                    <td class="text-right"><strong>{{ number_format($totalTahap2, 0, ',', '.') }}</strong></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </section>
                             </div>
                         </div>
 
-                        <!-- Tab lainnya tetap sama -->
-                        <!-- ... -->
+                        <!-- Rka Rekap Tab -->
+                        <div class="tab-pane fade" id="rka-rekap" role="tabpanel">
+                            <div class="p-4">
+                                <div class="text-center py-5">
+                                    <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
+                                    <p class="text-muted mt-3">Belum Ada RKA Rekap</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RKA 221 Tab -->
+                        <div class="tab-pane fade" id="rka-221" role="tabpanel">
+                            <div class="p-4">
+                                <div class="text-center py-5">
+                                    <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
+                                    <p class="text-muted mt-3">Belum Ada Lembar RKA 221</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rka Bulanan Tab -->
+                        <div class="tab-pane fade" id="rka-bulan" role="tabpanel">
+                            <div class="p-4">
+                                <div class="text-center py-5">
+                                    <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
+                                    <p class="text-muted mt-3">Belum Ada Rekap Bulanan</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lainnya Tab -->
+                        <div class="tab-pane fade" id="lainnya" role="tabpanel">
+                            <div class="p-4">
+                                <div class="text-center py-5">
+                                    <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
+                                    <p class="text-muted mt-3">Belum ada data lainnya</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Modal Cetak -->
-    <div class="modal fade" id="cetakModal" tabindex="-1" aria-labelledby="cetakModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="cetakModalLabel">
-                        <i class="bi bi-calendar-date me-2"></i>Tanggal Cetak
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    {{-- modal Tambah Tanggal Cetak --}}
+    <!-- Modal Tambah Anggaran -->
+            <div class="modal fade" id="tambahTanggalCetak" tabindex="-1" aria-labelledby="tambahTanggalCetakLabel"
+                aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="tambahTanggalCetakLabel">Tanggal Cetak</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form action="" method="POST">
+                            @csrf
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="tanggal_cetak" class="form-label">Tanggal Cetak</label>
+                                    <input type="date" class="form-control" id="tanggal_cetak" name="tanggal_cetak" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-primary">Simpan</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-                <form id="formCetak" method="POST" action="{{ route('penganggaran.rkas.simpan-tanggal-cetak') }}">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="tanggal_cetak" class="form-label">Pilih Tanggal Cetak</label>
-                            <input type="date" class="form-control" id="tanggal_cetak" name="tanggal_cetak" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="keterangan" class="form-label">Keterangan (Opsional)</label>
-                            <textarea class="form-control" id="keterangan" name="keterangan" rows="3"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save me-2"></i>Simpan
-                        </button>
-                    </div>
-                </form>
             </div>
-        </div>
-    </div>
-
     <style>
-        .card-header {
-            border-radius: 0.375rem 0.375rem 0 0 !important;
+        .section-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin: 15px 0 10px 0;
+        }
+        
+        .subsection-title {
+            font-weight: bold;
+            font-size: 1rem;
+            margin: 10px 0;
+        }
+        
+        .detail-item {
+            padding-left: 30px;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        @media print {
+            body {
+                font-size: 10pt;
+                background: none;
+                color: #000;
+            }
+            
+            .nav-tabs, .card-header, .btn {
+                display: none !important;
+            }
+            
+            .tab-content > .tab-pane {
+                display: block !important;
+                opacity: 1 !important;
+            }
+            
+            .card {
+                border: none;
+                box-shadow: none;
+            }
+            
+            table {
+                page-break-inside: auto;
+            }
+            
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            
+            thead {
+                display: table-header-group;
+            }
+            
+            tfoot {
+                display: table-footer-group;
+            }
         }
     </style>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Inisialisasi datepicker dengan tanggal hari ini
-            document.getElementById('tanggal_cetak').valueAsDate = new Date();
-            
-            // Handle form submission
-            document.getElementById('formCetak').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const formData = new FormData(this);
-                const submitButton = this.querySelector('button[type="submit"]');
-                
-                // Show loading
-                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
-                submitButton.disabled = true;
-                
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Close modal
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('cetakModal'));
-                        modal.hide();
-                        
-                        // Show success message
-                        alert('Tanggal cetak berhasil disimpan');
-                        
-                        // Reload page to show updated data
-                        window.location.reload();
-                    } else {
-                        alert('Gagal menyimpan tanggal cetak: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Terjadi kesalahan saat menyimpan data');
-                })
-                .finally(() => {
-                    submitButton.innerHTML = '<i class="bi bi-save me-2"></i>Simpan';
-                    submitButton.disabled = false;
-                });
-            });
-        });
-    </script>
 @endsection

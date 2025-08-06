@@ -13,4 +13,9 @@ class RekeningBelanja extends Model
         'rincian_objek',
         'kategori'
     ];
+
+    public function rkas()
+{
+    return $this->hasMany(Rkas::class, 'kode_rekening_id');
+}
 }
