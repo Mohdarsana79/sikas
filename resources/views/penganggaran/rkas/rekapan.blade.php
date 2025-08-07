@@ -12,11 +12,18 @@
                     <h1 class="h3 mb-1 text-gradient">Rekapan RKAS</h1>
                     <p class="mb-0 text-muted">Rekap Rencana Kegiatan dan Anggaran Sekolah</p>
                 </div>
-                <div class="tanggal-c">
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahTanggalCetak">
-                        <i class="bi bi-plus-circle me-2"></i>Tanggal Cetak
-                    </button>
-                </div>
+                <div class="tanggal-cetak" style="font-size: 10pt;">
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#editTanggalCetak" style="font-size: 10pt;">
+        <i class="bi bi-calendar-heart me-2"></i>Tanggal Cetak
+    </button>
+    <span class="ms-2">Tanggal Cetak: 
+        @if($penganggaran->tanggal_cetak)
+            {{ \Carbon\Carbon::parse($penganggaran->tanggal_cetak)->format('d/m/Y') }}
+        @else
+            Belum diisi
+        @endif
+    </span>
+</div>
             </div>
 
             <!-- Card Penganggaran -->
@@ -207,20 +214,203 @@
                         <!-- Rka Rekap Tab -->
                         <div class="tab-pane fade" id="rka-rekap" role="tabpanel">
                             <div class="p-4">
-                                <div class="text-center py-5">
-                                    <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
-                                    <p class="text-muted mt-3">Belum Ada RKA Rekap</p>
+                                <div class="d-flex justify-content-end mb-3">
+                                    <a class="btn btn-primary" target="_window" href="{{ route('penganggaran.rkas.generate-pdf-rekap') }}" style="font-size: 9pt;">
+                                        <i class="bi bi-printer me-2"></i>
+                                        Cetak
+                                    </a>
                                 </div>
+                        
+                                <!-- Penerimaan Section -->
+                                <section class="penerimaan mb-4">
+                                    <p class="section-title"><strong>A. PENERIMAAN</strong></p>
+                                    <p class="subsection-title"><strong>Sumber Dana :</strong></p>
+                                    <table class="table table-bordered" style="font-size: 10pt;">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 15%;">No Kode</th>
+                                                <th style="width: 60%;">Penerimaan</th>
+                                                <th style="width: 25%;">Jumlah</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($penerimaan['items'] as $item)
+                                            <tr>
+                                                <td>{{ $item['kode'] }}</td>
+                                                <td>{{ $item['uraian'] }}</td>
+                                                <td class="text-right">{{ number_format($item['jumlah'], 0, ',', '.') }}</td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="table-secondary">
+                                                <td colspan="2"><strong>Total Penerimaan</strong></td>
+                                                <td class="text-right"><strong>{{ number_format($penerimaan['total'], 0, ',', '.') }}</strong>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </section>
+                        
+                                <!-- Belanja Section -->
+                                <section class="belanja">
+                                    <p class="section-title"><strong>B. REKAPITULASI ANGGARAN</strong></p>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" style="font-size: 10pt;">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 15%;">Kode Rekening</th>
+                                                    <th style="width: 65%;">Uraian</th>
+                                                    <th style="width: 20%;">Jumlah (Rp)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($rekapData as $item)
+                                                <tr
+                                                    class="{{ in_array($item['uraian'], ['JUMLAH PENDAPATAN', 'JUMLAH BELANJA', 'DEFISIT']) ? 'table-secondary' : '' }}">
+                                                    <td>{{ $item['kode'] }}</td>
+                                                    <td>{{ $item['uraian'] }}</td>
+                                                    <td class="text-right">
+                                                        @if($item['jumlah'] === '-')
+                                                        -
+                                                        @else
+                                                        {{ number_format($item['jumlah'], 0, ',', '.') }}
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+                        
+                                <!-- Tahapan Section -->
+                                <section class="tahapan mt-4">
+                                    <p class="section-title"><strong>C. RENCANA PELAKSANAAN ANGGARAN PER TAHAP</strong></p>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" style="font-size: 10pt;">
+                                            <thead>
+                                                <tr>
+                                                    <th rowspan="2" style="width: 5%;">No</th>
+                                                    <th rowspan="2" style="width: 50%;">Uraian</th>
+                                                    <th colspan="2" style="width: 30%;">Tahap</th>
+                                                    <th rowspan="2" style="width: 15%;">Jumlah</th>
+                                                </tr>
+                                                <tr>
+                                                    <th style="width: 15%;">I</th>
+                                                    <th style="width: 15%;">II</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>1</td>
+                                                    <td>Pendapatan</td>
+                                                    <td class="text-right">{{ number_format($penerimaan['total'] / 2, 0, ',', '.') }}</td>
+                                                    <td class="text-right">{{ number_format($penerimaan['total'] / 2, 0, ',', '.') }}</td>
+                                                    <td class="text-right">{{ number_format($penerimaan['total'], 0, ',', '.') }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>2.1</td>
+                                                    <td>Belanja Operasi</td>
+                                                    <td class="text-right">{{ number_format($totalTahap1, 0, ',', '.') }}</td>
+                                                    <td class="text-right">{{ number_format($totalTahap2, 0, ',', '.') }}</td>
+                                                    <td class="text-right">{{ number_format($totalTahap1 + $totalTahap2, 0, ',', '.') }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>2.2</td>
+                                                    <td>Belanja Modal</td>
+                                                    <td class="text-right">0</td>
+                                                    <td class="text-right">0</td>
+                                                    <td class="text-right">0</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
                             </div>
                         </div>
 
                         <!-- RKA 221 Tab -->
                         <div class="tab-pane fade" id="rka-221" role="tabpanel">
                             <div class="p-4">
-                                <div class="text-center py-5">
-                                    <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
-                                    <p class="text-muted mt-3">Belum Ada Lembar RKA 221</p>
-                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="mb-0">LEMBAR KERTAS KERJA</h5>
+                                    <a class="btn btn-primary btn-sm" href="{{ route('penganggaran.rkas.generate-rka-221-pdf') }}"
+                                        target="_blank">
+                                        <i class="bi bi-printer me-2"></i>Cetak
+                                    </a>
+                                </div>                      
+                                <!-- Tabel Indikator Kinerja -->
+                                <table class="table table-bordered mb-4" style="font-size: 10pt;">
+                                    <thead>
+                                        <tr>
+                                            <th colspan="3" class="text-center">Indikator & Tolok Ukur Kinerja Belanja Langsung</th>
+                                        </tr>
+                                        <tr>
+                                            <th style="width: 40%">Indikator</th>
+                                            <th style="width: 40%">Tolok Ukur Kinerja</th>
+                                            <th style="width: 20%">Target Kinerja</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($indikatorKinerja as $indikator)
+                                        <tr>
+                                            <td>{{ $indikator['indikator'] }}</td>
+                                            <td>{{ $indikator['tolok_ukur'] }}</td>
+                                            <td class="text-right">{{ $indikator['target'] }}</td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                        
+                                <!-- Tabel Rincian Anggaran -->
+                                <table class="table table-bordered" style="font-size: 10pt;">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" style="width: 15%">Kode Rekening</th>
+                                            <th rowspan="2" style="width: 35%">Uraian</th>
+                                            <th colspan="3" style="width: 30%">Rincian Perhitungan</th>
+                                            <th rowspan="2" style="width: 20%">Jumlah (Rp)</th>
+                                        </tr>
+                                        <tr>
+                                            <th style="width: 10%">Volume</th>
+                                            <th style="width: 10%">Satuan</th>
+                                            <th style="width: 10%">Harga Satuan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Di dalam tab RKA 221 -->
+                                        @foreach($mainStructure as $kode => $uraian)
+                                        <!-- Baris Kode Utama -->
+                                        <tr style="background-color: #f8f9fa;">
+                                            <td>{{ $kode }}</td>
+                                            <td>{{ $uraian }}</td>
+                                            <td colspan="3"></td>
+                                            <td class="text-right">{{ number_format($totals[$kode] ?? 0, 0, ',', '.') }}</td>
+                                        </tr>
+                                        
+                                        <!-- Detail Item -->
+                                        @if(isset($groupedItems[$kode]))
+                                        @foreach($groupedItems[$kode] as $item)
+                                        <tr>
+                                            <td>{{ $item['kode_rekening'] }}</td>
+                                            <td>{{ $item['uraian'] }}</td>
+                                            <td class="text-center">{{ $item['volume'] }}</td>
+                                            <td class="text-center">{{ $item['satuan'] }}</td>
+                                            <td class="text-right">{{ number_format($item['harga_satuan'], 0, ',', '.') }}</td>
+                                            <td class="text-right">{{ number_format($item['jumlah'], 0, ',', '.') }}</td>
+                                        </tr>
+                                        @endforeach
+                                        @endif
+                                        @endforeach
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="background-color: #e9ecef;">
+                                            <td colspan="5" class="text-center"><strong>Jumlah</strong></td>
+                                            <td class="text-right"><strong>{{ number_format($total_anggaran ?? 0, 0, ',', '.') }}</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
                         </div>
 
@@ -248,32 +438,33 @@
             </div>
         </div>
     </div>
-    {{-- modal Tambah Tanggal Cetak --}}
-    <!-- Modal Tambah Anggaran -->
-            <div class="modal fade" id="tambahTanggalCetak" tabindex="-1" aria-labelledby="tambahTanggalCetakLabel"
-                aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="tambahTanggalCetakLabel">Tanggal Cetak</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <form action="" method="POST">
-                            @csrf
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label for="tanggal_cetak" class="form-label">Tanggal Cetak</label>
-                                    <input type="date" class="form-control" id="tanggal_cetak" name="tanggal_cetak" required>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                <button type="submit" class="btn btn-primary">Simpan</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+        {{-- modal Edit Tanggal Cetak --}}
+<div class="modal fade" id="editTanggalCetak" tabindex="-1" aria-labelledby="editTanggalCetakLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTanggalCetakLabel">Tanggal Cetak</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <form action="{{ route('penganggaran.update-tanggal-cetak', $penganggaran->id) }}" method="POST">
+    @csrf
+    @method('PUT')
+    <div class="modal-body">
+        <div class="mb-3">
+            <label for="edit_tanggal_cetak" class="form-label">Tanggal Cetak</label>
+            <input type="date" class="form-control" id="edit_tanggal_cetak" name="tanggal_cetak" 
+                   value="{{ $penganggaran->tanggal_cetak ? \Carbon\Carbon::parse($penganggaran->tanggal_cetak)->format('Y-m-d') : '' }}" required>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="submit" class="btn btn-primary">Update</button>
+    </div>
+</form>
+        </div>
+    </div>
+</div>
+    </div>
     <style>
         .section-title {
             font-weight: bold;

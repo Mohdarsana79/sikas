@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('komite');
             $table->string('nip_kepala_sekolah');
             $table->string('nip_bendahara');
+            $table->date('tanggal_cetak')->nullable();
             $table->timestamps();
         });
     }

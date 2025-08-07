@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Carbon\Carbon;
 
 class Penganggaran extends Model
 {
@@ -20,6 +21,7 @@ class Penganggaran extends Model
         'komite',
         'nip_kepala_sekolah',
         'nip_bendahara',
+        'tanggal_cetak'
     ];
 
     protected $casts = [
@@ -37,5 +39,35 @@ class Penganggaran extends Model
     public function rkas()
     {
         return $this->hasMany(Rkas::class);
+    }
+
+    public function getFormatTanggalCetakAttribute()
+    {
+        if ($this->tanggal_cetak) {
+            return $this->formatTanggalIndonesia($this->tanggal_cetak);
+        }
+        return 'Belum diisi';
+    }
+
+    private function formatTanggalIndonesia($date)
+    {
+        // Daftar nama bulan dalam bahasa Indonesia
+        $bulan = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember'
+        ];
+
+        $date = Carbon::parse($date);
+        return $date->day . ' ' . $bulan[$date->month] . ' ' . $date->year;
     }
 }

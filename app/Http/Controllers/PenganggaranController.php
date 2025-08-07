@@ -38,6 +38,7 @@ class PenganggaranController extends Controller
             'komite' => 'required|string|max:255',
             'nip_kepala_sekolah' => 'required|string|max:255',
             'nip_bendahara' => 'required|string|max:255',
+            'tanggal_cetak' => 'nullable|date',
         ]);
 
         // Format angka sebelum disimpan
@@ -50,7 +51,8 @@ class PenganggaranController extends Controller
             'nip_kepala_sekolah' => $request->nip_kepala_sekolah,
             'bendahara' => $request->bendahara,
             'nip_bendahara' => $request->nip_bendahara,
-            'komite' => $request->komite
+            'komite' => $request->komite,
+            'tanggal_cetak' => $request->tanggal_cetak,
         ]);
 
         return redirect()->route('penganggaran.index')
@@ -101,7 +103,8 @@ class PenganggaranController extends Controller
             'nip_kepala_sekolah' => $request->nip_kepala_sekolah,
             'bendahara' => $request->bendahara,
             'nip_bendahara' => $request->nip_bendahara,
-            'komite' => $request->komite
+            'komite' => $request->komite,
+            'tanggal_cetak' => $request->tanggal_cetak,
         ]);
 
         return redirect()->route('penganggaran.index')
@@ -119,5 +122,20 @@ class PenganggaranController extends Controller
         $anggaran->delete();
         return redirect()->route('penganggaran.index')
             ->with('success', 'Data anggaran berhasil dihapus');
+    }
+
+    public function updateTanggalCetak(Request $request, $id)
+    {
+        $request->validate([
+            'tanggal_cetak' => 'nullable|date',
+        ]);
+
+        $anggaran = Penganggaran::findOrFail($id);
+        $anggaran->update([
+            'tanggal_cetak' => $request->tanggal_cetak,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Tanggal cetak berhasil diperbarui');
     }
 }

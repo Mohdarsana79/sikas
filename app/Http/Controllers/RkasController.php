@@ -457,7 +457,6 @@ class RkasController extends Controller
     public function generatePdf()
     {
         try {
-
             // Ambil semua data RKAS dikelompokkan berdasarkan kode kegiatan
             $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
                 ->orderBy('kode_id')
@@ -466,13 +465,13 @@ class RkasController extends Controller
                     return optional($item->kodeKegiatan)->kode;
                 })
                 ->filter(function ($group, $key) {
-                    return !is_null($key); // Filter out null keys
+                    return !is_null($key);
                 });
 
             // Ambil data penganggaran terbaru
             $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
 
-            // Ambil data sekolah (harusnya hanya ada 1 data)
+            // Ambil data sekolah
             $sekolah = Sekolah::first();
 
             if (!$sekolah) {
@@ -499,8 +498,9 @@ class RkasController extends Controller
                 'komite' => $penganggaran->komite
             ];
 
-            // Data penerimaan dari penganggaran
+            // Data penerimaan
             $penerimaan = [
+                'penganggaran' => $penganggaran,
                 'total' => $penganggaran->pagu_anggaran,
                 'items' => [
                     [
@@ -515,8 +515,13 @@ class RkasController extends Controller
             $totalTahap1 = Rkas::getTotalTahap1();
             $totalTahap2 = Rkas::getTotalTahap2();
 
-            // Organisasikan data RKAS ke dalam struktur hierarkis
+            // Organisasikan data RKAS
             $dataTerkelola = $this->kelolaDataRkas($rkasData);
+
+            // Format tanggal cetak menggunakan accessor dari model
+            $tanggalCetak = [
+                'tanggal_cetak' => $penganggaran->format_tanggal_cetak // Menggunakan accessor
+            ];
 
             $pdf = PDF::loadView('penganggaran.rkas.rkas-tahap-pdf', [
                 'dataSekolah' => $dataSekolah,
@@ -524,7 +529,9 @@ class RkasController extends Controller
                 'belanja' => $dataTerkelola,
                 'totalTahap1' => $totalTahap1,
                 'totalTahap2' => $totalTahap2,
-                'totalBelanja' => $totalTahap1 + $totalTahap2
+                'totalBelanja' => $totalTahap1 + $totalTahap2,
+                'tanggalCetak' => $tanggalCetak,
+                'penganggaran' => $penganggaran
             ]);
 
             return $pdf->stream('RKAS-Tahap.pdf');
@@ -665,10 +672,23 @@ class RkasController extends Controller
     public function showRekapan()
     {
         try {
-            // Ambil data penganggaran terbaru
             $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            $sekolah = Sekolah::first();
 
-            // Ambil data RKAS dengan relasi lengkap
+            if (!$penganggaran || !$sekolah) {
+                throw new \Exception("Data penganggaran atau sekolah tidak ditemukan");
+            }
+
+            // Data indikator kinerja untuk semua tab
+            $indikatorKinerja = [
+                ['indikator' => 'Capaian Program', 'tolok_ukur' => '', 'target' => ''],
+                ['indikator' => 'Masukan', 'tolok_ukur' => 'Dana', 'target' => number_format($penganggaran->pagu_anggaran, 0, ',', '.')],
+                ['indikator' => 'Keluaran', 'tolok_ukur' => '', 'target' => ''],
+                ['indikator' => 'Hasil', 'tolok_ukur' => '', 'target' => ''],
+                ['indikator' => 'Sasaran Keg', 'tolok_ukur' => '', 'target' => '']
+            ];
+
+            // Data untuk RKAS Tahapan (tanpa perubahan)
             $rkasData = Rkas::with([
                 'kodeKegiatan' => function ($query) {
                     $query->select('id', 'kode', 'program', 'sub_program', 'uraian');
@@ -676,40 +696,561 @@ class RkasController extends Controller
                 'rekeningBelanja' => function ($query) {
                     $query->select('id', 'kode_rekening', 'rincian_objek');
                 }
-            ])
-                ->orderBy('kode_id')
-                ->get();
+            ])->orderBy('kode_id')->get();
 
-            // Organisasikan data RKAS ke dalam struktur hierarkis
             $dataTerkelola = $this->kelolaDataRkas($rkasData->groupBy(function ($item) {
                 return optional($item->kodeKegiatan)->kode;
             }));
+
+            // Data untuk RKA Rekap (tanpa perubahan)
+            $rekapData = $this->getRekapRkas();
+
+            // Data untuk Lembar Kerja 221 (dengan penggabungan)
+            $rkasDetail = Rkas::with(['rekeningBelanja'])
+                ->orderBy('kode_rekening_id')
+                ->get();
+
+            // Struktur untuk Lembar Kerja 221
+            $mainStructure = [
+                '5' => 'BELANJA',
+                '5.1' => 'BELANJA OPERASI',
+                '5.1.02' => 'BELANJA BARANG DAN JASA',
+                '5.2' => 'BELANJA MODAL',
+                '5.2.02' => 'BELANJA MODAL PERALATAN DAN MESIN',
+                '5.2.04' => 'BELANJA MODAL JALAN, JARINGAN, DAN IRIGASI',
+                '5.2.05' => 'BELANJA MODAL ASET TETAP LAINNYA'
+            ];
+
+            // Kelompokkan item untuk RKA 221 dengan menggabungkan yang sama
+            $groupedItemsFor221 = [];
+            foreach ($rkasDetail as $item) {
+                $kode = $item->rekeningBelanja->kode_rekening;
+                $uraian = $item->uraian;
+                $hargaSatuan = $item->harga_satuan;
+                $mainCode = $this->findClosestMainCode($kode, array_keys($mainStructure));
+
+                $key = $kode . '-' . $uraian . '-' . $hargaSatuan;
+
+                if (!isset($groupedItemsFor221[$mainCode])) {
+                    $groupedItemsFor221[$mainCode] = [];
+                }
+
+                if (!isset($groupedItemsFor221[$mainCode][$key])) {
+                    $groupedItemsFor221[$mainCode][$key] = [
+                        'kode_rekening' => $kode,
+                        'uraian' => $uraian,
+                        'volume' => $item->jumlah,
+                        'satuan' => $item->satuan,
+                        'harga_satuan' => $hargaSatuan,
+                        'jumlah' => $item->jumlah * $hargaSatuan
+                    ];
+                } else {
+                    // Gabungkan volume dan hitung ulang jumlah
+                    $groupedItemsFor221[$mainCode][$key]['volume'] += $item->jumlah;
+                    $groupedItemsFor221[$mainCode][$key]['jumlah'] = $groupedItemsFor221[$mainCode][$key]['volume'] * $hargaSatuan;
+                }
+            }
+
+            // Hitung total per kode utama untuk RKA 221
+            $totalsFor221 = [];
+            foreach ($mainStructure as $kode => $uraian) {
+                $totalsFor221[$kode] = 0;
+                if (isset($groupedItemsFor221[$kode])) {
+                    foreach ($groupedItemsFor221[$kode] as $item) {
+                        $totalsFor221[$kode] += $item['jumlah'];
+                    }
+                }
+            }
 
             // Hitung total tahap
             $totalTahap1 = Rkas::getTotalTahap1();
             $totalTahap2 = Rkas::getTotalTahap2();
 
-            // Data untuk view
-            $data = [
+            return view('penganggaran.rkas.rekapan', [
+                'penganggaran' => $penganggaran,
+                'sekolah' => $sekolah,
+                'indikatorKinerja' => $indikatorKinerja,
                 'penerimaan' => [
-                    'total' => $penganggaran ? $penganggaran->pagu_anggaran : 0,
+                    'total' => $penganggaran->pagu_anggaran,
                     'items' => [
                         [
                             'kode' => '4.3.1.01.',
                             'uraian' => 'BOS Reguler',
-                            'jumlah' => $penganggaran ? $penganggaran->pagu_anggaran : 0
+                            'jumlah' => $penganggaran->pagu_anggaran
                         ]
                     ]
                 ],
                 'belanja' => $dataTerkelola,
                 'totalTahap1' => $totalTahap1,
-                'totalTahap2' => $totalTahap2
-            ];
-
-            return view('penganggaran.rkas.rekapan', $data);
+                'totalTahap2' => $totalTahap2,
+                'rekapData' => $rekapData,
+                // Data khusus untuk Lembar Kerja 221
+                'mainStructure' => $mainStructure,
+                'groupedItems' => $groupedItemsFor221,
+                'totals' => $totalsFor221,
+                'total_anggaran' => $penganggaran->pagu_anggaran
+            ]);
         } catch (\Exception $e) {
             Log::error('Error showing rekapan: ' . $e->getMessage());
             return back()->with('error', 'Terjadi kesalahan saat menampilkan rekapan RKAS: ' . $e->getMessage());
         }
+    }
+
+    private function getRekapRkas()
+    {
+        try {
+            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            $rkasData = Rkas::with(['rekeningBelanja'])->get();
+
+            // 1. Hitung semua jumlah berdasarkan kode rekening
+            $belanjaTotal = 0;
+            $belanjaOperasi = 0;
+            $belanjaBarangJasa = 0;
+            $belanjaBarang = 0;
+            $belanjaJasa = 0;
+            $belanjaPemeliharaan = 0;
+            $belanjaPerjalanan = 0;
+            $belanjaModal = 0;
+            $belanjaModalPeralatan = 0;
+            $belanjaModalJalan = 0;
+            $belanjaModalAset = 0;
+
+            foreach ($rkasData as $item) {
+                $kode = $item->rekeningBelanja->kode_rekening;
+                $jumlah = $item->jumlah * $item->harga_satuan;
+
+                // 5 - BELANJA
+                if (strpos($kode, '5') === 0) {
+                    $belanjaTotal += $jumlah;
+                }
+
+                // 5.1 - BELANJA OPERASI
+                if (strpos($kode, '5.1') === 0) {
+                    $belanjaOperasi += $jumlah;
+                }
+
+                // 5.1.02 - BELANJA BARANG DAN JASA
+                if (strpos($kode, '5.1.02') === 0) {
+                    $belanjaBarangJasa += $jumlah;
+                }
+
+                // 5.1.02.01 - BELANJA BARANG
+                if (strpos($kode, '5.1.02.01') === 0) {
+                    $belanjaBarang += $jumlah;
+                }
+
+                // 5.1.02.02 - BELANJA JASA
+                if (strpos($kode, '5.1.02.02') === 0) {
+                    $belanjaJasa += $jumlah;
+                }
+
+                // 5.1.02.03 - BELANJA PEMELIHARAAN
+                if (strpos($kode, '5.1.02.03') === 0) {
+                    $belanjaPemeliharaan += $jumlah;
+                }
+
+                // 5.1.02.04 - BELANJA PERJALANAN DINAS
+                if (strpos($kode, '5.1.02.04') === 0) {
+                    $belanjaPerjalanan += $jumlah;
+                }
+
+                // 5.2 - BELANJA MODAL
+                if (strpos($kode, '5.2') === 0) {
+                    $belanjaModal += $jumlah;
+                }
+
+                // 5.2.02 - BELANJA MODAL PERALATAN DAN MESIN
+                if (strpos($kode, '5.2.02') === 0) {
+                    $belanjaModalPeralatan += $jumlah;
+                }
+
+                // 5.2.04 - BELANJA MODAL JALAN, JARINGAN, DAN IRIGASI
+                if (strpos($kode, '5.2.04') === 0) {
+                    $belanjaModalJalan += $jumlah;
+                }
+
+                // 5.2.05 - BELANJA MODAL ASET TETAP LAINNYA
+                if (strpos($kode, '5.2.05') === 0) {
+                    $belanjaModalAset += $jumlah;
+                }
+            }
+
+            $totalPendapatan = $penganggaran ? $penganggaran->pagu_anggaran : 0;
+            $defisit = $totalPendapatan - $belanjaTotal;
+
+            // Format data untuk ditampilkan
+            $rekapData = [];
+
+            // 1. PENDAPATAN
+            $rekapData[] = [
+                'kode' => '',
+                'uraian' => 'JUMLAH PENDAPATAN',
+                'jumlah' => $totalPendapatan
+            ];
+
+            // 2. BELANJA
+            $rekapData[] = [
+                'kode' => '5',
+                'uraian' => 'BELANJA',
+                'jumlah' => $belanjaTotal > 0 ? $belanjaTotal : '-'
+            ];
+
+            // 3. BELANJA OPERASI
+            $rekapData[] = [
+                'kode' => '5.1',
+                'uraian' => 'BELANJA OPERASI',
+                'jumlah' => $belanjaOperasi > 0 ? $belanjaOperasi : '-'
+            ];
+
+            // 4. BELANJA BARANG DAN JASA
+            $rekapData[] = [
+                'kode' => '5.1.02',
+                'uraian' => 'BELANJA BARANG DAN JASA',
+                'jumlah' => $belanjaBarangJasa > 0 ? $belanjaBarangJasa : '-'
+            ];
+
+            // 5. BELANJA BARANG
+            $rekapData[] = [
+                'kode' => '5.1.02.01',
+                'uraian' => 'BELANJA BARANG',
+                'jumlah' => $belanjaBarang > 0 ? $belanjaBarang : '-'
+            ];
+
+            // 6. BELANJA JASA
+            $rekapData[] = [
+                'kode' => '5.1.02.02',
+                'uraian' => 'BELANJA JASA',
+                'jumlah' => $belanjaJasa > 0 ? $belanjaJasa : '-'
+            ];
+
+            // 7. BELANJA PEMELIHARAAN
+            $rekapData[] = [
+                'kode' => '5.1.02.03',
+                'uraian' => 'BELANJA PEMELIHARAAN',
+                'jumlah' => $belanjaPemeliharaan > 0 ? $belanjaPemeliharaan : '-'
+            ];
+
+            // 8. BELANJA PERJALANAN DINAS
+            $rekapData[] = [
+                'kode' => '5.1.02.04',
+                'uraian' => 'BELANJA PERJALANAN DINAS',
+                'jumlah' => $belanjaPerjalanan > 0 ? $belanjaPerjalanan : '-'
+            ];
+
+            // 9. BELANJA MODAL
+            $rekapData[] = [
+                'kode' => '5.2',
+                'uraian' => 'BELANJA MODAL',
+                'jumlah' => $belanjaModal > 0 ? $belanjaModal : '-'
+            ];
+
+            // 10. BELANJA MODAL PERALATAN DAN MESIN
+            $rekapData[] = [
+                'kode' => '5.2.02',
+                'uraian' => 'BELANJA MODAL PERALATAN DAN MESIN',
+                'jumlah' => $belanjaModalPeralatan > 0 ? $belanjaModalPeralatan : '-'
+            ];
+
+            // 11. BELANJA MODAL JALAN, JARINGAN, DAN IRIGASI
+            $rekapData[] = [
+                'kode' => '5.2.04',
+                'uraian' => 'BELANJA MODAL JALAN, JARINGAN, DAN IRIGASI',
+                'jumlah' => $belanjaModalJalan > 0 ? $belanjaModalJalan : '-'
+            ];
+
+            // 12. BELANJA MODAL ASET TETAP LAINNYA
+            $rekapData[] = [
+                'kode' => '5.2.05',
+                'uraian' => 'BELANJA MODAL ASET TETAP LAINNYA',
+                'jumlah' => $belanjaModalAset > 0 ? $belanjaModalAset : '-'
+            ];
+
+            // 13. TOTAL BELANJA
+            $rekapData[] = [
+                'kode' => '',
+                'uraian' => 'JUMLAH BELANJA',
+                'jumlah' => $belanjaTotal
+            ];
+
+            // 14. DEFISIT
+            $rekapData[] = [
+                'kode' => '',
+                'uraian' => 'DEFISIT',
+                'jumlah' => $defisit
+            ];
+
+            return $rekapData;
+        } catch (\Exception $e) {
+            Log::error('Error getting rekap RKAS: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function generatePdfRkaRekap()
+    {
+        try {
+            // Ambil data penganggaran terbaru
+            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+
+            // Ambil data sekolah
+            $sekolah = Sekolah::first();
+
+            if (!$sekolah) {
+                throw new \Exception("Data sekolah belum tersedia");
+            }
+
+            if (!$penganggaran) {
+                throw new \Exception("Data penganggaran belum tersedia");
+            }
+
+            // Data sekolah untuk PDF
+            $dataSekolah = [
+                'npsn' => $sekolah->npsn,
+                'nama' => $sekolah->nama_sekolah,
+                'alamat' => $sekolah->alamat,
+                'kabupaten' => $sekolah->kabupaten_kota,
+                'provinsi' => $sekolah->provinsi,
+                'tahun_anggaran' => $penganggaran->tahun_anggaran,
+                'kepala_sekolah' => $penganggaran->kepala_sekolah,
+                'nip_kepala_sekolah' => $penganggaran->nip_kepala_sekolah,
+                'bendahara' => $penganggaran->bendahara,
+                'nip_bendahara' => $penganggaran->nip_bendahara,
+                'komite' => $penganggaran->komite
+            ];
+
+            // Data penerimaan
+            $penerimaan = [
+                'total' => $penganggaran->pagu_anggaran,
+                'items' => [
+                    [
+                        'kode' => '4.3.1.01.',
+                        'uraian' => 'BOS Reguler',
+                        'jumlah' => $penganggaran->pagu_anggaran
+                    ]
+                ]
+            ];
+
+            // Data belanja (rekap)
+            $rekapData = $this->getRekapRkas();
+
+            // Data tahapan
+            $totalTahap1 = Rkas::getTotalTahap1();
+            $totalTahap2 = Rkas::getTotalTahap2();
+
+            // Format tanggal cetak
+            $tanggalCetak = [
+                'tanggal_cetak' => $penganggaran->format_tanggal_cetak
+            ];
+
+            $pdf = PDF::loadView('penganggaran.rkas.rka-rekap-pdf', [
+                'dataSekolah' => $dataSekolah,
+                'penerimaan' => $penerimaan,
+                'rekapData' => $rekapData,
+                'totalTahap1' => $totalTahap1,
+                'totalTahap2' => $totalTahap2,
+                'tanggalCetak' => $tanggalCetak,
+                'penganggaran' => $penganggaran
+            ]);
+
+            return $pdf->stream('RKA-Rekap.pdf');
+        } catch (\Exception $e) {
+            Log::error('Error saat membuat PDF RKA Rekap: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghasilkan PDF RKA Rekap: ' . $e->getMessage());
+        }
+    }
+
+    public function rekapRkaDuaSatu()
+    {
+        try {
+            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            $sekolah = Sekolah::first();
+
+            if (!$penganggaran || !$sekolah) {
+                throw new \Exception("Data penganggaran atau sekolah tidak ditemukan");
+            }
+
+            // Data indikator kinerja
+            $indikatorKinerja = [
+                ['indikator' => 'Capaian Program', 'tolok_ukur' => '', 'target' => ''],
+                ['indikator' => 'Masukan', 'tolok_ukur' => 'Dana', 'target' => number_format($penganggaran->pagu_anggaran, 0, ',', '.')],
+                ['indikator' => 'Keluaran', 'tolok_ukur' => '', 'target' => ''],
+                ['indikator' => 'Hasil', 'tolok_ukur' => '', 'target' => ''],
+                ['indikator' => 'Sasaran Keg', 'tolok_ukur' => '', 'target' => '']
+            ];
+
+            // Data untuk tabel rincian anggaran
+            $rkasData = Rkas::with(['rekeningBelanja'])
+                ->orderBy('kode_rekening_id')
+                ->get();
+
+            // Struktur hierarkis kode rekening utama
+            $mainStructure = [
+                '5' => 'BELANJA',
+                '5.1' => 'BELANJA OPERASI',
+                '5.1.02' => 'BELANJA BARANG DAN JASA',
+                '5.2' => 'BELANJA MODAL',
+                '5.2.02' => 'BELANJA MODAL PERALATAN DAN MESIN',
+                '5.2.04' => 'BELANJA MODAL JALAN, JARINGAN, DAN IRIGASI',
+                '5.2.05' => 'BELANJA MODAL ASET TETAP LAINNYA'
+            ];
+
+            // Kelompokkan item berdasarkan kode utama
+            $groupedItems = [];
+            foreach ($rkasData as $item) {
+                $kode = $item->rekeningBelanja->kode_rekening;
+
+                // Temukan kode utama terdekat
+                $mainCode = $this->findClosestMainCode($kode, array_keys($mainStructure));
+
+                if (!isset($groupedItems[$mainCode])) {
+                    $groupedItems[$mainCode] = [];
+                }
+
+                $groupedItems[$mainCode][] = [
+                    'kode_rekening' => $kode,
+                    'uraian' => $item->uraian,
+                    'volume' => $item->jumlah,
+                    'satuan' => $item->satuan,
+                    'harga_satuan' => $item->harga_satuan,
+                    'jumlah' => $item->jumlah * $item->harga_satuan
+                ];
+            }
+
+            // Hitung total per kode utama
+            $totals = [];
+            foreach ($mainStructure as $kode => $uraian) {
+                $totals[$kode] = 0;
+                foreach ($rkasData as $item) {
+                    if (strpos($item->rekeningBelanja->kode_rekening, $kode) === 0) {
+                        $totals[$kode] += $item->jumlah * $item->harga_satuan;
+                    }
+                }
+            }
+
+            return view('penganggaran.rkas.rekapan', [
+                'penganggaran' => $penganggaran,
+                'sekolah' => $sekolah,
+                'indikatorKinerja' => $indikatorKinerja,
+                'mainStructure' => $mainStructure,
+                'groupedItems' => $groupedItems,
+                'totals' => $totals,
+                'total_anggaran' => $penganggaran->pagu_anggaran,
+                'tahun_anggaran' => $penganggaran->tahun_anggaran
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in rekapRkaDuaSatu: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat memuat data Lembar Kerja 221.');
+        }
+    }
+
+    public function generateRkaDuaSatuPdf()
+    {
+        try {
+            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            $sekolah = Sekolah::first();
+
+            if (!$penganggaran || !$sekolah) {
+                throw new \Exception("Data penganggaran atau sekolah tidak ditemukan");
+            }
+
+            // Data untuk tabel indikator kinerja
+            $indikatorKinerja = [
+                ['indikator' => 'Capaian Program', 'tolok_ukur' => '', 'target' => 0],
+                ['indikator' => 'Masukan', 'tolok_ukur' => 'Dana', 'target' => $penganggaran->pagu_anggaran],
+                ['indikator' => 'Keluaran', 'tolok_ukur' => '', 'target' => 0],
+                ['indikator' => 'Hasil', 'tolok_ukur' => '', 'target' => 0],
+                ['indikator' => 'Sasaran Keg', 'tolok_ukur' => '', 'target' => 0]
+            ];
+
+            // Data untuk tabel rincian anggaran
+            $rkasData = Rkas::with(['rekeningBelanja'])
+                ->orderBy('kode_rekening_id')
+                ->get();
+
+            // Struktur hierarkis kode rekening utama
+            $mainStructure = [
+                '5' => 'BELANJA',
+                '5.1' => 'BELANJA OPERASI',
+                '5.1.02' => 'BELANJA BARANG DAN JASA',
+                '5.2' => 'BELANJA MODAL',
+                '5.2.02' => 'BELANJA MODAL PERALATAN DAN MESIN',
+                '5.2.04' => 'BELANJA MODAL JALAN, JARINGAN, DAN IRIGASI',
+                '5.2.05' => 'BELANJA MODAL ASET TETAP LAINNYA'
+            ];
+
+            // Kelompokkan item dengan menggabungkan yang sama (kode rekening, uraian, dan harga satuan)
+            $groupedItems = [];
+            foreach ($rkasData as $item) {
+                $kode = $item->rekeningBelanja->kode_rekening;
+                $uraian = $item->uraian;
+                $hargaSatuan = $item->harga_satuan;
+
+                // Temukan kode utama terdekat
+                $mainCode = $this->findClosestMainCode($kode, array_keys($mainStructure));
+
+                // Buat key unik berdasarkan kode rekening, uraian, dan harga satuan
+                $itemKey = $kode . '-' . $uraian . '-' . $hargaSatuan;
+
+                if (!isset($groupedItems[$mainCode])) {
+                    $groupedItems[$mainCode] = [];
+                }
+
+                if (!isset($groupedItems[$mainCode][$itemKey])) {
+                    $groupedItems[$mainCode][$itemKey] = [
+                        'kode_rekening' => $kode,
+                        'uraian' => $uraian,
+                        'volume' => $item->jumlah,
+                        'satuan' => $item->satuan,
+                        'harga_satuan' => $hargaSatuan,
+                        'jumlah' => $item->jumlah * $hargaSatuan
+                    ];
+                } else {
+                    // Jika sudah ada, tambahkan volumenya dan hitung ulang jumlah
+                    $groupedItems[$mainCode][$itemKey]['volume'] += $item->jumlah;
+                    $groupedItems[$mainCode][$itemKey]['jumlah'] = $groupedItems[$mainCode][$itemKey]['volume'] * $hargaSatuan;
+                }
+            }
+
+            // Hitung total per kode utama
+            $totals = [];
+            foreach ($mainStructure as $kode => $uraian) {
+                $totals[$kode] = 0;
+                if (isset($groupedItems[$kode])) {
+                    foreach ($groupedItems[$kode] as $item) {
+                        $totals[$kode] += $item['jumlah'];
+                    }
+                }
+            }
+
+            $pdf = PDF::loadView('penganggaran.rkas.rka-dua-satu-pdf', [
+                'penganggaran' => $penganggaran,
+                'sekolah' => $sekolah,
+                'indikatorKinerja' => $indikatorKinerja,
+                'mainStructure' => $mainStructure,
+                'groupedItems' => $groupedItems,
+                'totals' => $totals,
+                'total_anggaran' => $penganggaran->pagu_anggaran
+            ]);
+
+            return $pdf->stream('RKA-221.pdf');
+        } catch (\Exception $e) {
+            Log::error('Error generating RKA 221 PDF: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghasilkan PDF RKA 221: ' . $e->getMessage());
+        }
+    }
+
+    private function findClosestMainCode($kode, $mainCodes)
+    {
+        $closestCode = '';
+        $maxLength = 0;
+
+        foreach ($mainCodes as $mainCode) {
+            if (strpos($kode, $mainCode) === 0 && strlen($mainCode) > $maxLength) {
+                $maxLength = strlen($mainCode);
+                $closestCode = $mainCode;
+            }
+        }
+
+        return $closestCode;
     }
 }

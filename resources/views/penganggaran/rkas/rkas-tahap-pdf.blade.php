@@ -323,25 +323,36 @@
         </section>
 
         <footer>
-            <p>{{ $dataSekolah['kabupaten'] }}, {{ date('d F Y') }}</p>
-            <div class="signatures">
-                <div class="signature-block">
-                    <p>Mengetahui,</p>
-                    <p>Ketua Komite,</p>
-                    <p>{{ $dataSekolah['komite'] }}</p>
-                </div>
-                <div class="signature-block">
-                    <p>Mengetahui,</p>
-                    <p>Kepala Sekolah,</p>
-                    <p>{{ $dataSekolah['kepala_sekolah'] }}</p>
-                    <p>NIP. {{ $dataSekolah['nip_kepala_sekolah'] }}</p>
-                </div>
-                <div class="signature-block">
-                    <p>Bendahara,</p>
-                    <p>{{ $dataSekolah['bendahara'] }}</p>
-                    <p>NIP. {{ $dataSekolah['nip_bendahara'] }}</p>
-                </div>
-            </div>
+            <table style="width: 100%; margin-top: 0; border: none;">
+                <tr>
+                    <!-- Kolom Komite -->
+                    <td style="width: 33%; text-align: center; border: none; ">
+                        <p><br></p>
+                        <p>Ketua Komite,</p>
+                        <div style="margin-top: 80px;"></div>
+                        <p style="text-decoration: underline; margin: 0; font-weight: bold;"><u>{{ $dataSekolah['komite'] }}</u></p>
+                        <p style="margin: 0;"><br></p>
+                    </td>
+        
+                    <!-- Kolom Kepala Sekolah -->
+                    <td style="width: 33%; text-align: center; border: none;">
+                        <p>Mengetahui,</p>
+                        <p>Kepala Sekolah,</p>
+                        <div style="margin-top: 80px;"></div>
+                        <p style="text-decoration: underline; margin: 0; font-weight: bold;"><u>{{ $dataSekolah['kepala_sekolah'] }}</u></p>
+                        <p style="margin: 0;">NIP. {{ $dataSekolah['nip_kepala_sekolah'] }}</p>
+                    </td>
+        
+                    <!-- Kolom Bendahara -->
+                    <td style="width: 33%; text-align: center; border: none;">
+                        <p>{{ $dataSekolah['kabupaten'] }}, {{ $penganggaran->format_tanggal_cetak }}</p>
+                        <p>Bendahara,</p>
+                        <div style="margin-top: 80px;"></div>
+                        <p style="text-decoration: underline; margin: 0; font-weight: bold;"><u>{{ $dataSekolah['bendahara'] }}</u></p>
+                        <p style="margin: 0;">NIP. {{ $dataSekolah['nip_bendahara'] }}</p>
+                    </td>
+                </tr>
+            </table>
         </footer>
     </div>
 </body>

@@ -30,9 +30,9 @@ class Rkas extends Model
     ];
 
     public function penganggaran()
-{
-    return $this->belongsTo(Penganggaran::class);
-}
+    {
+        return $this->belongsTo(Penganggaran::class);
+    }
 
     public function kodeKegiatan()
     {
