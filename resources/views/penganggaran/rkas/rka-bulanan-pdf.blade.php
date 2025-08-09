@@ -5,28 +5,39 @@
     <meta charset="utf-8">
     <title>RKAS Bulanan - {{ $bulan }} {{ $dataSekolah['tahun_anggaran'] }}</title>
     <style>
+        @page {
+            size: landscape;
+            margin: 1cm;
+        }
+
         body {
             font-family: Arial, sans-serif;
             font-size: 10pt;
+            margin: 0;
+            padding: 0;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .header h1 {
-            margin-bottom: 5px;
+            margin: 0;
+            font-size: 14pt;
+            text-decoration: underline;
         }
 
         .header p {
-            margin: 0;
+            margin: 2px 0;
+            font-size: 10pt;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+            page-break-inside: avoid;
         }
 
         table,
@@ -37,7 +48,7 @@
 
         th,
         td {
-            padding: 5px;
+            padding: 3px;
             vertical-align: top;
         }
 
@@ -51,28 +62,58 @@
 
         .section-title {
             font-weight: bold;
-            margin: 15px 0 5px 0;
+            margin: 10px 0 5px 0;
+            font-size: 11pt;
         }
 
         .footer {
-            margin-top: 50px;
+            margin-top: 30px;
         }
 
         .signature {
             width: 100%;
-            margin-top: 50px;
+            margin-top: 30px;
+        }
+
+        .signature-table {
+            width: 100%;
+            border: none;
         }
 
         .signature td {
             border: none;
             text-align: center;
+            vertical-align: bottom;
+            padding: 0;
+        }
+
+        .signature p {
+            margin: 0;
+            padding: 0;
+        }
+
+        .signature .nama {
+            margin-top: 60px;
+            font-weight: bold;
+        }
+
+        .no-border {
+            border: none !important;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .underline {
+            text-decoration: underline;
         }
     </style>
 </head>
 
 <body>
     <div class="header">
-        <h1>RENCANA KERTAS KERJA BULAN {{ strtoupper($bulan) }}</h1>
+        <h1>RENCANA KERTAS KERJA PER BULAN {{ strtoupper($bulan) }}</h1>
         <p>TAHUN ANGGARAN : {{ $dataSekolah['tahun_anggaran'] }}</p>
         <p>NPSN : {{ $dataSekolah['npsn'] }}</p>
         <p>Nama Sekolah : {{ $dataSekolah['nama'] }}</p>
@@ -85,9 +126,9 @@
     <table>
         <thead>
             <tr>
-                <th>No Kode</th>
-                <th>Penerimaan</th>
-                <th>Jumlah</th>
+                <th style="width: 15%">No Kode</th>
+                <th style="width: 60%">Penerimaan</th>
+                <th style="width: 25%">Jumlah</th>
             </tr>
         </thead>
         <tbody>
@@ -101,8 +142,8 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="2"><strong>Total Penerimaan</strong></td>
-                <td class="text-right"><strong>{{ number_format($penerimaan['total'], 0, ',', '.') }}</strong></td>
+                <td colspan="2" class="bold">Total Penerimaan</td>
+                <td class="text-right bold">{{ number_format($penerimaan['total'], 0, ',', '.') }}</td>
             </tr>
         </tfoot>
     </table>
@@ -112,13 +153,13 @@
         <thead>
             <tr>
                 <th style="width: 5%">No.</th>
-                <th style="width: 15%">Kode Rekening</th>
-                <th style="width: 15%">Kode Program</th>
-                <th style="width: 30%">Uraian</th>
-                <th style="width: 10%">Volume</th>
-                <th style="width: 10%">Satuan</th>
-                <th style="width: 10%">Tarif Harga</th>
-                <th style="width: 15%">Jumlah</th>
+                <th style="width: 10%">Kode Rekening</th>
+                <th style="width: 10%">Kode Program</th>
+                <th style="width: 25%">Uraian</th>
+                <th style="width: 8%">Volume</th>
+                <th style="width: 8%">Satuan</th>
+                <th style="width: 12%">Tarif Harga</th>
+                <th style="width: 12%">Jumlah</th>
             </tr>
         </thead>
         <tbody>
@@ -131,9 +172,9 @@
                 <td></td>
                 <td>{{ $kodeProgram }}</td>
                 <td>{{ $program['uraian'] }}</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
+                <td class="text-center">-</td>
+                <td class="text-center">-</td>
+                <td class="text-center">-</td>
                 <td class="text-right">{{ number_format($program['total'], 0, ',', '.') }}</td>
             </tr>
 
@@ -193,8 +234,8 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="7"><strong>Jumlah</strong></td>
-                <td class="text-right"><strong>{{ number_format($totalBelanja, 0, ',', '.') }}</strong></td>
+                <td colspan="7" class="bold">Jumlah</td>
+                <td class="text-right bold">{{ number_format($totalBelanja, 0, ',', '.') }}</td>
             </tr>
         </tfoot>
     </table>
@@ -202,16 +243,20 @@
     <table class="signature">
         <tr>
             <td>
-                Mengetahui,<br>
-                Kepala Sekolah,<br><br><br><br>
-                <strong>{{ $dataSekolah['kepala_sekolah'] }}</strong><br>
-                NIP. {{ $dataSekolah['nip_kepala_sekolah'] }}
+                <p>Komite Sekolah,</p>
+                <p class="nama">{{ $dataSekolah['komite'] }}</p>
             </td>
             <td>
-                {{ $dataSekolah['kabupaten'] }}, {{ $penganggaran->format_tanggal_cetak }}<br>
-                Bendahara,<br><br><br><br>
-                <strong>{{ $dataSekolah['bendahara'] }}</strong><br>
-                NIP. {{ $dataSekolah['nip_bendahara'] }}
+                <p>Mengetahui,</p>
+                <p>Kepala Sekolah,</p>
+                <p class="nama">{{ $dataSekolah['kepala_sekolah'] }}</p>
+                <p>NIP. {{ $dataSekolah['nip_kepala_sekolah'] }}</p>
+            </td>
+            <td>
+                <p>{{ $dataSekolah['kabupaten'] }}, {{ $penganggaran->format_tanggal_cetak }}</p>
+                <p>Bendahara,</p>
+                <p class="nama">{{ $dataSekolah['bendahara'] }}</p>
+                <p>NIP. {{ $dataSekolah['nip_bendahara'] }}</p>
             </td>
         </tr>
     </table>

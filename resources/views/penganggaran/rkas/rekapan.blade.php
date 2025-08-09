@@ -215,7 +215,7 @@
                         <div class="tab-pane fade" id="rka-rekap" role="tabpanel">
                             <div class="p-4">
                                 <div class="d-flex justify-content-end mb-3">
-                                    <a class="btn btn-primary" target="_window" href="{{ route('penganggaran.rkas.rka-bulanan-pdf', ['bulan' => $bulan]) }}" style="font-size: 9pt;">
+                                    <a class="btn btn-primary" target="_window" href="{{ route('penganggaran.rkas.generate-pdf-rekap') }}" style="font-size: 9pt;">
                                         <i class="bi bi-printer me-2"></i>
                                         Cetak
                                     </a>
