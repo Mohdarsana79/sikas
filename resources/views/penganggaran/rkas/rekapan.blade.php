@@ -77,7 +77,7 @@
                                 <section class="penerimaan mb-4">
                                     <p class="section-title"><strong>A. PENERIMAAN</strong></p>
                                     <p class="subsection-title"><strong>Sumber Dana :</strong></p>
-                                    <table class="table table-bordered" style="font-size: 10pt;">
+                                    <table class="table table-bordered" id="rka-tahapan" style="font-size: 10pt;">
                                         <thead>
                                             <tr>
                                                 <th style="width: 15%;">No Kode</th>
@@ -106,7 +106,7 @@
                                 <section class="belanja">
                                     <p class="section-title"><strong>B. BELANJA</strong></p>
                                     <div class="table-responsive">
-                                        <table class="table table-bordered" style="font-size: 10pt;">
+                                        <table class="table table-bordered" id="rka-tahapan" style="font-size: 10pt;">
                                             <thead>
                                                 <tr class="justify-content-center align-items-center">
                                                     <th rowspan="2" style="width: 3%;">No.</th>
@@ -215,7 +215,7 @@
                         <div class="tab-pane fade" id="rka-rekap" role="tabpanel">
                             <div class="p-4">
                                 <div class="d-flex justify-content-end mb-3">
-                                    <a class="btn btn-primary" target="_window" href="{{ route('penganggaran.rkas.generate-pdf-rekap') }}" style="font-size: 9pt;">
+                                    <a class="btn btn-primary" target="_window" href="{{ route('penganggaran.rkas.rka-bulanan-pdf', ['bulan' => $bulan]) }}" style="font-size: 9pt;">
                                         <i class="bi bi-printer me-2"></i>
                                         Cetak
                                     </a>
@@ -225,7 +225,7 @@
                                 <section class="penerimaan mb-4">
                                     <p class="section-title"><strong>A. PENERIMAAN</strong></p>
                                     <p class="subsection-title"><strong>Sumber Dana :</strong></p>
-                                    <table class="table table-bordered" style="font-size: 10pt;">
+                                    <table class="table table-bordered" id="rka-rekap" style="font-size: 10pt;">
                                         <thead>
                                             <tr>
                                                 <th style="width: 15%;">No Kode</th>
@@ -288,7 +288,7 @@
                                 <section class="tahapan mt-4">
                                     <p class="section-title"><strong>C. RENCANA PELAKSANAAN ANGGARAN PER TAHAP</strong></p>
                                     <div class="table-responsive">
-                                        <table class="table table-bordered" style="font-size: 10pt;">
+                                        <table class="table table-bordered" id="rka-rekap" style="font-size: 10pt;">
                                             <thead>
                                                 <tr>
                                                     <th rowspan="2" style="width: 5%;">No</th>
@@ -341,7 +341,7 @@
                                     </a>
                                 </div>                      
                                 <!-- Tabel Indikator Kinerja -->
-                                <table class="table table-bordered mb-4" style="font-size: 10pt;">
+                                <table class="table table-bordered mb-4" id="rka-221" style="font-size: 10pt;">
                                     <thead>
                                         <tr>
                                             <th colspan="3" class="text-center">Indikator & Tolok Ukur Kinerja Belanja Langsung</th>
@@ -364,7 +364,7 @@
                                 </table>
                         
                                 <!-- Tabel Rincian Anggaran -->
-                                <table class="table table-bordered" style="font-size: 10pt;">
+                                <table class="table table-bordered" id="rka-221" style="font-size: 10pt;">
                                     <thead>
                                         <tr>
                                             <th rowspan="2" style="width: 15%">Kode Rekening</th>
@@ -414,16 +414,66 @@
                             </div>
                         </div>
 
-                        <!-- Rka Bulanan Tab -->
+                        {{-- Rka Bulanan --}}
                         <div class="tab-pane fade" id="rka-bulan" role="tabpanel">
                             <div class="p-4">
-                                <div class="text-center py-5">
-                                    <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
-                                    <p class="text-muted mt-3">Belum Ada Rekap Bulanan</p>
+                                <form method="GET" action="{{ route('penganggaran.rkas.rekapan') }}" id="bulanForm">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <select name="bulan" id="bulanSelect" class="form-select form-select-sm" style="width: 150px;">
+                                                @foreach($months as $month)
+                                                <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{ $month }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <a class="btn btn-primary btn-sm" id="cetakPdfButton"
+                                                href="{{ route('penganggaran.rkas.rka-bulanan-pdf', $bulan) }}" target="_blank"
+                                                style="font-size: 9pt;">
+                                                <i class="bi bi-printer me-2"></i> Cetak
+                                            </a>
+                                        </div>
+                                    </div>
+                                </form>
+                        
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="tabel-bulanan" style="font-size: 10pt;">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 5%">No.</th>
+                                                <th style="width: 15%">Kode Rekening</th>
+                                                <th style="width: 15%">Kode Program</th>
+                                                <th style="width: 30%">Uraian</th>
+                                                <th style="width: 10%">Volume</th>
+                                                <th style="width: 10%">Satuan</th>
+                                                <th style="width: 10%">Tarif Harga</th>
+                                                <th style="width: 15%">Jumlah</th>
+                                            </tr>
+                                        </thead>
+                                        
+                                        <tbody>
+                                            <div id="loadingIndicator" class="text-center py-3" style="display:none;">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p>Memuat data...</p>
+                                        </div>
+                                            @include('penganggaran.rkas.partials.monthly-data', [
+                                            'rkasBulanan' => $rkasBulanan,
+                                            'bulan' => $bulan,
+                                            'totalBulanan' => $totalBulanan
+                                            ])
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="table-secondary">
+                                                <td colspan="7"><strong>Jumlah</strong></td>
+                                                <td class="text-right"><strong>{{ number_format($totalBulanan, 0, ',', '.') }}</strong></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
                                 </div>
                             </div>
                         </div>
-
                         <!-- Lainnya Tab -->
                         <div class="tab-pane fade" id="lainnya" role="tabpanel">
                             <div class="p-4">
@@ -466,6 +516,48 @@
 </div>
     </div>
     <style>
+        /* Animasi loading */
+        @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+        }
+        
+        #rkasTableBody {
+        animation: fadeIn 0.3s ease-in;
+        }
+        
+        #loadingIndicator {
+        transition: all 0.3s ease;
+        }
+        
+        /* Animasi tombol cetak */
+        .btn-pulse {
+        animation: pulse 0.5s ease-in-out;
+        }
+        
+        @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+        }
+        
+        .display-bulan {
+        font-weight: bold;
+        color: #0d6efd;
+        }
+        /* Tambahkan di bagian CSS Anda */
+        @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+        }
+        
+        #rkasTableBody {
+        animation: fadeIn 0.3s ease-in;
+        }
+        
+        #loadingIndicator {
+        transition: all 0.3s ease;
+        }
         .section-title {
             font-weight: bold;
             font-size: 1.1rem;
@@ -525,4 +617,42 @@
             }
         }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+        $('#bulanSelect').change(function() {
+        const bulan = $(this).val();
+        if (!bulan) return;
+        
+        // Update URL cetak PDF secara langsung
+        const pdfUrl = "{{ route('penganggaran.rkas.rka-bulanan-pdf', ':bulan') }}".replace(':bulan', bulan);
+        $('#cetakPdfButton').attr('href', pdfUrl);
+        
+        // AJAX request untuk load data tabel
+        $('#loadingIndicator').show();
+        $('#rka-bulan table tbody').hide();
+        
+        $.ajax({
+        url: "{{ route('penganggaran.rkas.get-monthly-data') }}",
+        type: "GET",
+        data: {
+        bulan: bulan,
+        _token: "{{ csrf_token() }}"
+        },
+        success: function(response) {
+        if (response.success) {
+        $('#rka-bulan table tbody').html(response.html);
+        $('#rka-bulan table tfoot td.text-right').html(
+        '<strong>' + new Intl.NumberFormat('id-ID').format(response.totalBulanan) + '</strong>'
+        );
+        }
+        },
+        complete: function() {
+        $('#rka-bulan table tbody').fadeIn();
+        $('#loadingIndicator').hide();
+        }
+        });
+        });
+        });
+    </script>
 @endsection

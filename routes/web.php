@@ -59,10 +59,21 @@ Route::middleware(['auth'])->prefix('penganggaran/rkas')->group(function () {
 
     // Routes untuk PDF dan Preview
     Route::get('/generate-pdf', [RkasController::class, 'generatePdf'])->name('penganggaran.rkas.generate-pdf');
-    Route::get('/penganggaran/rkas/rekapan', [RkasController::class, 'showRekapan'])->name('penganggaran.rkas.rekapan');
     Route::get('/penganggaran/rkas/generate-pdf-rekap', [RkasController::class, 'generatePdfRkaRekap'])->name('penganggaran.rkas.generate-pdf-rekap');
     Route::get('/penganggaran/rkas/generate-rka-221-pdf', [RkasController::class, 'generateRkaDuaSatuPdf'])
         ->name('penganggaran.rkas.generate-rka-221-pdf');
+
+    Route::get('/penganggaran/rkas/rekapan', [RkasController::class, 'showRekapan'])
+        ->name('penganggaran.rkas.rekapan');
+
+    Route::get('/penganggaran/rkas/get-monthly-data', [RkasController::class, 'getMonthlyData'])
+        ->name('penganggaran.rkas.get-monthly-data');
+
+    Route::get('/penganggaran/rkas/rekap-bulanan/{bulan}', [RkasController::class, 'getRekapBulanan'])
+        ->name('penganggaran.rkas.rekap-bulanan');
+
+    Route::get('/penganggaran/rkas/rka-bulanan-pdf/{bulan}', [RKASController::class, 'generatePdfBulanan'])
+        ->name('penganggaran.rkas.rka-bulanan-pdf')->middleware('noCache');
 });
 
 

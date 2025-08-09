@@ -679,7 +679,8 @@ class RkasController extends Controller
                 throw new \Exception("Data penganggaran atau sekolah tidak ditemukan");
             }
 
-            // Data indikator kinerja untuk semua tab
+
+            // Data indikator kinerja
             $indikatorKinerja = [
                 ['indikator' => 'Capaian Program', 'tolok_ukur' => '', 'target' => ''],
                 ['indikator' => 'Masukan', 'tolok_ukur' => 'Dana', 'target' => number_format($penganggaran->pagu_anggaran, 0, ',', '.')],
@@ -688,87 +689,58 @@ class RkasController extends Controller
                 ['indikator' => 'Sasaran Keg', 'tolok_ukur' => '', 'target' => '']
             ];
 
-            // Data untuk RKAS Tahapan (tanpa perubahan)
-            $rkasData = Rkas::with([
-                'kodeKegiatan' => function ($query) {
-                    $query->select('id', 'kode', 'program', 'sub_program', 'uraian');
-                },
-                'rekeningBelanja' => function ($query) {
-                    $query->select('id', 'kode_rekening', 'rincian_objek');
-                }
-            ])->orderBy('kode_id')->get();
+            // Data untuk RKAS Tahapan
+            $dataTerkelola = $this->kelolaDataRkas(
+                Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                    ->orderBy('kode_id')
+                    ->get()
+                    ->groupBy(function ($item) {
+                        return optional($item->kodeKegiatan)->kode;
+                    })
+            );
 
-            $dataTerkelola = $this->kelolaDataRkas($rkasData->groupBy(function ($item) {
-                return optional($item->kodeKegiatan)->kode;
-            }));
-
-            // Data untuk RKA Rekap (tanpa perubahan)
+            // Data untuk RKA Rekap
             $rekapData = $this->getRekapRkas();
 
-            // Data untuk Lembar Kerja 221 (dengan penggabungan)
-            $rkasDetail = Rkas::with(['rekeningBelanja'])
-                ->orderBy('kode_rekening_id')
-                ->get();
+            // Data untuk Lembar Kerja 221
+            [$groupedItemsFor221, $totalsFor221] = $this->prepare221Data();
 
-            // Struktur untuk Lembar Kerja 221
-            $mainStructure = [
-                '5' => 'BELANJA',
-                '5.1' => 'BELANJA OPERASI',
-                '5.1.02' => 'BELANJA BARANG DAN JASA',
-                '5.2' => 'BELANJA MODAL',
-                '5.2.02' => 'BELANJA MODAL PERALATAN DAN MESIN',
-                '5.2.04' => 'BELANJA MODAL JALAN, JARINGAN, DAN IRIGASI',
-                '5.2.05' => 'BELANJA MODAL ASET TETAP LAINNYA'
-            ];
+            // Get selected month or default to January
+            $bulan = request('bulan') ?? 'Januari';
 
-            // Kelompokkan item untuk RKA 221 dengan menggabungkan yang sama
-            $groupedItemsFor221 = [];
-            foreach ($rkasDetail as $item) {
-                $kode = $item->rekeningBelanja->kode_rekening;
-                $uraian = $item->uraian;
-                $hargaSatuan = $item->harga_satuan;
-                $mainCode = $this->findClosestMainCode($kode, array_keys($mainStructure));
+            // Query data untuk bulan yang dipilih
+            $rkasBulanan = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('bulan', $bulan)
+                ->orderBy('kode_id')
+                ->get()
+                ->groupBy(function ($item) {
+                    return optional($item->kodeKegiatan)->kode ?? 'unknown';
+                });
 
-                $key = $kode . '-' . $uraian . '-' . $hargaSatuan;
+            $totalBulanan = Rkas::where('bulan', $bulan)
+                ->sum(DB::raw('jumlah * harga_satuan'));
 
-                if (!isset($groupedItemsFor221[$mainCode])) {
-                    $groupedItemsFor221[$mainCode] = [];
-                }
-
-                if (!isset($groupedItemsFor221[$mainCode][$key])) {
-                    $groupedItemsFor221[$mainCode][$key] = [
-                        'kode_rekening' => $kode,
-                        'uraian' => $uraian,
-                        'volume' => $item->jumlah,
-                        'satuan' => $item->satuan,
-                        'harga_satuan' => $hargaSatuan,
-                        'jumlah' => $item->jumlah * $hargaSatuan
-                    ];
-                } else {
-                    // Gabungkan volume dan hitung ulang jumlah
-                    $groupedItemsFor221[$mainCode][$key]['volume'] += $item->jumlah;
-                    $groupedItemsFor221[$mainCode][$key]['jumlah'] = $groupedItemsFor221[$mainCode][$key]['volume'] * $hargaSatuan;
-                }
-            }
-
-            // Hitung total per kode utama untuk RKA 221
-            $totalsFor221 = [];
-            foreach ($mainStructure as $kode => $uraian) {
-                $totalsFor221[$kode] = 0;
-                if (isset($groupedItemsFor221[$kode])) {
-                    foreach ($groupedItemsFor221[$kode] as $item) {
-                        $totalsFor221[$kode] += $item['jumlah'];
-                    }
-                }
-            }
-
-            // Hitung total tahap
-            $totalTahap1 = Rkas::getTotalTahap1();
-            $totalTahap2 = Rkas::getTotalTahap2();
 
             return view('penganggaran.rkas.rekapan', [
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
+                'bulan' => $bulan,
+                'rkasBulanan' => $rkasBulanan,
+                'totalBulanan' => $totalBulanan,
+                'months' => [
+                    'Januari',
+                    'Februari',
+                    'Maret',
+                    'April',
+                    'Mei',
+                    'Juni',
+                    'Juli',
+                    'Agustus',
+                    'September',
+                    'Oktober',
+                    'November',
+                    'Desember'
+                ],
                 'indikatorKinerja' => $indikatorKinerja,
                 'penerimaan' => [
                     'total' => $penganggaran->pagu_anggaran,
@@ -781,19 +753,93 @@ class RkasController extends Controller
                     ]
                 ],
                 'belanja' => $dataTerkelola,
-                'totalTahap1' => $totalTahap1,
-                'totalTahap2' => $totalTahap2,
+                'totalTahap1' => Rkas::getTotalTahap1(),
+                'totalTahap2' => Rkas::getTotalTahap2(),
                 'rekapData' => $rekapData,
-                // Data khusus untuk Lembar Kerja 221
-                'mainStructure' => $mainStructure,
+                'mainStructure' => [
+                    '5' => 'BELANJA',
+                    '5.1' => 'BELANJA OPERASI',
+                    '5.1.02' => 'BELANJA BARANG DAN JASA',
+                    '5.2' => 'BELANJA MODAL',
+                    '5.2.02' => 'BELANJA MODAL PERALATAN DAN MESIN',
+                    '5.2.04' => 'BELANJA MODAL JALAN, JARINGAN, DAN IRIGASI',
+                    '5.2.05' => 'BELANJA MODAL ASET TETAP LAINNYA'
+                ],
                 'groupedItems' => $groupedItemsFor221,
                 'totals' => $totalsFor221,
-                'total_anggaran' => $penganggaran->pagu_anggaran
+                'total_anggaran' => $penganggaran->pagu_anggaran,
+                'months' => [
+                    'Januari',
+                    'Februari',
+                    'Maret',
+                    'April',
+                    'Mei',
+                    'Juni',
+                    'Juli',
+                    'Agustus',
+                    'September',
+                    'Oktober',
+                    'November',
+                    'Desember'
+                ],
+                'bulan' => $bulan,
+                'rkasBulanan' => $rkasBulanan,
+                'totalBulanan' => $totalBulanan,
+
             ]);
         } catch (\Exception $e) {
             Log::error('Error showing rekapan: ' . $e->getMessage());
             return back()->with('error', 'Terjadi kesalahan saat menampilkan rekapan RKAS: ' . $e->getMessage());
         }
+    }
+
+    private function prepare221Data()
+    {
+        $mainStructure = [
+            '5' => 'BELANJA',
+            '5.1' => 'BELANJA OPERASI',
+            '5.1.02' => 'BELANJA BARANG DAN JASA',
+            '5.2' => 'BELANJA MODAL',
+            '5.2.02' => 'BELANJA MODAL PERALATAN DAN MESIN',
+            '5.2.04' => 'BELANJA MODAL JALAN, JARINGAN, DAN IRIGASI',
+            '5.2.05' => 'BELANJA MODAL ASET TETAP LAINNYA'
+        ];
+
+        $rkasDetail = Rkas::with(['rekeningBelanja'])
+            ->orderBy('kode_rekening_id')
+            ->get();
+
+        $groupedItems = [];
+        $totals = [];
+
+        foreach ($mainStructure as $kode => $uraian) {
+            $totals[$kode] = 0;
+        }
+
+        foreach ($rkasDetail as $item) {
+            $kode = $item->rekeningBelanja->kode_rekening;
+            $mainCode = $this->findClosestMainCode($kode, array_keys($mainStructure));
+
+            $key = $kode . '-' . $item->uraian . '-' . $item->harga_satuan;
+
+            if (!isset($groupedItems[$mainCode][$key])) {
+                $groupedItems[$mainCode][$key] = [
+                    'kode_rekening' => $kode,
+                    'uraian' => $item->uraian,
+                    'volume' => $item->jumlah,
+                    'satuan' => $item->satuan,
+                    'harga_satuan' => $item->harga_satuan,
+                    'jumlah' => $item->jumlah * $item->harga_satuan
+                ];
+            } else {
+                $groupedItems[$mainCode][$key]['volume'] += $item->jumlah;
+                $groupedItems[$mainCode][$key]['jumlah'] = $groupedItems[$mainCode][$key]['volume'] * $item->harga_satuan;
+            }
+
+            $totals[$mainCode] += $item->jumlah * $item->harga_satuan;
+        }
+
+        return [$groupedItems, $totals];
     }
 
     private function getRekapRkas()
@@ -1252,5 +1298,259 @@ class RkasController extends Controller
         }
 
         return $closestCode;
+    }
+
+    // Add to RkasController class
+
+    public function getRekapBulanan($bulan)
+    {
+        try {
+            Log::info("Mengambil data rekap untuk bulan: " . $bulan);
+
+            $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('bulan', $bulan)
+                ->orderBy('kode_id')
+                ->get()
+                ->groupBy(function ($item) {
+                    return optional($item->kodeKegiatan)->kode;
+                })
+                ->filter(function ($group, $key) {
+                    return !is_null($key);
+                });
+
+            $dataTerkelola = $this->kelolaDataRkasBulanan($rkasData, $bulan);
+
+            $totalBulanan = Rkas::where('bulan', $bulan)
+                ->sum(DB::raw('jumlah * harga_satuan'));
+
+            return response()->json([
+                'success' => true,
+                'data' => $dataTerkelola,
+                'total' => $totalBulanan,
+                'bulan' => $bulan
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting rekap bulanan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data bulanan.'
+            ], 500);
+        }
+    }
+
+    private function kelolaDataRkasBulanan($rkasData, $bulan)
+    {
+        $terorganisir = [];
+
+        // Jika tidak ada data untuk bulan tersebut
+        if ($rkasData->isEmpty()) {
+            return $terorganisir;
+        }
+
+        foreach ($rkasData as $kode => $items) {
+            if (empty($items) || $items->isEmpty()) continue;
+
+            $bagian = explode('.', $kode);
+            $kodeProgram = $bagian[0] ?? '';
+
+            if (!isset($terorganisir[$kodeProgram])) {
+                $firstItem = $items->first();
+                $terorganisir[$kodeProgram] = [
+                    'uraian' => optional($firstItem->kodeKegiatan)->program ?? '-',
+                    'sub_programs' => [],
+                    'total' => 0
+                ];
+            }
+
+            $kodeSubProgram = count($bagian) > 1 ? $bagian[0] . '.' . $bagian[1] : null;
+            if ($kodeSubProgram && !isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram])) {
+                $firstItem = $items->first();
+                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram] = [
+                    'uraian' => optional($firstItem->kodeKegiatan)->sub_program ?? '-',
+                    'uraian_programs' => [],
+                    'items' => [],
+                    'total' => 0
+                ];
+            }
+
+            $kodeUraian = $kode;
+            if ($kodeSubProgram && !isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian])) {
+                $firstItem = $items->first();
+                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian] = [
+                    'uraian' => optional($firstItem->kodeKegiatan)->uraian ?? '-',
+                    'items' => [],
+                    'total' => 0
+                ];
+            }
+
+            foreach ($items as $item) {
+                if (!$item->rekeningBelanja) continue;
+
+                $jumlah = $item->jumlah * $item->harga_satuan;
+
+                $itemData = [
+                    'kode_rekening' => $item->rekeningBelanja->kode_rekening,
+                    'uraian' => $item->uraian,
+                    'volume' => $item->jumlah,
+                    'satuan' => $item->satuan,
+                    'harga_satuan' => $item->harga_satuan,
+                    'jumlah' => $jumlah,
+                    'bulan' => $item->bulan
+                ];
+
+                $terorganisir[$kodeProgram]['total'] += $jumlah;
+                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['total'] += $jumlah;
+                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['total'] += $jumlah;
+
+                $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['items'][] = $itemData;
+            }
+        }
+
+        ksort($terorganisir);
+        foreach ($terorganisir as &$program) {
+            if (!empty($program['sub_programs'])) {
+                ksort($program['sub_programs']);
+                foreach ($program['sub_programs'] as &$subProgram) {
+                    if (!empty($subProgram['uraian_programs'])) {
+                        ksort($subProgram['uraian_programs']);
+                    }
+                }
+            }
+        }
+
+        return $terorganisir;
+    }
+
+    public function generatePdfBulanan($bulan)
+    {
+        try {
+            // Tambahkan header untuk mencegah caching
+            header("Cache-Control: no-cache, no-store, must-revalidate");
+            header("Pragma: no-cache");
+            header("Expires: 0");
+
+            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            $sekolah = Sekolah::first();
+
+            if (!$sekolah || !$penganggaran) {
+                throw new \Exception("Data sekolah atau penganggaran tidak ditemukan");
+            }
+
+            // Validasi bulan yang diterima
+            $validBulan = in_array($bulan, [
+                'Januari',
+                'Februari',
+                'Maret',
+                'April',
+                'Mei',
+                'Juni',
+                'Juli',
+                'Agustus',
+                'September',
+                'Oktober',
+                'November',
+                'Desember'
+            ]) ? $bulan : '';
+
+            // Ambil data sesuai bulan yang dipilih dengan log query
+            Log::info("Mengambil data RKAS untuk bulan: " . $validBulan);
+
+            $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('bulan', $validBulan)
+                ->orderBy('kode_id')
+                ->get()
+                ->groupBy(function ($item) {
+                    return optional($item->kodeKegiatan)->kode ?? 'unknown';
+                });
+
+            Log::info("Jumlah data ditemukan: " . $rkasData->count());
+
+            // Data sekolah untuk PDF
+            $dataSekolah = [
+                'npsn' => $sekolah->npsn,
+                'nama' => $sekolah->nama_sekolah,
+                'alamat' => $sekolah->alamat,
+                'kabupaten' => $sekolah->kabupaten_kota,
+                'provinsi' => $sekolah->provinsi,
+                'tahun_anggaran' => $penganggaran->tahun_anggaran,
+                'kepala_sekolah' => $penganggaran->kepala_sekolah,
+                'nip_kepala_sekolah' => $penganggaran->nip_kepala_sekolah,
+                'bendahara' => $penganggaran->bendahara,
+                'nip_bendahara' => $penganggaran->nip_bendahara,
+                'komite' => $penganggaran->komite,
+                'bulan' => $validBulan
+            ];
+
+            // Data penerimaan
+            $penerimaan = [
+                'total' => $penganggaran->pagu_anggaran,
+                'items' => [
+                    [
+                        'kode' => '4.3.1.01.',
+                        'uraian' => 'BOS Reguler',
+                        'jumlah' => $penganggaran->pagu_anggaran
+                    ]
+                ]
+            ];
+
+            // Organisasikan data RKAS
+            $dataTerkelola = $this->kelolaDataRkasBulanan($rkasData, $validBulan);
+
+            $totalBelanja = $rkasData->sum(function ($group) {
+                return $group->sum(function ($item) {
+                    return $item->jumlah * $item->harga_satuan;
+                });
+            });
+
+            Log::info("Total belanja untuk bulan $validBulan: " . $totalBelanja);
+
+            $pdf = PDF::loadView('penganggaran.rkas.rka-bulanan-pdf', [
+                'dataSekolah' => $dataSekolah,
+                'penerimaan' => $penerimaan,
+                'belanja' => $dataTerkelola,
+                'totalBelanja' => $totalBelanja,
+                'bulan' => $validBulan,
+                'penganggaran' => $penganggaran
+            ]);
+
+            return $pdf->stream("RKAS-Bulanan-{$validBulan}.pdf");
+        } catch (\Exception $e) {
+            Log::error('Error saat membuat PDF RKAS Bulanan: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghasilkan PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function getMonthlyData(Request $request)
+    {
+        try {
+            $bulan = $request->input('bulan', 'Januari');
+
+            $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('bulan', $bulan)
+                ->orderBy('kode_id')
+                ->get()
+                ->groupBy(function ($item) {
+                    return optional($item->kodeKegiatan)->kode ?? 'unknown';
+                });
+
+            $totalBulanan = Rkas::where('bulan', $bulan)
+                ->sum(DB::raw('jumlah * harga_satuan'));
+
+            return response()->json([
+                'success' => true,
+                'html' => view('penganggaran.rkas.partials.monthly-data', [
+                    'rkasBulanan' => $rkasData,
+                    'bulan' => $bulan,
+                    'totalBulanan' => $totalBulanan
+                ])->render(),
+                'totalBulanan' => $totalBulanan
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting monthly data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data bulanan.'
+            ], 500);
+        }
     }
 }
