@@ -245,6 +245,7 @@
             <td>
                 <p>Komite Sekolah,</p>
                 <p class="nama">{{ $dataSekolah['komite'] }}</p>
+                
             </td>
             <td>
                 <p>Mengetahui,</p>

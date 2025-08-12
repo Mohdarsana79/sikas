@@ -72,7 +72,7 @@ Route::middleware(['auth'])->prefix('penganggaran/rkas')->group(function () {
     Route::get('/penganggaran/rkas/rekap-bulanan/{bulan}', [RkasController::class, 'getRekapBulanan'])
         ->name('penganggaran.rkas.rekap-bulanan');
 
-    Route::get('/penganggaran/rkas/rka-bulanan-pdf/{bulan}', [RKASController::class, 'generatePdfBulanan'])
+    Route::get('/penganggaran/rkas/rka-bulanan-pdf/{tahun}/{bulan}', [RkasController::class, 'generatePdfBulanan'])
         ->name('penganggaran.rkas.rka-bulanan-pdf')->middleware('noCache');
 });
 

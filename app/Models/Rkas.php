@@ -13,6 +13,7 @@ class Rkas extends Model
     protected $table = 'rkas';
 
     protected $fillable = [
+        'penganggaran_id',
         'kode_id',
         'kode_rekening_id',
         'uraian',
@@ -149,21 +150,31 @@ class Rkas extends Model
     /**
      * Static method untuk menghitung total anggaran Tahap 1 (Januari-Juni)
      */
-    public static function getTotalTahap1()
+    public static function getTotalTahap1($penganggaranId = null)
     {
         $tahap1Months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
-        return self::whereIn('bulan', $tahap1Months)
-            ->sum(DB::raw('jumlah * harga_satuan'));
+        $query = self::whereIn('bulan', $tahap1Months);
+
+        if ($penganggaranId) {
+            $query->where('penganggaran_id', $penganggaranId);
+        }
+
+        return $query->sum(DB::raw('jumlah * harga_satuan'));
     }
 
     /**
      * Static method untuk menghitung total anggaran Tahap 2 (Juli-Desember)
      */
-    public static function getTotalTahap2()
+    public static function getTotalTahap2($penganggaranId = null)
     {
         $tahap2Months = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-        return self::whereIn('bulan', $tahap2Months)
-            ->sum(DB::raw('jumlah * harga_satuan'));
+        $query = self::whereIn('bulan', $tahap2Months);
+
+        if ($penganggaranId) {
+            $query->where('penganggaran_id', $penganggaranId);
+        }
+
+        return $query->sum(DB::raw('jumlah * harga_satuan'));
     }
 
     /**
@@ -185,12 +196,16 @@ class Rkas extends Model
     /**
      * Scope untuk filter berdasarkan tahap (1 atau 2)
      */
-    public function scopeByTahap($query, $tahap)
+    // Di model Rkas.php
+    public function scopeByTahap($query, $tahap, $penganggaranId = null)
     {
-        if ($tahap == 1) {
-            return $query->whereIn('bulan', self::getBulanTahap1());
-        } elseif ($tahap == 2) {
-            return $query->whereIn('bulan', self::getBulanTahap2());
+        $bulanTahap1 = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+        $bulanTahap2 = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+        $query->whereIn('bulan', $tahap == 1 ? $bulanTahap1 : $bulanTahap2);
+
+        if ($penganggaranId) {
+            $query->where('penganggaran_id', $penganggaranId);
         }
 
         return $query;

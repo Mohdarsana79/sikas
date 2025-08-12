@@ -19,7 +19,7 @@
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
                         <h6 class="rkas-title fs-5" style="font-size: 9pt;">Rencana Kegiatan Anggaran Sekolah (RKAS)</h6>
-                        <p class="rkas-subtitle">BOSP REGULER 2025</p>
+                        <p class="rkas-subtitle">BOSP REGULER {{ $penganggaran->tahun_anggaran }}</p>
                     </div>
                     <!-- Action Buttons -->
                     <div class="rkas-actions mb-4 fs-6 btn btn-sm">
@@ -36,7 +36,7 @@
                         <button class="btn btn-outline-secondary" style="font-size: 9pt;">
                             <i class="bi bi-printer me-2"></i>Cetak
                         </button>
-                        <a class="btn btn-primary" href="{{ route('penganggaran.rkas.rekapan') }}" style="font-size: 9pt;">Review</a>
+                        <a class="btn btn-primary" href="{{ route('penganggaran.rkas.rekapan', ['tahun' => $tahun]) }}" style="font-size: 9pt;">Review</a>
                     </div>
                 </div>
 
@@ -75,7 +75,7 @@
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="text-white-50" style="font-size: 11px;">Status: Aktif</span>
                                         <span class="badge bg-light text-dark"
-                                            style="font-size: 10px; padding: 4px 8px;">2025</span>
+                                            style="font-size: 10px; padding: 4px 8px;">{{ $penganggaran->tahun_anggaran }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -278,7 +278,7 @@
         <!-- Period Section -->
         <div class="rkas-period-section">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3 class="period-title">Periode Anggaran 2025</h3>
+                <h3 class="period-title">Periode Anggaran {{ $penganggaran->tahun_anggaran }}</h3>
                 <div class="period-budget">
                     <span class="period-label">Dianggaran</span>
                     <span class="period-amount" id="totalDianggaran">
@@ -480,6 +480,7 @@
                 <form id="tambahRkasForm" method="POST" action="{{ route('penganggaran.rkas.store') }}">
                     @csrf
                     <div class="modal-body">
+                        <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
                         <!-- Progress Steps -->
                         <div class="progress-steps mb-4">
                             <div class="step-indicator">
@@ -763,6 +764,7 @@
                                     <label for="edit-uraian" class="form-label">Uraian <span
                                             class="text-danger">*</span></label>
                                     <textarea class="form-control" id="edit-uraian" name="uraian" rows="4" required></textarea>
+                                    
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -1723,52 +1725,55 @@
             }
 
             function refreshMonthData(month) {
-                console.log('Refreshing data for month:', month);
-
-                // Show loading in the table
-                const tableBody = document.getElementById(`table-body-${month.toLowerCase()}`);
-                if (tableBody) {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="11" class="text-center">
-                                <div class="py-4">
-                                    <div class="loading-spinner me-2"></div>
-                                    Memuat data...
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-
-                    // Fetch data via AJAX
-                    fetch(`{{ url('penganggaran/rkas/bulan') }}/${month}`, {
-                            method: 'GET',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest',
-                                'Content-Type': 'application/json',
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success && data.data.length > 0) {
-                                populateTable(month, data.data);
-                            } else {
-                                showNoDataMessage(month);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error fetching data:', error);
-                            tableBody.innerHTML = `
-                            <tr>
-                                <td colspan="11" class="text-center text-danger">
-                                    <div class="py-4">
-                                        <i class="bi bi-exclamation-triangle display-4"></i>
-                                        <p class="mt-2">Gagal memuat data</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
-                        });
-                }
+            console.log('Refreshing data for month:', month);
+            
+            // Dapatkan tahun anggaran dari data yang tersimpan
+            const tahunAnggaran = '{{ $penganggaran->tahun_anggaran }}';
+            
+            // Show loading in the table
+            const tableBody = document.getElementById(`table-body-${month.toLowerCase()}`);
+            if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="11" class="text-center">
+                    <div class="py-4">
+                        <div class="loading-spinner me-2"></div>
+                        Memuat data...
+                    </div>
+                </td>
+            </tr>
+            `;
+            
+            // Fetch data via AJAX dengan parameter tahun
+            fetch(`{{ url('penganggaran/rkas/bulan') }}/${month}?tahun=${tahunAnggaran}`, {
+            method: 'GET',
+            headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json',
+            }
+            })
+            .then(response => response.json())
+            .then(data => {
+            if (data.success && data.data.length > 0) {
+            populateTable(month, data.data);
+            } else {
+            showNoDataMessage(month);
+            }
+            })
+            .catch(error => {
+            console.error('Error fetching data:', error);
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="11" class="text-center text-danger">
+                    <div class="py-4">
+                        <i class="bi bi-exclamation-triangle display-4"></i>
+                        <p class="mt-2">Gagal memuat data</p>
+                    </div>
+                </td>
+            </tr>
+            `;
+            });
+            }
             }
 
             function populateTable(month, data) {
@@ -2090,182 +2095,199 @@
 
             // Function to update Tahap cards with modern styling
             function updateTahapCards() {
-                // Update Tahap 1
-                fetch('{{ url('penganggaran/rkas/total-tahap1') }}')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const tahap1Data = data.data;
-                            const totalTahap1Element = document.getElementById('totalTahap1');
-                            const sisaTahap1Element = document.getElementById('sisaTahap1');
-                            const percentTahap1Element = document.getElementById('percentTahap1');
-
-                            if (totalTahap1Element) {
-                                totalTahap1Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
-                                    tahap1Data.total_anggaran);
-                            }
-                            if (sisaTahap1Element) {
-                                sisaTahap1Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
-                                    tahap1Data.sisa_anggaran);
-                            }
-                            if (percentTahap1Element) {
-                                percentTahap1Element.textContent = Math.round(tahap1Data.persentase_terpakai) +
-                                    '%';
-                            }
-
-                            // Update progress bar with animation
-                            const progressBar1 = document.querySelector('.col-lg-4:nth-child(2) .progress-bar');
-                            if (progressBar1) {
-                                setTimeout(() => {
-                                    progressBar1.style.width = tahap1Data.persentase_terpakai + '%';
-                                }, 300);
-                            }
-                        }
-                    })
-                    .catch(error => console.error('Error updating Tahap 1:', error));
-
-                // Update Tahap 2
-                fetch('{{ url('penganggaran/rkas/total-tahap2') }}')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const tahap2Data = data.data;
-                            const totalTahap2Element = document.getElementById('totalTahap2');
-                            const sisaTahap2Element = document.getElementById('sisaTahap2');
-                            const percentTahap2Element = document.getElementById('percentTahap2');
-
-                            if (totalTahap2Element) {
-                                totalTahap2Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
-                                    tahap2Data.total_anggaran);
-                            }
-                            if (sisaTahap2Element) {
-                                sisaTahap2Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
-                                    tahap2Data.sisa_anggaran);
-                            }
-                            if (percentTahap2Element) {
-                                percentTahap2Element.textContent = Math.round(tahap2Data.persentase_terpakai) +
-                                    '%';
-                            }
-
-                            // Update progress bar with animation
-                            const progressBar2 = document.querySelector('.col-lg-4:nth-child(3) .progress-bar');
-                            if (progressBar2) {
-                                setTimeout(() => {
-                                    progressBar2.style.width = tahap2Data.persentase_terpakai + '%';
-                                }, 300);
-                            }
-                        }
-                    })
-                    .catch(error => console.error('Error updating Tahap 2:', error));
+            // Dapatkan tahun anggaran saat ini
+            const tahunAnggaran = '{{ $penganggaran->tahun_anggaran }}';
+            
+            // Update Tahap 1
+            fetch(`{{ url('penganggaran/rkas/total-tahap1') }}?tahun=${tahunAnggaran}`)
+            .then(response => response.json())
+            .then(data => {
+            if (data.success) {
+            const tahap1Data = data.data;
+            const totalTahap1Element = document.getElementById('totalTahap1');
+            const sisaTahap1Element = document.getElementById('sisaTahap1');
+            const percentTahap1Element = document.getElementById('percentTahap1');
+            
+            if (totalTahap1Element) {
+            totalTahap1Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
+            tahap1Data.total_anggaran);
+            }
+            if (sisaTahap1Element) {
+            sisaTahap1Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
+            tahap1Data.sisa_anggaran);
+            }
+            if (percentTahap1Element) {
+            percentTahap1Element.textContent = Math.round(tahap1Data.persentase_terpakai) +
+            '%';
+            }
+            
+            // Update progress bar with animation
+            const progressBar1 = document.querySelector('.col-lg-4:nth-child(2) .progress-bar');
+            if (progressBar1) {
+            setTimeout(() => {
+            progressBar1.style.width = tahap1Data.persentase_terpakai + '%';
+            }, 300);
+            }
+            }
+            })
+            .catch(error => console.error('Error updating Tahap 1:', error));
+            
+            // Update Tahap 2
+            fetch(`{{ url('penganggaran/rkas/total-tahap2') }}?tahun=${tahunAnggaran}`)
+            .then(response => response.json())
+            .then(data => {
+            if (data.success) {
+            const tahap2Data = data.data;
+            const totalTahap2Element = document.getElementById('totalTahap2');
+            const sisaTahap2Element = document.getElementById('sisaTahap2');
+            const percentTahap2Element = document.getElementById('percentTahap2');
+            
+            if (totalTahap2Element) {
+            totalTahap2Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
+            tahap2Data.total_anggaran);
+            }
+            if (sisaTahap2Element) {
+            sisaTahap2Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
+            tahap2Data.sisa_anggaran);
+            }
+            if (percentTahap2Element) {
+            percentTahap2Element.textContent = Math.round(tahap2Data.persentase_terpakai) +
+            '%';
+            }
+            
+            // Update progress bar with animation
+            const progressBar2 = document.querySelector('.col-lg-4:nth-child(3) .progress-bar');
+            if (progressBar2) {
+            setTimeout(() => {
+            progressBar2.style.width = tahap2Data.persentase_terpakai + '%';
+            }, 300);
+            }
+            }
+            })
+            .catch(error => console.error('Error updating Tahap 2:', error));
             }
 
             // Function to show Tahap detail
             window.showTahapDetail = function(tahap) {
-                const tahapName = tahap === 1 ? 'Tahap 1 (Januari - Juni)' : 'Tahap 2 (Juli - Desember)';
-                const headerClass = tahap === 1 ? 'bg-primary' : 'bg-success';
-                const tableHeaderClass = tahap === 1 ? 'table-primary' : 'table-success';
-
-                fetch(`{{ url('penganggaran/rkas/data-tahap') }}/${tahap}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            let tableContent = `
-                                <div class="modal fade" id="tahapDetailModal" tabindex="-1" aria-labelledby="tahapDetailModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-xl" style="max-width: 95%;">
-                                        <div class="modal-content" style="max-height: 95vh; overflow: hidden;">
-                                            <div class="modal-header ${headerClass} text-white">
-                                                <h5 class="modal-title" id="tahapDetailModalLabel">
-                                                    <i class="bi bi-calendar-event me-2"></i>Detail ${tahapName}
-                                                </h5>
-                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body" style="padding: 15px; max-height: 70vh; overflow-y: auto;">
-                                                <div class="table-responsive" style="max-height: 60vh; overflow-x: auto; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; background: white;">
-                                                    <table class="table table-striped table-hover" style="font-size: 8pt; min-width: 100%; margin-bottom: 0;">
-                                                        <thead class="${tableHeaderClass}" style="position: sticky; top: 0; z-index: 10;">
-                                                            <tr>
-                                                                <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">No</th>
-                                                                <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Program Kegiatan</th>
-                                                                <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Kegiatan</th>
-                                                                <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Rekening Belanja</th>
-                                                                <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Uraian</th>
-                                                                <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Bulan</th>
-                                                                <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Dianggaran</th>
-                                                                <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Satuan</th>
-                                                                <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Harga Satuan</th>
-                                                                <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Total</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                            `;
-
-                            if (data.data.length > 0) {
-                                data.data.forEach((item, index) => {
-                                    tableContent += `
+            const tahapName = tahap === 1 ? 'Tahap 1 (Januari - Juni)' : 'Tahap 2 (Juli - Desember)';
+            const headerClass = tahap === 1 ? 'bg-primary' : 'bg-success';
+            const tableHeaderClass = tahap === 1 ? 'table-primary' : 'table-success';
+            
+            // Dapatkan tahun anggaran saat ini
+            const tahunAnggaran = '{{ $penganggaran->tahun_anggaran }}';
+            
+            fetch(`{{ url('penganggaran/rkas/data-tahap') }}/${tahap}?tahun=${tahunAnggaran}`)
+            .then(response => response.json())
+            .then(data => {
+            if (data.success) {
+            let tableContent = `
+            <div class="modal fade" id="tahapDetailModal" tabindex="-1" aria-labelledby="tahapDetailModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl" style="max-width: 95%;">
+                    <div class="modal-content" style="max-height: 95vh; overflow: hidden;">
+                        <div class="modal-header ${headerClass} text-white">
+                            <h5 class="modal-title" id="tahapDetailModalLabel">
+                                <i class="bi bi-calendar-event me-2"></i>Detail ${tahapName} - Tahun ${tahunAnggaran}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body" style="padding: 15px; max-height: 70vh; overflow-y: auto;">
+                            <div class="table-responsive"
+                                style="max-height: 60vh; overflow-x: auto; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; background: white;">
+                                <table class="table table-striped table-hover"
+                                    style="font-size: 8pt; min-width: 100%; margin-bottom: 0;">
+                                    <thead class="${tableHeaderClass}" style="position: sticky; top: 0; z-index: 10;">
+                                        <tr>
+                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">No</th>
+                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Program Kegiatan</th>
+                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Kegiatan</th>
+                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Rekening Belanja</th>
+                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Uraian</th>
+                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Bulan</th>
+                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Dianggaran</th>
+                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Satuan</th>
+                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Harga Satuan</th>
+                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        `;
+            
+                                        if (data.data.length > 0) {
+                                        data.data.forEach((item, index) => {
+                                        tableContent += `
                                         <tr>
                                             <td style="font-size: 8pt; padding: 6px;">${index + 1}</td>
-                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 150px;">${item.program_kegiatan}</td>
-                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 150px;">${item.kegiatan}</td>
-                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 150px;">${item.rekening_belanja}</td>
-                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 200px;">${item.uraian}</td>
-                                            <td style="font-size: 8pt; padding: 6px;"><span class="badge ${tahap === 1 ? 'bg-info' : 'bg-success'}" style="font-size: 7pt;">${item.bulan}</span></td>
+                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 150px;">
+                                                ${item.program_kegiatan}</td>
+                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 150px;">
+                                                ${item.kegiatan}</td>
+                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 150px;">
+                                                ${item.rekening_belanja}</td>
+                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 200px;">
+                                                ${item.uraian}</td>
+                                            <td style="font-size: 8pt; padding: 6px;"><span
+                                                    class="badge ${tahap === 1 ? 'bg-info' : 'bg-success'}"
+                                                    style="font-size: 7pt;">${item.bulan}</span></td>
                                             <td style="font-size: 8pt; padding: 6px;">${item.dianggaran}</td>
                                             <td style="font-size: 8pt; padding: 6px;">${item.satuan}</td>
                                             <td style="font-size: 8pt; padding: 6px;">${item.harga_satuan}</td>
                                             <td style="font-size: 8pt; padding: 6px;"><strong>${item.total}</strong></td>
                                         </tr>
-                                    `;
-                                });
-                            } else {
-                                tableContent += `
-                                    <tr>
-                                        <td colspan="10" class="text-center text-muted py-4" style="font-size: 8pt;">
-                                            <i class="bi bi-inbox display-4"></i>
-                                            <p class="mt-2" style="font-size: 8pt;">Belum ada data untuk ${tahapName}</p>
-                                        </td>
-                                    </tr>
-                                `;
-                            }
-
-                            tableContent += `
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="font-size: 8pt;">Tutup</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-
-                            // Remove existing modal if any
-                            const existingModal = document.getElementById('tahapDetailModal');
-                            if (existingModal) {
-                                existingModal.remove();
-                            }
-
-                            // Add new modal to body
-                            document.body.insertAdjacentHTML('beforeend', tableContent);
-
-                            // Show modal
-                            const modal = new bootstrap.Modal(document.getElementById('tahapDetailModal'));
-                            modal.show();
-
-                            // Remove modal from DOM when hidden
-                            document.getElementById('tahapDetailModal').addEventListener('hidden.bs.modal',
-                                function() {
-                                    this.remove();
-                                });
-                        } else {
-                            alert('Gagal memuat data detail tahap');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Terjadi kesalahan saat memuat data detail tahap');
-                    });
+                                        `;
+                                        });
+                                        } else {
+                                        tableContent += `
+                                        <tr>
+                                            <td colspan="10" class="text-center text-muted py-4" style="font-size: 8pt;">
+                                                <i class="bi bi-inbox display-4"></i>
+                                                <p class="mt-2" style="font-size: 8pt;">Belum ada data untuk ${tahapName} Tahun
+                                                    ${tahunAnggaran}</p>
+                                            </td>
+                                        </tr>
+                                        `;
+                                        }
+            
+                                        tableContent += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                                style="font-size: 8pt;">Tutup</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('tahapDetailModal');
+            if (existingModal) {
+            existingModal.remove();
+            }
+            
+            // Add new modal to body
+            document.body.insertAdjacentHTML('beforeend', tableContent);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('tahapDetailModal'));
+            modal.show();
+            
+            // Remove modal from DOM when hidden
+            document.getElementById('tahapDetailModal').addEventListener('hidden.bs.modal',
+            function() {
+            this.remove();
+            });
+            } else {
+            alert('Gagal memuat data detail tahap');
+            }
+            })
+            .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat memuat data detail tahap');
+            });
             };
 
             // Add smooth animations for cards

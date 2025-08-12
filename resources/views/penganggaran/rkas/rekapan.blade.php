@@ -69,7 +69,7 @@
                         <div class="tab-pane fade show active" id="rka-tahapan" role="tabpanel">
                             <div class="p-4">
                                 <div class="d-flex justify-content-end">
-                                    <a class="btn btn-primary" target="_blank" href="{{ route('penganggaran.rkas.generate-pdf') }}" style="font-size: 9pt;">
+                                    <a class="btn btn-primary" target="_blank" href="{{ route('penganggaran.rkas.generate-pdf', ['tahun' => $tahun]) }}" style="font-size: 9pt;">
                                         <i class="bi bi-printer me-2"></i>
                                         Cetak
                                     </a>
@@ -215,7 +215,7 @@
                         <div class="tab-pane fade" id="rka-rekap" role="tabpanel">
                             <div class="p-4">
                                 <div class="d-flex justify-content-end mb-3">
-                                    <a class="btn btn-primary" target="_window" href="{{ route('penganggaran.rkas.generate-pdf-rekap') }}" style="font-size: 9pt;">
+                                    <a class="btn btn-primary" target="_window" href="{{ route('penganggaran.rkas.generate-pdf-rekap', ['tahun' => $tahun]) }}" style="font-size: 9pt;">
                                         <i class="bi bi-printer me-2"></i>
                                         Cetak
                                     </a>
@@ -335,7 +335,7 @@
                             <div class="p-4">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="mb-0">LEMBAR KERTAS KERJA</h5>
-                                    <a class="btn btn-primary btn-sm" href="{{ route('penganggaran.rkas.generate-rka-221-pdf') }}"
+                                    <a class="btn btn-primary btn-sm" href="{{ route('penganggaran.rkas.generate-rka-221-pdf', ['tahun' => $tahun]) }}"
                                         target="_blank">
                                         <i class="bi bi-printer me-2"></i>Cetak
                                     </a>
@@ -418,6 +418,7 @@
                         <div class="tab-pane fade" id="rka-bulan" role="tabpanel">
                             <div class="p-4">
                                 <form method="GET" action="{{ route('penganggaran.rkas.rekapan') }}" id="bulanForm">
+                                    <input type="hidden" name="tahun" value="{{ $tahun }}">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <div>
                                             <select name="bulan" id="bulanSelect" class="form-select form-select-sm" style="width: 150px;">
@@ -428,7 +429,7 @@
                                         </div>
                                         <div>
                                             <a class="btn btn-primary btn-sm" id="cetakPdfButton"
-                                                href="{{ route('penganggaran.rkas.rka-bulanan-pdf', $bulan) }}" target="_blank"
+                                                href="{{ route('penganggaran.rkas.rka-bulanan-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}" target="_blank"
                                                 style="font-size: 9pt;">
                                                 <i class="bi bi-printer me-2"></i> Cetak
                                             </a>
@@ -622,10 +623,14 @@
         $(document).ready(function() {
         $('#bulanSelect').change(function() {
         const bulan = $(this).val();
+        const tahun = "{{ $tahun }}";
+
         if (!bulan) return;
         
         // Update URL cetak PDF secara langsung
-        const pdfUrl = "{{ route('penganggaran.rkas.rka-bulanan-pdf', ':bulan') }}".replace(':bulan', bulan);
+        const pdfUrl = "{{ route('penganggaran.rkas.rka-bulanan-pdf', ['tahun' => ':tahun', 'bulan' => ':bulan']) }}"
+        .replace(':tahun', tahun)
+        .replace(':bulan', bulan);
         $('#cetakPdfButton').attr('href', pdfUrl);
         
         // AJAX request untuk load data tabel
@@ -637,6 +642,7 @@
         type: "GET",
         data: {
         bulan: bulan,
+        tahun: tahun,
         _token: "{{ csrf_token() }}"
         },
         success: function(response) {

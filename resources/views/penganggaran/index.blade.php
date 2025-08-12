@@ -263,7 +263,7 @@
                                             </div>
                                         </div>
                                         <div class="d-flex gap-2">
-                                            <a href="{{ route('penganggaran.rkas.index') }}"
+                                            <a href="{{ route('penganggaran.rkas.index', ['tahun' => $anggaran->tahun_anggaran]) }}"
                                                 class="btn btn-sm btn-outline-primary" title="Lihat">
                                                 <i class="bi bi-eye"></i>
                                             </a>

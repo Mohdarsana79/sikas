@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('kode_id')->constrained('kode_kegiatans')->onDelete('cascade');
             $table->foreignId('kode_rekening_id')->constrained('rekening_belanjas')->onDelete('cascade');
+            $table->foreignId('penganggaran_id')->constrained('penganggarans')->onDelete('cascade');
             $table->string('uraian');
             $table->decimal('harga_satuan', 15, 2);
             $table->enum('bulan', ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']);

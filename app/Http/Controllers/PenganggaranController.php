@@ -13,7 +13,9 @@ class PenganggaranController extends Controller
     public function index()
     {
         $anggarans = Penganggaran::orderBy('tahun_anggaran', 'desc')->get();
-        return view('penganggaran.index', compact('anggarans'));
+        $availableYears = Penganggaran::select('tahun_anggaran')->distinct()->orderBy('tahun_anggaran', 'desc')->pluck('tahun_anggaran');
+
+        return view('penganggaran.index', compact('anggarans', 'availableYears'));
     }
 
     /**

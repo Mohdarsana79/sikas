@@ -14,30 +14,42 @@ use App\Models\Sekolah;
 
 class RkasController extends Controller
 {
-    public function index()
+    // Di method index()
+    public function index(Request $request)
     {
         try {
             $kodeKegiatans = KodeKegiatan::all();
             $rekeningBelanjas = RekeningBelanja::all();
 
-            // Get all RKAS data grouped by month
-            $rkasData = $this->getAllRkasDataGroupedByMonth();
+            // Get selected year from request
+            $tahun = $request->input('tahun');
 
-            // Calculate total budget
-            $totalBudget = Rkas::sum(DB::raw('jumlah * harga_satuan'));
+            // Validate year selection
+            if (!$tahun) {
+                $tahun = Penganggaran::max('tahun_anggaran');
+            }
 
-            // Calculate total budget for Tahap 1 (Jan-Jun)
-            $totalTahap1 = Rkas::getTotalTahap1();
+            // Get penganggaran for selected year
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
-            // Calculate total budget for Tahap 2 (Jul-Dec)
-            $totalTahap2 = Rkas::getTotalTahap2();
+            // Get all RKAS data grouped by month for selected year
+            $rkasData = $this->getAllRkasDataGroupedByMonth($penganggaran->id);
 
-            // Get latest penganggaran data
-            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            // Calculate totals for selected year only
+            $totalBudget = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->sum(DB::raw('jumlah * harga_satuan'));
 
-            // Calculate 50% of pagu anggaran for Tahap 1 and Tahap 2
-            $paguAnggaranTahap1 = $penganggaran ? ($penganggaran->pagu_anggaran * 0.5) : 0;
-            $paguAnggaranTahap2 = $penganggaran ? ($penganggaran->pagu_anggaran * 0.5) : 0;
+            $totalTahap1 = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->whereIn('bulan', ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'])
+                ->sum(DB::raw('jumlah * harga_satuan'));
+
+            $totalTahap2 = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->whereIn('bulan', ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'])
+                ->sum(DB::raw('jumlah * harga_satuan'));
+
+            // Calculate 50% of pagu anggaran
+            $paguAnggaranTahap1 = $penganggaran->pagu_anggaran * 0.5;
+            $paguAnggaranTahap2 = $penganggaran->pagu_anggaran * 0.5;
 
             return view('penganggaran.rkas.rkas', compact(
                 'kodeKegiatans',
@@ -49,6 +61,7 @@ class RkasController extends Controller
                 'totalTahap2',
                 'paguAnggaranTahap1',
                 'paguAnggaranTahap2',
+                'tahun' // Pass the selected year to view
             ));
         } catch (\Exception $e) {
             Log::error('Error in RKAS index: ' . $e->getMessage());
@@ -72,6 +85,14 @@ class RkasController extends Controller
                 'satuan.*' => 'required|string',
             ]);
 
+            // Get penganggaran based on selected year
+            $tahun = $request->input('tahun_anggaran', date('Y'));
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return back()->with('error', 'Data penganggaran untuk tahun ' . $tahun . ' belum tersedia.');
+            }
+
             DB::beginTransaction();
 
             $bulanArray = $request->bulan;
@@ -86,7 +107,8 @@ class RkasController extends Controller
             // Create RKAS entries for each month
             for ($i = 0; $i < count($bulanArray); $i++) {
                 // Check if combination already exists
-                $exists = Rkas::where('kode_id', $request->kode_id)
+                $exists = Rkas::where('penganggaran_id', $penganggaran->id)
+                    ->where('kode_id', $request->kode_id)
                     ->where('kode_rekening_id', $request->kode_rekening_id)
                     ->where('bulan', $bulanArray[$i])
                     ->where('uraian', $request->uraian)
@@ -98,6 +120,7 @@ class RkasController extends Controller
                 }
 
                 Rkas::create([
+                    'penganggaran_id' => $penganggaran->id,
                     'kode_id' => $request->kode_id,
                     'kode_rekening_id' => $request->kode_rekening_id,
                     'uraian' => $request->uraian,
@@ -234,6 +257,26 @@ class RkasController extends Controller
     public function getByMonth($bulan)
     {
         try {
+            // Dapatkan tahun dari request
+            $tahun = request('tahun');
+
+            if (!$tahun) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parameter tahun diperlukan'
+                ], 400);
+            }
+
+            // Dapatkan penganggaran berdasarkan tahun
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan'
+                ], 404);
+            }
+
             $rkasData = Rkas::with([
                 'kodeKegiatan' => function ($query) {
                     $query->select('id', 'kode', 'program', 'sub_program', 'uraian');
@@ -242,6 +285,7 @@ class RkasController extends Controller
                     $query->select('id', 'kode_rekening', 'rincian_objek');
                 }
             ])
+                ->where('penganggaran_id', $penganggaran->id)
                 ->where('bulan', $bulan)
                 ->get();
 
@@ -249,7 +293,7 @@ class RkasController extends Controller
                 return response()->json([
                     'success' => true,
                     'data' => [],
-                    'message' => 'Tidak ada data untuk bulan ' . $bulan
+                    'message' => 'Tidak ada data untuk bulan ' . $bulan . ' tahun ' . $tahun
                 ]);
             }
 
@@ -286,7 +330,8 @@ class RkasController extends Controller
     public function getAllData()
     {
         try {
-            $rkasData = $this->getAllRkasDataGroupedByMonth();
+            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            $rkasData = $this->getAllRkasDataGroupedByMonth($penganggaran->id);
 
             return response()->json([
                 'success' => true,
@@ -342,9 +387,31 @@ class RkasController extends Controller
     public function getTotalTahap1()
     {
         try {
-            $totalTahap1 = Rkas::getTotalTahap1();
-            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
-            $paguAnggaranTahap1 = $penganggaran ? ($penganggaran->pagu_anggaran * 0.5) : 0;
+            // Dapatkan tahun dari request
+            $tahun = request('tahun');
+
+            if (!$tahun) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parameter tahun diperlukan'
+                ], 400);
+            }
+
+            // Dapatkan penganggaran berdasarkan tahun
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan'
+                ], 404);
+            }
+
+            $totalTahap1 = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->whereIn('bulan', ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'])
+                ->sum(DB::raw('jumlah * harga_satuan'));
+
+            $paguAnggaranTahap1 = $penganggaran->pagu_anggaran * 0.5;
 
             return response()->json([
                 'success' => true,
@@ -367,9 +434,31 @@ class RkasController extends Controller
     public function getTotalTahap2()
     {
         try {
-            $totalTahap2 = Rkas::getTotalTahap2();
-            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
-            $paguAnggaranTahap2 = $penganggaran ? ($penganggaran->pagu_anggaran * 0.5) : 0;
+            // Dapatkan tahun dari request
+            $tahun = request('tahun');
+
+            if (!$tahun) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parameter tahun diperlukan'
+                ], 400);
+            }
+
+            // Dapatkan penganggaran berdasarkan tahun
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan'
+                ], 404);
+            }
+
+            $totalTahap2 = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->whereIn('bulan', ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'])
+                ->sum(DB::raw('jumlah * harga_satuan'));
+
+            $paguAnggaranTahap2 = $penganggaran->pagu_anggaran * 0.5;
 
             return response()->json([
                 'success' => true,
@@ -392,7 +481,28 @@ class RkasController extends Controller
     public function getDataByTahap($tahap)
     {
         try {
+            // Dapatkan tahun dari request
+            $tahun = request('tahun');
+
+            if (!$tahun) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parameter tahun diperlukan'
+                ], 400);
+            }
+
+            // Dapatkan penganggaran berdasarkan tahun
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan'
+                ], 404);
+            }
+
             $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $penganggaran->id)
                 ->byTahap($tahap)
                 ->get();
 
@@ -425,7 +535,7 @@ class RkasController extends Controller
         }
     }
 
-    private function getAllRkasDataGroupedByMonth()
+    private function getAllRkasDataGroupedByMonth($penganggaranId)
     {
         $months = [
             'Januari',
@@ -446,6 +556,7 @@ class RkasController extends Controller
 
         foreach ($months as $month) {
             $rkasData[$month] = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $penganggaranId)
                 ->where('bulan', $month)
                 ->get();
         }
@@ -454,22 +565,21 @@ class RkasController extends Controller
     }
 
     // Method untuk generate PDF
-    public function generatePdf()
+    public function generatePdf(Request $request)
     {
         try {
-            // Ambil semua data RKAS dikelompokkan berdasarkan kode kegiatan
-            $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
-                ->orderBy('kode_id')
-                ->get()
-                ->groupBy(function ($item) {
-                    return optional($item->kodeKegiatan)->kode;
-                })
-                ->filter(function ($group, $key) {
-                    return !is_null($key);
-                });
+            // Ambil tahun dari parameter
+            $tahun = $request->input('tahun');
 
-            // Ambil data penganggaran terbaru
-            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            if (!$tahun) {
+                throw new \Exception("Parameter tahun diperlukan");
+            }
+            // Ambil data penganggaran berdasarkan tahun yang dipilih
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
+
+            if (!$penganggaran) {
+                throw new \Exception("Data penganggaran belum tersedia");
+            }
 
             // Ambil data sekolah
             $sekolah = Sekolah::first();
@@ -478,9 +588,17 @@ class RkasController extends Controller
                 throw new \Exception("Data sekolah belum tersedia");
             }
 
-            if (!$penganggaran) {
-                throw new \Exception("Data penganggaran belum tersedia");
-            }
+            // Ambil semua data RKAS dikelompokkan berdasarkan kode kegiatan - filter by penganggaran_id
+            $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $penganggaran->id)
+                ->orderBy('kode_id')
+                ->get()
+                ->groupBy(function ($item) {
+                    return optional($item->kodeKegiatan)->kode;
+                })
+                ->filter(function ($group, $key) {
+                    return !is_null($key);
+                });
 
             // Data sekolah untuk PDF
             $dataSekolah = [
@@ -498,7 +616,7 @@ class RkasController extends Controller
                 'komite' => $penganggaran->komite
             ];
 
-            // Data penerimaan
+            // Data penerimaan - ambil dari penganggaran yang dipilih
             $penerimaan = [
                 'penganggaran' => $penganggaran,
                 'total' => $penganggaran->pagu_anggaran,
@@ -511,17 +629,12 @@ class RkasController extends Controller
                 ]
             ];
 
-            // Hitung total
-            $totalTahap1 = Rkas::getTotalTahap1();
-            $totalTahap2 = Rkas::getTotalTahap2();
+            // Hitung total berdasarkan penganggaran_id
+            $totalTahap1 = Rkas::getTotalTahap1($penganggaran->id);
+            $totalTahap2 = Rkas::getTotalTahap2($penganggaran->id);
 
             // Organisasikan data RKAS
             $dataTerkelola = $this->kelolaDataRkas($rkasData);
-
-            // Format tanggal cetak menggunakan accessor dari model
-            $tanggalCetak = [
-                'tanggal_cetak' => $penganggaran->format_tanggal_cetak // Menggunakan accessor
-            ];
 
             $pdf = PDF::loadView('penganggaran.rkas.rkas-tahap-pdf', [
                 'dataSekolah' => $dataSekolah,
@@ -530,7 +643,6 @@ class RkasController extends Controller
                 'totalTahap1' => $totalTahap1,
                 'totalTahap2' => $totalTahap2,
                 'totalBelanja' => $totalTahap1 + $totalTahap2,
-                'tanggalCetak' => $tanggalCetak,
                 'penganggaran' => $penganggaran
             ]);
 
@@ -669,16 +781,32 @@ class RkasController extends Controller
         return $terorganisir;
     }
 
-    public function showRekapan()
+    public function showRekapan(Request $request)
     {
         try {
-            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            $tahun = $request->input('tahun');
+            Log::info('Parameter tahun dari URL: ' . $tahun);
+
+            // Ambil data penganggaran berdasarkan tahun yang diminta, bukan yang terbaru
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
+            Log::info('ID Penganggaran ditemukan: ' . $penganggaran->id);
+
             $sekolah = Sekolah::first();
 
-            if (!$penganggaran || !$sekolah) {
-                throw new \Exception("Data penganggaran atau sekolah tidak ditemukan");
+            if (!$sekolah) {
+                throw new \Exception("Data sekolah tidak ditemukan");
             }
 
+            // Data untuk RKAS Tahapan - filter by penganggaran_id
+            $belanja = $this->kelolaDataRkas(
+                Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                    ->where('penganggaran_id', $penganggaran->id)
+                    ->orderBy('kode_id')
+                    ->get()
+                    ->groupBy(function ($item) {
+                        return optional($item->kodeKegiatan)->kode;
+                    })
+            );
 
             // Data indikator kinerja
             $indikatorKinerja = [
@@ -689,9 +817,10 @@ class RkasController extends Controller
                 ['indikator' => 'Sasaran Keg', 'tolok_ukur' => '', 'target' => '']
             ];
 
-            // Data untuk RKAS Tahapan
+            // Data untuk RKAS Tahapan - ambil berdasarkan penganggaran_id
             $dataTerkelola = $this->kelolaDataRkas(
                 Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                    ->where('penganggaran_id', $penganggaran->id)
                     ->orderBy('kode_id')
                     ->get()
                     ->groupBy(function ($item) {
@@ -699,17 +828,18 @@ class RkasController extends Controller
                     })
             );
 
-            // Data untuk RKA Rekap
-            $rekapData = $this->getRekapRkas();
+            // Data untuk RKA Rekap - ambil berdasarkan penganggaran_id
+            $rekapData = $this->getRekapRkas($penganggaran->id);
 
-            // Data untuk Lembar Kerja 221
-            [$groupedItemsFor221, $totalsFor221] = $this->prepare221Data();
+            // Data untuk Lembar Kerja 221 - ambil berdasarkan penganggaran_id
+            [$groupedItemsFor221, $totalsFor221] = $this->prepare221Data($penganggaran->id);
 
             // Get selected month or default to January
             $bulan = request('bulan') ?? 'Januari';
 
-            // Query data untuk bulan yang dipilih
+            // Query data untuk bulan yang dipilih - berdasarkan penganggaran_id
             $rkasBulanan = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $penganggaran->id)
                 ->where('bulan', $bulan)
                 ->orderBy('kode_id')
                 ->get()
@@ -717,44 +847,43 @@ class RkasController extends Controller
                     return optional($item->kodeKegiatan)->kode ?? 'unknown';
                 });
 
-            $totalBulanan = Rkas::where('bulan', $bulan)
+            $totalBulanan = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->where('bulan', $bulan)
                 ->sum(DB::raw('jumlah * harga_satuan'));
 
+            // Debug: Log ID penganggaran yang ditemukan
+            Log::info('ID Penganggaran ditemukan: ' . $penganggaran->id);
+            // Data penerimaan - ambil dari penganggaran yang dipilih
+            $penerimaan = [
+                'total' => $penganggaran->pagu_anggaran,
+                'items' => [
+                    [
+                        'kode' => '4.3.1.01.',
+                        'uraian' => 'BOS Reguler',
+                        'jumlah' => $penganggaran->pagu_anggaran
+                    ]
+                ]
+            ];
 
+            // Hitung total tahap 1 dan 2 berdasarkan penganggaran_id
+            $totalTahap1 = Rkas::getTotalTahap1($penganggaran->id);
+            $totalTahap2 = Rkas::getTotalTahap2($penganggaran->id);
+
+            // Debug: Log hasil perhitungan
+            Log::info("Total Tahap 1: {$totalTahap1}, Total Tahap 2: {$totalTahap2}");
             return view('penganggaran.rkas.rekapan', [
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
+                'tahun' => $tahun,
                 'bulan' => $bulan,
                 'rkasBulanan' => $rkasBulanan,
                 'totalBulanan' => $totalBulanan,
-                'months' => [
-                    'Januari',
-                    'Februari',
-                    'Maret',
-                    'April',
-                    'Mei',
-                    'Juni',
-                    'Juli',
-                    'Agustus',
-                    'September',
-                    'Oktober',
-                    'November',
-                    'Desember'
-                ],
+                'months' => Rkas::getBulanList(),
                 'indikatorKinerja' => $indikatorKinerja,
-                'penerimaan' => [
-                    'total' => $penganggaran->pagu_anggaran,
-                    'items' => [
-                        [
-                            'kode' => '4.3.1.01.',
-                            'uraian' => 'BOS Reguler',
-                            'jumlah' => $penganggaran->pagu_anggaran
-                        ]
-                    ]
-                ],
-                'belanja' => $dataTerkelola,
-                'totalTahap1' => Rkas::getTotalTahap1(),
-                'totalTahap2' => Rkas::getTotalTahap2(),
+                'penerimaan' => $penerimaan,
+                'belanja' => $belanja,
+                'totalTahap1' => $totalTahap1,
+                'totalTahap2' => $totalTahap2,
                 'rekapData' => $rekapData,
                 'mainStructure' => [
                     '5' => 'BELANJA',
@@ -767,25 +896,7 @@ class RkasController extends Controller
                 ],
                 'groupedItems' => $groupedItemsFor221,
                 'totals' => $totalsFor221,
-                'total_anggaran' => $penganggaran->pagu_anggaran,
-                'months' => [
-                    'Januari',
-                    'Februari',
-                    'Maret',
-                    'April',
-                    'Mei',
-                    'Juni',
-                    'Juli',
-                    'Agustus',
-                    'September',
-                    'Oktober',
-                    'November',
-                    'Desember'
-                ],
-                'bulan' => $bulan,
-                'rkasBulanan' => $rkasBulanan,
-                'totalBulanan' => $totalBulanan,
-
+                'total_anggaran' => $penganggaran->pagu_anggaran
             ]);
         } catch (\Exception $e) {
             Log::error('Error showing rekapan: ' . $e->getMessage());
@@ -793,7 +904,7 @@ class RkasController extends Controller
         }
     }
 
-    private function prepare221Data()
+    private function prepare221Data($penganggaranId)
     {
         $mainStructure = [
             '5' => 'BELANJA',
@@ -806,6 +917,7 @@ class RkasController extends Controller
         ];
 
         $rkasDetail = Rkas::with(['rekeningBelanja'])
+            ->where('penganggaran_id', $penganggaranId)
             ->orderBy('kode_rekening_id')
             ->get();
 
@@ -842,11 +954,13 @@ class RkasController extends Controller
         return [$groupedItems, $totals];
     }
 
-    private function getRekapRkas()
+    private function getRekapRkas($penganggaranId)
     {
         try {
-            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
-            $rkasData = Rkas::with(['rekeningBelanja'])->get();
+            $penganggaran = Penganggaran::findOrFail($penganggaranId);
+            $rkasData = Rkas::with(['rekeningBelanja'])
+                ->where('penganggaran_id', $penganggaranId)
+                ->get();
 
             // 1. Hitung semua jumlah berdasarkan kode rekening
             $belanjaTotal = 0;
@@ -1032,21 +1146,28 @@ class RkasController extends Controller
         }
     }
 
-    public function generatePdfRkaRekap()
+    public function generatePdfRkaRekap(Request $request)
     {
         try {
-            // Ambil data penganggaran terbaru
-            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            // Ambil tahun dari parameter
+            $tahun = $request->input('tahun');
+
+            if (!$tahun) {
+                throw new \Exception("Parameter tahun diperlukan");
+            }
+
+            // Ambil data penganggaran berdasarkan tahun yang dipilih
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
+
+            if (!$penganggaran) {
+                throw new \Exception("Data penganggaran belum tersedia");
+            }
 
             // Ambil data sekolah
             $sekolah = Sekolah::first();
 
             if (!$sekolah) {
                 throw new \Exception("Data sekolah belum tersedia");
-            }
-
-            if (!$penganggaran) {
-                throw new \Exception("Data penganggaran belum tersedia");
             }
 
             // Data sekolah untuk PDF
@@ -1076,16 +1197,21 @@ class RkasController extends Controller
                 ]
             ];
 
-            // Data belanja (rekap)
-            $rekapData = $this->getRekapRkas();
+            // Data belanja (rekap) - ambil berdasarkan penganggaran_id
+            $rekapData = $this->getRekapRkas($penganggaran->id);
 
-            // Data tahapan
-            $totalTahap1 = Rkas::getTotalTahap1();
-            $totalTahap2 = Rkas::getTotalTahap2();
+            // Data tahapan - ambil berdasarkan penganggaran_id
+            $totalTahap1 = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->whereIn('bulan', ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'])
+                ->sum(DB::raw('jumlah * harga_satuan'));
+
+            $totalTahap2 = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->whereIn('bulan', ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'])
+                ->sum(DB::raw('jumlah * harga_satuan'));
 
             // Format tanggal cetak
             $tanggalCetak = [
-                'tanggal_cetak' => $penganggaran->format_tanggal_cetak
+                'tanggal_cetak' => $penganggaran->format_tanggal_cetak ?? 'Belum diisi'
             ];
 
             $pdf = PDF::loadView('penganggaran.rkas.rka-rekap-pdf', [
@@ -1189,14 +1315,24 @@ class RkasController extends Controller
         }
     }
 
-    public function generateRkaDuaSatuPdf()
+    public function generateRkaDuaSatuPdf(Request $request)
     {
         try {
-            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
+            // Ambil tahun dari parameter request
+            $tahun = $request->input('tahun');
+
+            if (!$tahun) {
+                throw new \Exception("Parameter tahun diperlukan");
+            }
+
+            // Ambil data penganggaran berdasarkan tahun yang dipilih
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
+
+            // Ambil data sekolah
             $sekolah = Sekolah::first();
 
-            if (!$penganggaran || !$sekolah) {
-                throw new \Exception("Data penganggaran atau sekolah tidak ditemukan");
+            if (!$sekolah || !$penganggaran) {
+                throw new \Exception("Data sekolah atau penganggaran tidak ditemukan");
             }
 
             // Data untuk tabel indikator kinerja
@@ -1208,8 +1344,9 @@ class RkasController extends Controller
                 ['indikator' => 'Sasaran Keg', 'tolok_ukur' => '', 'target' => 0]
             ];
 
-            // Data untuk tabel rincian anggaran
+            // Data untuk tabel rincian anggaran - filter berdasarkan penganggaran_id
             $rkasData = Rkas::with(['rekeningBelanja'])
+                ->where('penganggaran_id', $penganggaran->id)
                 ->orderBy('kode_rekening_id')
                 ->get();
 
@@ -1275,7 +1412,8 @@ class RkasController extends Controller
                 'mainStructure' => $mainStructure,
                 'groupedItems' => $groupedItems,
                 'totals' => $totals,
-                'total_anggaran' => $penganggaran->pagu_anggaran
+                'total_anggaran' => $penganggaran->pagu_anggaran,
+                'tahun_anggaran' => $penganggaran->tahun_anggaran
             ]);
 
             return $pdf->stream('RKA-221.pdf');
@@ -1421,22 +1559,10 @@ class RkasController extends Controller
         return $terorganisir;
     }
 
-    public function generatePdfBulanan($bulan)
+    public function generatePdfBulanan($tahun, $bulan)
     {
         try {
-            // Tambahkan header untuk mencegah caching
-            header("Cache-Control: no-cache, no-store, must-revalidate");
-            header("Pragma: no-cache");
-            header("Expires: 0");
-
-            $penganggaran = Penganggaran::orderBy('tahun_anggaran', 'desc')->first();
-            $sekolah = Sekolah::first();
-
-            if (!$sekolah || !$penganggaran) {
-                throw new \Exception("Data sekolah atau penganggaran tidak ditemukan");
-            }
-
-            // Validasi bulan yang diterima
+            // Validasi bulan
             $validBulan = in_array($bulan, [
                 'Januari',
                 'Februari',
@@ -1450,20 +1576,25 @@ class RkasController extends Controller
                 'Oktober',
                 'November',
                 'Desember'
-            ]) ? $bulan : '';
+            ]) ? $bulan : 'Januari';
 
-            // Ambil data sesuai bulan yang dipilih dengan log query
-            Log::info("Mengambil data RKAS untuk bulan: " . $validBulan);
+            // Ambil data penganggaran berdasarkan tahun yang diminta
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
+            $sekolah = Sekolah::first();
 
+            if (!$sekolah || !$penganggaran) {
+                throw new \Exception("Data sekolah atau penganggaran tidak ditemukan");
+            }
+
+            // Ambil data RKAS hanya untuk tahun dan bulan yang diminta
             $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $penganggaran->id)
                 ->where('bulan', $validBulan)
                 ->orderBy('kode_id')
                 ->get()
                 ->groupBy(function ($item) {
                     return optional($item->kodeKegiatan)->kode ?? 'unknown';
                 });
-
-            Log::info("Jumlah data ditemukan: " . $rkasData->count());
 
             // Data sekolah untuk PDF
             $dataSekolah = [
@@ -1502,8 +1633,6 @@ class RkasController extends Controller
                 });
             });
 
-            Log::info("Total belanja untuk bulan $validBulan: " . $totalBelanja);
-
             $pdf = PDF::loadView('penganggaran.rkas.rka-bulanan-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
@@ -1513,7 +1642,7 @@ class RkasController extends Controller
                 'penganggaran' => $penganggaran
             ]);
 
-            return $pdf->stream("RKAS-Bulanan-{$validBulan}.pdf");
+            return $pdf->stream("RKAS-Bulanan-{$validBulan}-{$tahun}.pdf");
         } catch (\Exception $e) {
             Log::error('Error saat membuat PDF RKAS Bulanan: ' . $e->getMessage());
             return back()->with('error', 'Gagal menghasilkan PDF: ' . $e->getMessage());
@@ -1524,8 +1653,14 @@ class RkasController extends Controller
     {
         try {
             $bulan = $request->input('bulan', 'Januari');
+            $tahun = $request->input('tahun');
 
-            $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+            // Ambil data penganggaran berdasarkan tahun
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
+
+            // Query data untuk bulan yang dipilih berdasarkan penganggaran_id
+            $rkasBulanan = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $penganggaran->id)
                 ->where('bulan', $bulan)
                 ->orderBy('kode_id')
                 ->get()
@@ -1533,13 +1668,14 @@ class RkasController extends Controller
                     return optional($item->kodeKegiatan)->kode ?? 'unknown';
                 });
 
-            $totalBulanan = Rkas::where('bulan', $bulan)
+            $totalBulanan = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->where('bulan', $bulan)
                 ->sum(DB::raw('jumlah * harga_satuan'));
 
             return response()->json([
                 'success' => true,
                 'html' => view('penganggaran.rkas.partials.monthly-data', [
-                    'rkasBulanan' => $rkasData,
+                    'rkasBulanan' => $rkasBulanan,
                     'bulan' => $bulan,
                     'totalBulanan' => $totalBulanan
                 ])->render(),
