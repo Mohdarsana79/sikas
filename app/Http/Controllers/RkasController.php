@@ -182,6 +182,46 @@ class RkasController extends Controller
         }
     }
 
+    public function sisipkan(Request $request)
+    {
+        try {
+            $request->validate([
+                'kode_id' => 'required|exists:kode_kegiatans,id',
+                'kode_rekening_id' => 'required|exists:rekening_belanjas,id',
+                'uraian' => 'required|string',
+                'harga_satuan' => 'required|numeric|min:0',
+                'jumlah' => 'required|integer|min:1',
+                'satuan' => 'required|string',
+                'tahun_anggaran' => 'required',
+                'bulan' => 'required|string',
+            ]);
+
+            $penganggaran = Penganggaran::where('tahun_anggaran', $request->tahun_anggaran)->firstOrFail();
+
+            Rkas::create([
+                'penganggaran_id' => $penganggaran->id,
+                'kode_id' => $request->kode_id,
+                'kode_rekening_id' => $request->kode_rekening_id,
+                'uraian' => $request->uraian,
+                'harga_satuan' => $request->harga_satuan,
+                'jumlah' => $request->jumlah,
+                'satuan' => $request->satuan,
+                'bulan' => $request->bulan,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil disisipkan ke bulan ' . $request->bulan,
+                'bulan' => $request->bulan
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function update(Request $request, $id)
     {
         try {
@@ -1686,6 +1726,50 @@ class RkasController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat mengambil data bulanan.'
+            ], 500);
+        }
+    }
+
+    public function getDataByMonth($month)
+    {
+        try {
+            $tahun = request()->query('tahun');
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
+
+            // Fix: Gunakan whereBulan dengan nilai yang konsisten (huruf pertama kapital)
+            $monthFormatted = ucfirst(strtolower($month));
+
+            $data = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $penganggaran->id)
+                ->where('bulan', $monthFormatted)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'program_kegiatan' => $item->kodeKegiatan->program ?? '-',
+                        'kegiatan' => $item->kodeKegiatan->sub_program ?? '-',
+                        'rekening_belanja' => $item->rekeningBelanja ?
+                            $item->rekeningBelanja->kode_rekening . ' - ' . $item->rekeningBelanja->rincian_objek : '-',
+                        'uraian' => $item->uraian,
+                        'dianggaran' => $item->jumlah,
+                        'dibelanjakan' => 0, // Sesuaikan dengan logika Anda
+                        'satuan' => $item->satuan,
+                        'harga_satuan' => 'Rp ' . number_format($item->harga_satuan, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($item->jumlah * $item->harga_satuan, 0, ',', '.'),
+                        'kode_id' => $item->kode_id,
+                        'kode_rekening_id' => $item->kode_rekening_id
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'month' => $monthFormatted
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat data: ' . $e->getMessage()
             ], 500);
         }
     }

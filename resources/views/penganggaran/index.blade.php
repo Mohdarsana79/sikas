@@ -267,12 +267,16 @@
                                                 class="btn btn-sm btn-outline-primary" title="Lihat">
                                                 <i class="bi bi-eye"></i>
                                             </a>
-                                            <button class="btn btn-sm btn-outline-secondary" title="Download">
-                                                <i class="bi bi-download"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-dark" title="Print">
+                                            @if($anggaran->has_rkas)
+                                            <a class="btn btn-sm btn-outline-dark"
+                                                href="{{ route('penganggaran.rkas.rekapan', ['tahun' => $anggaran->tahun_anggaran]) }}" title="Print">
+                                                <i class="bi bi-printer"></i>
+                                            </a>
+                                            @else
+                                            <button class="btn btn-sm btn-outline-dark" disabled title="Tidak ada data untuk dicetak">
                                                 <i class="bi bi-printer"></i>
                                             </button>
+                                            @endif
                                             <button class="btn btn-sm btn-outline-danger" title="Hapus"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#deleteAnggaranModal{{ $anggaran->id }}">

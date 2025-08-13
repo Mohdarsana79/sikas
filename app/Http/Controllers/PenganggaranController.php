@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Penganggaran;
 use Illuminate\Http\Request;
+use App\Models\Rkas;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PenganggaranController extends Controller
 {
@@ -14,6 +17,11 @@ class PenganggaranController extends Controller
     {
         $anggarans = Penganggaran::orderBy('tahun_anggaran', 'desc')->get();
         $availableYears = Penganggaran::select('tahun_anggaran')->distinct()->orderBy('tahun_anggaran', 'desc')->pluck('tahun_anggaran');
+
+        // pengecekan data RKAS untuk setiap anggaran
+        $anggarans->each(function ($anggaran) {
+            $anggaran->has_rkas = Rkas::where('penganggaran_id', $anggaran->id)->exists();
+        });
 
         return view('penganggaran.index', compact('anggarans', 'availableYears'));
     }
@@ -116,14 +124,33 @@ class PenganggaranController extends Controller
     /**
      * Remove the specified resource from storage.
      */
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy($id)
     {
-        //
-        $anggaran = Penganggaran::findOrFail($id);
+        try {
+            DB::beginTransaction();
 
-        $anggaran->delete();
-        return redirect()->route('penganggaran.index')
-            ->with('success', 'Data anggaran berhasil dihapus');
+            $anggaran = Penganggaran::findOrFail($id);
+            $tahunAnggaran = $anggaran->tahun_anggaran;
+
+            // Delete all RKAS data related to this penganggaran
+            Rkas::where('penganggaran_id', $anggaran->id)->delete();
+
+            // Delete the penganggaran
+            $anggaran->delete();
+
+            DB::commit();
+
+            return redirect()->route('penganggaran.index')
+                ->with('success', 'Data anggaran tahun ' . $tahunAnggaran . ' beserta semua data RKAS terkait berhasil dihapus');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error deleting Penganggaran: ' . $e->getMessage());
+            return redirect()->route('penganggaran.index')
+                ->with('error', 'Gagal menghapus data anggaran: ' . $e->getMessage());
+        }
     }
 
     public function updateTanggalCetak(Request $request, $id)

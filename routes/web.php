@@ -50,6 +50,8 @@ Route::middleware(['auth'])->prefix('penganggaran/rkas')->group(function () {
     Route::put('/{id}/update-tanggal-cetak', [PenganggaranController::class, 'updateTanggalCetak'])
         ->name('penganggaran.update-tanggal-cetak');
     Route::get('/{id}', [RkasController::class, 'show'])->name('penganggaran.rkas.show');
+    Route::post('/penganggaran/rkas/sisipkan', [RkasController::class, 'sisipkan'])
+        ->name('penganggaran.rkas.sisipkan');
     Route::delete('/{id}', [RkasController::class, 'destroy'])->name('penganggaran.rkas.destroy');
     Route::get('/total/per-bulan', [RkasController::class, 'getTotalPerBulan'])->name('penganggaran.rkas.getTotalPerBulan');
     // Routes for Tahap 1 and Tahap 2 functionality
@@ -68,6 +70,8 @@ Route::middleware(['auth'])->prefix('penganggaran/rkas')->group(function () {
 
     Route::get('/penganggaran/rkas/get-monthly-data', [RkasController::class, 'getMonthlyData'])
         ->name('penganggaran.rkas.get-monthly-data');
+
+    Route::get('/penganggaran/rkas/bulan/{month}', [RkasController::class, 'getDataByMonth'])->name('penganggaran.rkas.get-data-by-month');
 
     Route::get('/penganggaran/rkas/rekap-bulanan/{bulan}', [RkasController::class, 'getRekapBulanan'])
         ->name('penganggaran.rkas.rekap-bulanan');

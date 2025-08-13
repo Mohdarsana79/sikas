@@ -33,10 +33,9 @@
                         <button class="btn btn-outline-secondary" style="font-size: 9pt;">
                             <i class="bi bi-plus me-2"></i>Pergeseran
                         </button>
-                        <button class="btn btn-outline-secondary" style="font-size: 9pt;">
-                            <i class="bi bi-printer me-2"></i>Cetak
-                        </button>
-                        <a class="btn btn-primary" href="{{ route('penganggaran.rkas.rekapan', ['tahun' => $tahun]) }}" style="font-size: 9pt;">Review</a>
+                        <a class="btn btn-primary" href="{{ route('penganggaran.rkas.rekapan', ['tahun' => $tahun]) }}" style="font-size: 9pt;">
+                            <i class="bi bi-printer"></i> Cetak
+                        </a>
                     </div>
                 </div>
 
@@ -386,6 +385,17 @@
                                                                         onclick="showDetailModal({{ $rkas->id }})"
                                                                         style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                                         <i class="bi bi-eye me-2 text-primary"></i>Detail
+                                                                    </a>
+                                                                </li>
+                                                                <li>
+                                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showSisipkanModal(
+                                                                            {{ $rkas->kode_id }}, 
+                                                                            '{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->program : '-' }}', 
+                                                                            '{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->sub_program : '-' }}',
+                                                                            {{ $rkas->kode_rekening_id }},
+                                                                            '{{ $rkas->rekeningBelanja ? $rkas->rekeningBelanja->kode_rekening.' - '.$rkas->rekeningBelanja->rincian_objek : '-' }}'
+                                                                        )" style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
+                                                                        <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
                                                                     </a>
                                                                 </li>
                                                                 <li>
@@ -826,6 +836,125 @@
         </div>
     </div>
 
+    <!-- Modal Sisipkan RKAS -->
+    <div class="modal fade" id="sisipkanRkasModal" tabindex="-1" aria-labelledby="sisipkanRkasModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title" id="sisipkanRkasModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Sisipkan Data RKAS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+    
+                @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                @endif
+    
+                @if ($errors->any()))
+                <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                @endif
+    
+                <form id="sisipkanRkasForm" method="POST" action="{{ route('penganggaran.rkas.sisipkan') }}">
+                    @csrf
+                    <div class="modal-body">
+                        <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
+                        <input type="hidden" id="sisipkan_kode_id" name="kode_id">
+                        <input type="hidden" id="sisipkan_kode_rekening_id" name="kode_rekening_id">
+                        <input type="hidden" id="sisipkan_bulan" name="bulan">
+    
+                        <!-- Program Kegiatan yang Disisipkan -->
+                        <div class="mb-4 p-3 bg-light rounded">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Program Kegiatan</label>
+                                        <input type="text" class="form-control" id="sisipkan_program" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Kegiatan</label>
+                                        <input type="text" class="form-control" id="sisipkan_kegiatan" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label class="form-label">Rekening Belanja</label>
+                                        <input type="text" class="form-control" id="sisipkan_rekening_belanja_display"
+                                            readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- Uraian -->
+                        <div class="mb-3">
+                            <label for="sisipkan_uraian" class="form-label">Uraian <span
+                                    class="text-danger">*</span></label>
+                            <textarea class="form-control" id="sisipkan_uraian" name="uraian" rows="3"
+                                required>{{ old('uraian') }}</textarea>
+                        </div>
+    
+                        <!-- Jumlah dan Satuan -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="sisipkan_jumlah" class="form-label">Jumlah <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="sisipkan_jumlah" name="jumlah" placeholder="0"
+                                    min="1" value="{{ old('jumlah') }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="sisipkan_satuan" class="form-label">Satuan <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="sisipkan_satuan" name="satuan"
+                                    placeholder="pcs, unit, buah" value="{{ old('satuan') }}" required>
+                            </div>
+                        </div>
+    
+                        <!-- Harga Satuan -->
+                        <div class="mb-3">
+                            <label for="sisipkan_harga_satuan" class="form-label">Harga Satuan <span
+                                    class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control" id="sisipkan_harga_satuan" name="harga_satuan"
+                                    placeholder="0" step="0.01" min="0" value="{{ old('harga_satuan') }}" required>
+                            </div>
+                        </div>
+    
+                        <!-- Total Anggaran -->
+                        <div class="alert alert-info">
+                            <strong>Total Anggaran:</strong> <span id="sisipkan_total_display">Rp 0</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-circle me-2"></i>Simpan Data
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Hapus RKAS -->
     <div class="modal fade" id="deleteRkasModal" tabindex="-1" aria-labelledby="deleteRkasModalLabel"
         aria-hidden="true">
@@ -844,8 +973,8 @@
                         <h4 class="mt-3">Apakah Anda yakin?</h4>
                         <p class="text-muted">Data RKAS yang dihapus tidak dapat dikembalikan!</p>
 
-                        <div class="alert alert-light border mt-3">
-                            <div class="row">
+                        <div class="card bg-body-secondary border mt-3">
+                            <div class="row ms-2 me-2">
                                 <div class="col-6 text-start">
                                     <strong>Kegiatan:</strong><br>
                                     <span id="delete-kegiatan-info"></span>
@@ -855,7 +984,7 @@
                                     <span id="delete-bulan-info"></span>
                                 </div>
                             </div>
-                            <div class="row mt-2">
+                            <div class="row ms-2 me-2 mt-2">
                                 <div class="col-12 text-start">
                                     <strong>Total Anggaran:</strong><br>
                                     <span class="text-danger fw-bold" id="delete-total-info"></span>
@@ -876,19 +1005,107 @@
 
     <!-- CSS Styles -->
     <style>
+        /* Fix untuk tabel RKAS dan dropdown aksi */
+        .rkas-table-container {
+            overflow: visible !important;
+        }
+    
+        .rkas-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 1rem;
+            background-color: white;
+            border-radius: 8px;
+            overflow: visible !important;
+        }
+    
+        .rkas-table thead th {
+            position: sticky;
+            top: 0;
+            background: #007bff;
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 8px 12px;
+            font-size: 8pt;
+    
+        }
+    
+        .rkas-table tbody td {
+            padding: 8px 12px;
+            vertical-align: middle;
+            font-size: 8pt;
+            position: relative;
+            overflow: visible !important;
+        }
+    
+        .rkas-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+    
+        /* Fix untuk dropdown aksi */
+        .dropdown {
+            position: static !important;
+        }
+    
+        .dropdown-menu {
+            position: absolute !important;
+            right: 0;
+            left: auto;
+            z-index: 1000 !important;
+            min-width: 120px;
+            margin-top: 0;
+            border: 1px solid rgba(0, 0, 0, .15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+    
+        .dropdown-toggle::after {
+            display: none;
+        }
+    
+        /* Memastikan kolom aksi cukup lebar */
+        .rkas-table th:nth-child(11),
+        .rkas-table td:nth-child(11) {
+            width: 80px;
+            min-width: 80px;
+            max-width: 80px;
+            white-space: nowrap;
+        }
+    
+        /* Memastikan konten tabel tidak overflow */
+        .rkas-table td {
+            max-width: 200px;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+    
+        /* Responsive table */
+        @media (max-width: 768px) {
+            .rkas-table-container {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+    
+            .rkas-table {
+                min-width: 800px;
+            }
+        }
+    
         /* Progress Steps Styling */
         .progress-steps {
             background: #f8f9fa;
             border-radius: 10px;
             padding: 20px;
         }
-
+    
         .step-indicator {
             display: flex;
             align-items: center;
             justify-content: center;
         }
-
+    
         .step {
             display: flex;
             flex-direction: column;
@@ -896,7 +1113,7 @@
             text-align: center;
             position: relative;
         }
-
+    
         .step-number {
             width: 40px;
             height: 40px;
@@ -910,57 +1127,57 @@
             margin-bottom: 8px;
             transition: all 0.3s ease;
         }
-
+    
         .step.active .step-number {
             background: #007bff;
             color: white;
         }
-
+    
         .step.completed .step-number {
             background: #28a745;
             color: white;
         }
-
+    
         .step-title {
             font-size: 12px;
             color: #6c757d;
             font-weight: 500;
         }
-
+    
         .step.active .step-title {
             color: #007bff;
             font-weight: 600;
         }
-
+    
         .step-line {
             width: 100px;
             height: 2px;
             background: #dee2e6;
             margin: 0 10px;
         }
-
+    
         .form-step {
             min-height: 300px;
         }
-
+    
         .month-entry {
             background: #f8f9fa;
             transition: all 0.3s ease;
         }
-
+    
         .month-entry:hover {
             background: #e9ecef;
         }
-
+    
         .btn-remove-month {
             margin-top: 25px;
         }
-
+    
         .month-total {
             padding: 8px;
             font-size: 12px;
         }
-
+    
         /* Table Styling */
         .rkas-table {
             background: white;
@@ -968,18 +1185,18 @@
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-
+    
         .rkas-table thead th {
             background: #007bff;
             color: white;
             font-weight: 600;
             border: none;
         }
-
+    
         .rkas-table tbody tr:hover {
             background: #f8f9fa;
         }
-
+    
         /* Budget Card Styling */
         .budget-card {
             /* background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); */
@@ -990,35 +1207,35 @@
             justify-content: space-between;
             align-items: center;
         }
-
+    
         .budget-label {
             font-size: 0.9rem;
             /* opacity: 0.9; */
         }
-
+    
         .budget-amount {
             font-size: 1.2rem;
             font-weight: bold;
         }
-
+    
         /* Tab Styling */
         .nav-tabs .nav-link {
             border: none;
             color: #6c757d;
             font-weight: 500;
         }
-
+    
         .nav-tabs .nav-link.active {
             background: #007bff;
             color: white;
             border-radius: 8px 8px 0 0;
         }
-
+    
         .nav-tabs .nav-link:hover {
             border: none;
             background: #e9ecef;
         }
-
+    
         /* Loading Spinner */
         .loading-spinner {
             display: inline-block;
@@ -1029,23 +1246,23 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-
+    
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
             }
-
+    
             100% {
                 transform: rotate(360deg);
             }
         }
-
+    
         /* Detail Modal Styles */
         .detail-group {
             border-bottom: 1px solid #eee;
             padding-bottom: 10px;
         }
-
+    
         .detail-label {
             font-weight: 600;
             color: #495057;
@@ -1053,59 +1270,59 @@
             margin-bottom: 5px;
             display: block;
         }
-
+    
         .detail-value {
             color: #212529;
             font-size: 1rem;
             min-height: 20px;
         }
-
+    
         /* Dropdown Styles */
         .dropdown-toggle::after {
             display: none;
         }
-
+    
         .dropdown-menu {
             border: 1px solid #dee2e6;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-
+    
         .dropdown-item {
             padding: 8px 16px;
             font-size: 0.9rem;
         }
-
+    
         .dropdown-item:hover {
             background-color: #f8f9fa;
         }
-
+    
         .dropdown-item.text-danger:hover {
             background-color: #f8d7da;
             color: #721c24 !important;
         }
-
+    
         /* Select2 Custom Table Styles */
         .select2-container {
             width: 100% !important;
         }
-
+    
         .select2-dropdown {
             border: 1px solid #ced4da;
             border-radius: 0.375rem;
             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         }
-
+    
         .select2-results__option {
             padding: 0 !important;
             margin: 0 !important;
         }
-
+    
         .select2-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.875rem;
         }
-
+    
         .select2-table th {
             background: #f8f9fa;
             color: #495057;
@@ -1117,7 +1334,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-
+    
         .select2-table td {
             padding: 10px 12px;
             border-bottom: 1px solid #e9ecef;
@@ -1127,1202 +1344,127 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-
+    
         .select2-table tr:hover {
             background-color: #f8f9fa;
         }
-
+    
         .select2-results__option--highlighted .select2-table tr {
             background-color: #007bff !important;
             color: white;
         }
-
+    
         .select2-results__option--highlighted .select2-table th {
             background-color: #0056b3 !important;
             color: white;
         }
-
+    
         .select2-table-kode {
             width: 80px;
             font-family: 'Courier New', monospace;
             font-weight: 600;
             color: #000000;
         }
-
+    
         .select2-table-program {
             width: 150px;
             font-weight: 500;
         }
-
+    
         .select2-table-sub-program {
             width: 150px;
         }
-
+    
         .select2-table-uraian {
             min-width: 200px;
             white-space: normal;
             line-height: 1.4;
         }
-
+    
         .select2-table-rekening {
             width: 100px;
             font-family: 'Courier New', monospace;
             font-weight: 600;
             color: #000000;
         }
-
+    
         .select2-table-rincian {
             min-width: 250px;
             white-space: normal;
             line-height: 1.4;
         }
-
+    
         /* Select2 Search */
         .select2-search--dropdown {
             padding: 8px;
             background: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
         }
-
+    
         .select2-search__field {
             border: 1px solid #ced4da;
             border-radius: 0.25rem;
             padding: 6px 12px;
             width: 100%;
         }
-
+    
         /* Select2 Selection */
         .select2-selection--single {
             height: calc(2.25rem + 2px) !important;
             border: 1px solid #ced4da !important;
             border-radius: 0.375rem !important;
         }
-
+    
         .select2-selection__rendered {
             line-height: calc(2.25rem) !important;
             padding-left: 12px !important;
             color: #495057 !important;
         }
-
+    
         .select2-selection__arrow {
             height: calc(2.25rem) !important;
             right: 10px !important;
         }
-
+    
         /* Focus states */
         .select2-container--default.select2-container--focus .select2-selection--single {
             border-color: #80bdff !important;
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
         }
-
+    
         /* Responsive adjustments */
         @media (max-width: 768px) {
-
+    
             .select2-table th,
             .select2-table td {
                 padding: 6px 8px;
                 font-size: 0.8rem;
             }
-
+    
             .select2-table-kode {
                 width: 60px;
             }
-
+    
             .select2-table-program,
             .select2-table-sub-program {
                 width: 120px;
             }
-
+    
             .select2-table-uraian,
             .select2-table-rincian {
                 min-width: 150px;
             }
         }
-    </style>
-
-    <!-- JavaScript -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            let currentStep = 1;
-            let monthIndex = 1;
-            let currentRkasId = null;
-
-            console.log('RKAS Page with Select2 Table Templates Initialized');
-
-            // Initialize Select2 with custom templates
-            initializeSelect2();
-
-            // Get DOM elements
-            const nextBtn = document.getElementById('nextStepBtn');
-            const prevBtn = document.getElementById('prevStepBtn');
-            const submitBtn = document.getElementById('submitBtn');
-            const addMonthBtn = document.getElementById('addMonthBtn');
-
-            // Next button click handler
-            if (nextBtn) {
-                nextBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-
-                    if (validateCurrentStep()) {
-                        if (currentStep < 3) {
-                            currentStep++;
-                            showStep(currentStep);
-                        }
-                    }
-                });
-            }
-
-            // Previous button click handler
-            if (prevBtn) {
-                prevBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-
-                    if (currentStep > 1) {
-                        currentStep--;
-                        showStep(currentStep);
-                    }
-                });
-            }
-
-            // Add month button
-            if (addMonthBtn) {
-                addMonthBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    addMonthEntry();
-                });
-            }
-
-            // Remove month functionality (event delegation)
-            document.addEventListener('click', function(e) {
-                if (e.target.classList.contains('btn-remove-month') || e.target.closest(
-                        '.btn-remove-month')) {
-                    e.preventDefault();
-                    const monthEntry = e.target.closest('.month-entry');
-                    if (monthEntry) {
-                        monthEntry.remove();
-                        updateTotalAnggaran();
-                    }
-                }
-            });
-
-            // Calculate totals when inputs change
-            document.addEventListener('input', function(e) {
-                if (e.target.classList.contains('jumlah-input') || e.target.id === 'harga_satuan') {
-                    updateTotalAnggaran();
-                }
-
-                // For edit modal
-                if (e.target.id === 'edit-jumlah' || e.target.id === 'edit-harga-satuan') {
-                    updateEditTotal();
-                }
-            });
-
-            // Month tab click handler
-            document.querySelectorAll('.nav-link[data-month]').forEach(function(tab) {
-                tab.addEventListener('click', function() {
-                    const month = this.getAttribute('data-month');
-                    refreshMonthData(month);
-                });
-            });
-
-            // Form submission
-            const form = document.getElementById('tambahRkasForm');
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    if (!validateAllSteps()) {
-                        e.preventDefault();
-                        return false;
-                    }
-
-                    // Show loading
-                    if (submitBtn) {
-                        submitBtn.innerHTML = '<span class="loading-spinner me-2"></span>Menyimpan...';
-                        submitBtn.disabled = true;
-                    }
-                });
-            }
-
-            // Edit form submission
-            const editForm = document.getElementById('editRkasForm');
-            if (editForm) {
-                editForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-
-                    const formData = new FormData(this);
-                    const submitButton = this.querySelector('button[type="submit"]');
-
-                    // Show loading
-                    submitButton.innerHTML = '<span class="loading-spinner me-2"></span>Updating...';
-                    submitButton.disabled = true;
-
-                    fetch(this.action, {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
-                                    .getAttribute('content'),
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                alert('Data berhasil diupdate');
-                                location.reload();
-                            } else {
-                                alert('Gagal mengupdate data: ' + data.message);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Terjadi kesalahan saat mengupdate data');
-                        })
-                        .finally(() => {
-                            submitButton.innerHTML =
-                                '<i class="bi bi-check-circle me-2"></i>Update Data';
-                            submitButton.disabled = false;
-                        });
-                });
-            }
-
-            // Delete confirmation
-            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-            if (confirmDeleteBtn) {
-                confirmDeleteBtn.addEventListener('click', function() {
-                    if (currentRkasId) {
-                        deleteRkas(currentRkasId);
-                    }
-                });
-            }
-
-            // Modal reset on close
-            const modal = document.getElementById('tambahRkasModal');
-            if (modal) {
-                modal.addEventListener('hidden.bs.modal', function() {
-                    resetModal();
-                });
-            }
-
-            // Initialize Select2 function
-            function initializeSelect2() {
-                // Kegiatan Select2 with table template
-                $('.select2-kegiatan').select2({
-                    placeholder: '-- Pilih Kegiatan --',
-                    allowClear: true,
-                    dropdownParent: $('#tambahRkasModal'),
-                    templateResult: formatKegiatanOption,
-                    templateSelection: formatKegiatanSelection,
-                    escapeMarkup: function(markup) {
-                        return markup;
-                    }
-                });
-
-                // Rekening Belanja Select2 with table template
-                $('.select2-rekening').select2({
-                    placeholder: '-- Pilih Rekening Belanja --',
-                    allowClear: true,
-                    dropdownParent: $('#tambahRkasModal'),
-                    templateResult: formatRekeningOption,
-                    templateSelection: formatRekeningSelection,
-                    escapeMarkup: function(markup) {
-                        return markup;
-                    }
-                });
-
-                // Edit modal Select2
-                $('.select2-kegiatan-edit').select2({
-                    placeholder: '-- Pilih Kegiatan --',
-                    allowClear: true,
-                    dropdownParent: $('#editRkasModal'),
-                    templateResult: formatKegiatanOption,
-                    templateSelection: formatKegiatanSelection,
-                    escapeMarkup: function(markup) {
-                        return markup;
-                    }
-                });
-
-                $('.select2-rekening-edit').select2({
-                    placeholder: '-- Pilih Rekening Belanja --',
-                    allowClear: true,
-                    dropdownParent: $('#editRkasModal'),
-                    templateResult: formatRekeningOption,
-                    templateSelection: formatRekeningSelection,
-                    escapeMarkup: function(markup) {
-                        return markup;
-                    }
-                });
-            }
-
-            // Format Kegiatan option with table
-            function formatKegiatanOption(option) {
-                if (!option.id) {
-                    return option.text;
-                }
-
-                const element = option.element;
-                const kode = $(element).data('kode') || '';
-                const program = $(element).data('program') || '';
-                const subProgram = $(element).data('sub-program') || '';
-                const uraian = $(element).data('uraian') || '';
-
-                if (!kode && !program && !subProgram && !uraian) {
-                    return option.text;
-                }
-
-                return $(`
-                    <table class="select2-table">
-                        <thead>
-                            <tr>
-                                <th class="select2-table-kode">Kode</th>
-                                <th class="select2-table-program">Program</th>
-                                <th class="select2-table-sub-program">Sub Program</th>
-                                <th class="select2-table-uraian">Uraian</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="select2-table-kode">${kode}</td>
-                                <td class="select2-table-program">${program}</td>
-                                <td class="select2-table-sub-program">${subProgram}</td>
-                                <td class="select2-table-uraian">${uraian}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                `);
-            }
-
-            // Format Kegiatan selection
-            function formatKegiatanSelection(option) {
-                if (!option.id) {
-                    return option.text;
-                }
-
-                const element = option.element;
-                const kode = $(element).data('kode') || '';
-                const uraian = $(element).data('uraian') || '';
-
-                return kode + ' - ' + uraian;
-            }
-
-            // Format Rekening option with table
-            function formatRekeningOption(option) {
-                if (!option.id) {
-                    return option.text;
-                }
-
-                const element = option.element;
-                const kodeRekening = $(element).data('kode-rekening') || '';
-                const rincianObjek = $(element).data('rincian-objek') || '';
-
-                if (!kodeRekening && !rincianObjek) {
-                    return option.text;
-                }
-
-                return $(`
-                    <table class="select2-table">
-                        <thead>
-                            <tr>
-                                <th class="select2-table-rekening">Kode Rekening</th>
-                                <th class="select2-table-rincian">Rekening Belanja</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="select2-table-rekening">${kodeRekening}</td>
-                                <td class="select2-table-rincian">${rincianObjek}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                `);
-            }
-
-            // Format Rekening selection
-            function formatRekeningSelection(option) {
-                if (!option.id) {
-                    return option.text;
-                }
-
-                const element = option.element;
-                const kodeRekening = $(element).data('kode-rekening') || '';
-                const rincianObjek = $(element).data('rincian-objek') || '';
-
-                return kodeRekening + ' - ' + rincianObjek;
-            }
-
-            function showStep(step) {
-                // Update progress indicator
-                document.querySelectorAll('.step').forEach(function(stepEl) {
-                    stepEl.classList.remove('active', 'completed');
-                });
-
-                for (let i = 1; i < step; i++) {
-                    const stepEl = document.getElementById(`step-${i}`);
-                    if (stepEl) {
-                        stepEl.classList.add('completed');
-                    }
-                }
-
-                const activeStepEl = document.getElementById(`step-${step}`);
-                if (activeStepEl) {
-                    activeStepEl.classList.add('active');
-                }
-
-                // Show/hide form steps
-                document.querySelectorAll('.form-step').forEach(function(formStep) {
-                    formStep.style.display = 'none';
-                });
-
-                const currentFormStep = document.getElementById(`form-step-${step}`);
-                if (currentFormStep) {
-                    currentFormStep.style.display = 'block';
-                }
-
-                // Update buttons
-                if (prevBtn) {
-                    prevBtn.style.display = step > 1 ? 'inline-block' : 'none';
-                }
-                if (nextBtn) {
-                    nextBtn.style.display = step < 3 ? 'inline-block' : 'none';
-                }
-                if (submitBtn) {
-                    submitBtn.style.display = step === 3 ? 'inline-block' : 'none';
-                }
-            }
-
-            function validateCurrentStep() {
-                let isValid = true;
-                const currentStepElement = document.getElementById(`form-step-${currentStep}`);
-
-                if (currentStepElement) {
-                    const requiredFields = currentStepElement.querySelectorAll(
-                        'input[required], select[required], textarea[required]');
-
-                    requiredFields.forEach(function(field) {
-                        field.classList.remove('is-invalid');
-                        if (!field.value.trim()) {
-                            field.classList.add('is-invalid');
-                            isValid = false;
-                        }
-                    });
-                }
-
-                if (!isValid) {
-                    alert('Mohon lengkapi semua field yang diperlukan.');
-                }
-
-                return isValid;
-            }
-
-            function validateAllSteps() {
-                let isValid = true;
-
-                // Validate all required fields
-                const requiredFields = document.querySelectorAll(
-                    '#tambahRkasForm input[required], #tambahRkasForm select[required], #tambahRkasForm textarea[required]'
-                );
-
-                requiredFields.forEach(function(field) {
-                    field.classList.remove('is-invalid');
-                    if (!field.value.trim()) {
-                        field.classList.add('is-invalid');
-                        isValid = false;
-                    }
-                });
-
-                // Validate month uniqueness
-                const selectedMonths = [];
-                const monthSelects = document.querySelectorAll('.month-select');
-
-                monthSelects.forEach(function(select) {
-                    const month = select.value;
-                    if (month) {
-                        if (selectedMonths.includes(month)) {
-                            isValid = false;
-                            alert('Tidak boleh ada bulan yang sama dalam satu kegiatan.');
-                            return false;
-                        }
-                        selectedMonths.push(month);
-                    }
-                });
-
-                return isValid;
-            }
-
-            function addMonthEntry() {
-                const monthTemplate = `
-                    <div class="month-entry border rounded p-3 mb-3" data-index="${monthIndex}">
-                        <div class="row align-items-center mb-2">
-                            <div class="col-md-3">
-                                <label class="form-label">Bulan <span class="text-danger">*</span></label>
-                                <select class="form-select month-select" name="bulan[]" required>
-                                    <option value="">Pilih Bulan</option>
-                                    @foreach ($months as $month)
-                                        <option value="{{ $month }}">{{ $month }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Jumlah <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control jumlah-input"
-                                    name="jumlah[]" placeholder="0" min="1" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Satuan <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control satuan-input"
-                                    name="satuan[]" placeholder="pcs, unit, buah" required>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Total</label>
-                                <div class="month-total badge bg-info w-100 mb-2">Rp 0</div>
-                                <button type="button" class="btn btn-outline-danger btn-sm btn-remove-month">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                const container = document.getElementById('bulanContainer');
-                if (container) {
-                    container.insertAdjacentHTML('beforeend', monthTemplate);
-                    monthIndex++;
-                }
-            }
-
-            function updateTotalAnggaran() {
-                let total = 0;
-                const hargaSatuan = parseFloat(document.getElementById('harga_satuan')?.value) || 0;
-
-                document.querySelectorAll('.month-entry').forEach(function(entry) {
-                    const jumlah = parseFloat(entry.querySelector('.jumlah-input')?.value) || 0;
-                    const monthTotal = hargaSatuan * jumlah;
-
-                    const monthTotalEl = entry.querySelector('.month-total');
-                    if (monthTotalEl) {
-                        monthTotalEl.textContent = 'Rp ' + formatNumber(monthTotal);
-                    }
-                    total += monthTotal;
-                });
-
-                const totalDisplay = document.getElementById('totalAnggaranDisplay');
-                if (totalDisplay) {
-                    totalDisplay.textContent = 'Total: Rp ' + formatNumber(total);
-                }
-            }
-
-            function updateEditTotal() {
-                const jumlah = parseFloat(document.getElementById('edit-jumlah')?.value) || 0;
-                const hargaSatuan = parseFloat(document.getElementById('edit-harga-satuan')?.value) || 0;
-                const total = jumlah * hargaSatuan;
-
-                const totalDisplay = document.getElementById('edit-total-display');
-                if (totalDisplay) {
-                    totalDisplay.textContent = 'Rp ' + formatNumber(total);
-                }
-            }
-
-            function formatNumber(num) {
-                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-            }
-
-            function refreshMonthData(month) {
-            console.log('Refreshing data for month:', month);
-            
-            // Dapatkan tahun anggaran dari data yang tersimpan
-            const tahunAnggaran = '{{ $penganggaran->tahun_anggaran }}';
-            
-            // Show loading in the table
-            const tableBody = document.getElementById(`table-body-${month.toLowerCase()}`);
-            if (tableBody) {
-            tableBody.innerHTML = `
-            <tr>
-                <td colspan="11" class="text-center">
-                    <div class="py-4">
-                        <div class="loading-spinner me-2"></div>
-                        Memuat data...
-                    </div>
-                </td>
-            </tr>
-            `;
-            
-            // Fetch data via AJAX dengan parameter tahun
-            fetch(`{{ url('penganggaran/rkas/bulan') }}/${month}?tahun=${tahunAnggaran}`, {
-            method: 'GET',
-            headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/json',
-            }
-            })
-            .then(response => response.json())
-            .then(data => {
-            if (data.success && data.data.length > 0) {
-            populateTable(month, data.data);
-            } else {
-            showNoDataMessage(month);
-            }
-            })
-            .catch(error => {
-            console.error('Error fetching data:', error);
-            tableBody.innerHTML = `
-            <tr>
-                <td colspan="11" class="text-center text-danger">
-                    <div class="py-4">
-                        <i class="bi bi-exclamation-triangle display-4"></i>
-                        <p class="mt-2">Gagal memuat data</p>
-                    </div>
-                </td>
-            </tr>
-            `;
-            });
-            }
-            }
-
-            function populateTable(month, data) {
-                const tableBody = document.getElementById(`table-body-${month.toLowerCase()}`);
-                let html = '';
-                let total = 0;
-
-                data.forEach((item, index) => {
-                    const itemTotal = parseFloat(item.total.replace(/[Rp\s.]/g, ''));
-                    total += itemTotal;
-
-                    html += `
-                        <tr>
-                            <td>${index + 1}</td>
-                            <td>${item.program_kegiatan}</td>
-                            <td>${item.kegiatan}</td>
-                            <td>${item.rekening_belanja}</td>
-                            <td>${item.uraian}</td>
-                            <td>${item.dianggaran}</td>
-                            <td>${item.dibelanjakan}</td>
-                            <td>${item.satuan}</td>
-                            <td>${item.harga_satuan}</td>
-                            <td><strong>${item.total}</strong></td>
-                            <td>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
-                                            type="button" 
-                                            id="actionDropdown${item.id}" 
-                                            data-bs-toggle="dropdown" 
-                                            aria-expanded="false">
-                                        <i class="bi bi-three-dots-vertical"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionDropdown${item.id}">
-                                        <li>
-                                            <a class="dropdown-item" href="#" onclick="showDetailModal(${item.id})" style="font-size: 8pt;">
-                                                <i class="bi bi-eye me-2"></i>Detail
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" href="#" onclick="showEditModal(${item.id})" style="font-size: 8pt;">
-                                                <i class="bi bi-pencil me-2"></i>Edit
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item text-danger" href="#" onclick="showDeleteModal(${item.id})" style="font-size: 8pt;">
-                                                <i class="bi bi-trash me-2"></i>Hapus
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                // Add total row
-                html += `
-                    <tr class="table-info">
-                        <td colspan="9" class="text-end"><strong>Total ${month}:</strong></td>
-                        <td><strong>Rp ${formatNumber(total)}</strong></td>
-                        <td></td>
-                    </tr>
-                `;
-
-                tableBody.innerHTML = html;
-            }
-
-            function showNoDataMessage(month) {
-                const tableBody = document.getElementById(`table-body-${month.toLowerCase()}`);
-                tableBody.innerHTML = `
-                    <tr class="no-data-row">
-                        <td colspan="11" class="text-center text-muted">
-                            <div class="py-4">
-                                <i class="bi bi-inbox display-4"></i>
-                                <p class="mt-2">Belum ada data untuk bulan ${month}</p>
-                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#tambahRkasModal">
-                                    <i class="bi bi-plus me-2"></i>Tambah Data
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }
-
-            function resetModal() {
-                currentStep = 1;
-                showStep(1);
-
-                const form = document.getElementById('tambahRkasForm');
-                if (form) {
-                    form.reset();
-                }
-
-                // Reset Select2
-                $('.select2-kegiatan').val(null).trigger('change');
-                $('.select2-rekening').val(null).trigger('change');
-
-                document.querySelectorAll('.form-control').forEach(function(field) {
-                    field.classList.remove('is-invalid');
-                });
-
-                if (submitBtn) {
-                    submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Data';
-                    submitBtn.disabled = false;
-                }
-
-                // Reset to single month entry
-                const container = document.getElementById('bulanContainer');
-                if (container) {
-                    container.innerHTML = `
-                        <div class="month-entry border rounded p-3 mb-3" data-index="0">
-                            <div class="row align-items-center mb-2">
-                                <div class="col-md-4">
-                                    <label class="form-label">Bulan <span class="text-danger">*</span></label>
-                                    <select class="form-select month-select" name="bulan[]" required>
-                                        <option value="">Pilih Bulan</option>
-                                        @foreach ($months as $month)
-                                            <option value="{{ $month }}">{{ $month }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Jumlah <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control jumlah-input"
-                                        name="jumlah[]" placeholder="0" min="1" required>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Satuan <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control satuan-input"
-                                        name="satuan[]" placeholder="pcs, unit, buah" required>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Total</label>
-                                    <div class="month-total badge bg-info w-100">Rp 0</div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                monthIndex = 1;
-                updateTotalAnggaran();
-            }
-
-            // Global functions for modal actions
-            window.showDetailModal = function(id) {
-                currentRkasId = id;
-
-                // Fetch RKAS data
-                fetch(`{{ url('penganggaran/rkas') }}/${id}`, {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Content-Type': 'application/json',
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const rkas = data.data;
-
-                            // Populate detail modal
-                            document.getElementById('detail-program').textContent = rkas.program_kegiatan ||
-                                '-';
-                            document.getElementById('detail-kegiatan').textContent = rkas.kegiatan || '-';
-                            document.getElementById('detail-rekening').textContent = rkas
-                                .rekening_belanja || '-';
-                            document.getElementById('detail-bulan').textContent = rkas.bulan || '-';
-                            document.getElementById('detail-uraian').textContent = rkas.uraian || '-';
-                            document.getElementById('detail-jumlah').textContent = rkas.dianggaran || '-';
-                            document.getElementById('detail-satuan').textContent = rkas.satuan || '-';
-                            document.getElementById('detail-harga-satuan').textContent = rkas
-                                .harga_satuan || '-';
-                            document.getElementById('detail-total').textContent = rkas.total || '-';
-
-                            // Show modal
-                            const modal = new bootstrap.Modal(document.getElementById('detailRkasModal'));
-                            modal.show();
-                        } else {
-                            alert('Gagal memuat detail data');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Terjadi kesalahan saat memuat detail data');
-                    });
-            };
-
-            window.showEditModal = function(id) {
-                currentRkasId = id;
-
-                // Fetch RKAS data
-                fetch(`{{ url('penganggaran/rkas') }}/${id}`, {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Content-Type': 'application/json',
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const rkas = data.data;
-
-                            // Populate edit form
-                            $('.select2-kegiatan-edit').val(rkas.kode_id).trigger('change');
-                            $('.select2-rekening-edit').val(rkas.kode_rekening_id).trigger('change');
-                            document.getElementById('edit-uraian').value = rkas.uraian || '';
-                            document.getElementById('edit-bulan').value = rkas.bulan || '';
-                            document.getElementById('edit-harga-satuan').value = rkas.harga_satuan_raw ||
-                                '';
-                            document.getElementById('edit-jumlah').value = rkas.dianggaran || '';
-                            document.getElementById('edit-satuan').value = rkas.satuan || '';
-
-                            // Set form action
-                            document.getElementById('editRkasForm').action =
-                                `{{ url('penganggaran/rkas') }}/${id}`;
-
-                            // Update total
-                            updateEditTotal();
-
-                            // Show modal
-                            const modal = new bootstrap.Modal(document.getElementById('editRkasModal'));
-                            modal.show();
-                        } else {
-                            alert('Gagal memuat data untuk edit');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Terjadi kesalahan saat memuat data untuk edit');
-                    });
-            };
-
-            window.showDeleteModal = function(id) {
-                currentRkasId = id;
-
-                // Fetch RKAS data
-                fetch(`{{ url('penganggaran/rkas') }}/${id}`, {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Content-Type': 'application/json',
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const rkas = data.data;
-
-                            // Populate delete confirmation
-                            document.getElementById('delete-kegiatan-info').textContent = rkas.kegiatan ||
-                                '-';
-                            document.getElementById('delete-bulan-info').textContent = rkas.bulan || '-';
-                            document.getElementById('delete-total-info').textContent = rkas.total || '-';
-
-                            // Show modal
-                            const modal = new bootstrap.Modal(document.getElementById('deleteRkasModal'));
-                            modal.show();
-                        } else {
-                            alert('Gagal memuat data untuk hapus');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Terjadi kesalahan saat memuat data untuk hapus');
-                    });
-            };
-
-            window.editFromDetail = function() {
-                // Close detail modal
-                const detailModal = bootstrap.Modal.getInstance(document.getElementById('detailRkasModal'));
-                detailModal.hide();
-
-                // Show edit modal
-                setTimeout(() => {
-                    showEditModal(currentRkasId);
-                }, 300);
-            };
-
-            function deleteRkas(id) {
-                const confirmBtn = document.getElementById('confirmDeleteBtn');
-                confirmBtn.innerHTML = '<span class="loading-spinner me-2"></span>Menghapus...';
-                confirmBtn.disabled = true;
-
-                fetch(`{{ url('penganggaran/rkas') }}/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                'content'),
-                            'Content-Type': 'application/json',
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Data berhasil dihapus');
-                            location.reload();
-                        } else {
-                            alert('Gagal menghapus data: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Terjadi kesalahan saat menghapus data');
-                    })
-                    .finally(() => {
-                        confirmBtn.innerHTML = '<i class="bi bi-trash me-2"></i>Ya, Hapus Data';
-                        confirmBtn.disabled = false;
-
-                        // Close modal
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteRkasModal'));
-                        modal.hide();
-                    });
-            }
-
-            // Initialize first step
-            showStep(1);
-
-            // Function to update Tahap cards with modern styling
-            function updateTahapCards() {
-            // Dapatkan tahun anggaran saat ini
-            const tahunAnggaran = '{{ $penganggaran->tahun_anggaran }}';
-            
-            // Update Tahap 1
-            fetch(`{{ url('penganggaran/rkas/total-tahap1') }}?tahun=${tahunAnggaran}`)
-            .then(response => response.json())
-            .then(data => {
-            if (data.success) {
-            const tahap1Data = data.data;
-            const totalTahap1Element = document.getElementById('totalTahap1');
-            const sisaTahap1Element = document.getElementById('sisaTahap1');
-            const percentTahap1Element = document.getElementById('percentTahap1');
-            
-            if (totalTahap1Element) {
-            totalTahap1Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
-            tahap1Data.total_anggaran);
-            }
-            if (sisaTahap1Element) {
-            sisaTahap1Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
-            tahap1Data.sisa_anggaran);
-            }
-            if (percentTahap1Element) {
-            percentTahap1Element.textContent = Math.round(tahap1Data.persentase_terpakai) +
-            '%';
-            }
-            
-            // Update progress bar with animation
-            const progressBar1 = document.querySelector('.col-lg-4:nth-child(2) .progress-bar');
-            if (progressBar1) {
-            setTimeout(() => {
-            progressBar1.style.width = tahap1Data.persentase_terpakai + '%';
-            }, 300);
-            }
-            }
-            })
-            .catch(error => console.error('Error updating Tahap 1:', error));
-            
-            // Update Tahap 2
-            fetch(`{{ url('penganggaran/rkas/total-tahap2') }}?tahun=${tahunAnggaran}`)
-            .then(response => response.json())
-            .then(data => {
-            if (data.success) {
-            const tahap2Data = data.data;
-            const totalTahap2Element = document.getElementById('totalTahap2');
-            const sisaTahap2Element = document.getElementById('sisaTahap2');
-            const percentTahap2Element = document.getElementById('percentTahap2');
-            
-            if (totalTahap2Element) {
-            totalTahap2Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
-            tahap2Data.total_anggaran);
-            }
-            if (sisaTahap2Element) {
-            sisaTahap2Element.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(
-            tahap2Data.sisa_anggaran);
-            }
-            if (percentTahap2Element) {
-            percentTahap2Element.textContent = Math.round(tahap2Data.persentase_terpakai) +
-            '%';
-            }
-            
-            // Update progress bar with animation
-            const progressBar2 = document.querySelector('.col-lg-4:nth-child(3) .progress-bar');
-            if (progressBar2) {
-            setTimeout(() => {
-            progressBar2.style.width = tahap2Data.persentase_terpakai + '%';
-            }, 300);
-            }
-            }
-            })
-            .catch(error => console.error('Error updating Tahap 2:', error));
-            }
-
-            // Function to show Tahap detail
-            window.showTahapDetail = function(tahap) {
-            const tahapName = tahap === 1 ? 'Tahap 1 (Januari - Juni)' : 'Tahap 2 (Juli - Desember)';
-            const headerClass = tahap === 1 ? 'bg-primary' : 'bg-success';
-            const tableHeaderClass = tahap === 1 ? 'table-primary' : 'table-success';
-            
-            // Dapatkan tahun anggaran saat ini
-            const tahunAnggaran = '{{ $penganggaran->tahun_anggaran }}';
-            
-            fetch(`{{ url('penganggaran/rkas/data-tahap') }}/${tahap}?tahun=${tahunAnggaran}`)
-            .then(response => response.json())
-            .then(data => {
-            if (data.success) {
-            let tableContent = `
-            <div class="modal fade" id="tahapDetailModal" tabindex="-1" aria-labelledby="tahapDetailModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl" style="max-width: 95%;">
-                    <div class="modal-content" style="max-height: 95vh; overflow: hidden;">
-                        <div class="modal-header ${headerClass} text-white">
-                            <h5 class="modal-title" id="tahapDetailModalLabel">
-                                <i class="bi bi-calendar-event me-2"></i>Detail ${tahapName} - Tahun ${tahunAnggaran}
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body" style="padding: 15px; max-height: 70vh; overflow-y: auto;">
-                            <div class="table-responsive"
-                                style="max-height: 60vh; overflow-x: auto; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; background: white;">
-                                <table class="table table-striped table-hover"
-                                    style="font-size: 8pt; min-width: 100%; margin-bottom: 0;">
-                                    <thead class="${tableHeaderClass}" style="position: sticky; top: 0; z-index: 10;">
-                                        <tr>
-                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">No</th>
-                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Program Kegiatan</th>
-                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Kegiatan</th>
-                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Rekening Belanja</th>
-                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Uraian</th>
-                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Bulan</th>
-                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Dianggaran</th>
-                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Satuan</th>
-                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Harga Satuan</th>
-                                            <th style="font-size: 8pt; padding: 6px; white-space: nowrap;">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        `;
-            
-                                        if (data.data.length > 0) {
-                                        data.data.forEach((item, index) => {
-                                        tableContent += `
-                                        <tr>
-                                            <td style="font-size: 8pt; padding: 6px;">${index + 1}</td>
-                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 150px;">
-                                                ${item.program_kegiatan}</td>
-                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 150px;">
-                                                ${item.kegiatan}</td>
-                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 150px;">
-                                                ${item.rekening_belanja}</td>
-                                            <td style="font-size: 8pt; padding: 6px; word-break: break-word; max-width: 200px;">
-                                                ${item.uraian}</td>
-                                            <td style="font-size: 8pt; padding: 6px;"><span
-                                                    class="badge ${tahap === 1 ? 'bg-info' : 'bg-success'}"
-                                                    style="font-size: 7pt;">${item.bulan}</span></td>
-                                            <td style="font-size: 8pt; padding: 6px;">${item.dianggaran}</td>
-                                            <td style="font-size: 8pt; padding: 6px;">${item.satuan}</td>
-                                            <td style="font-size: 8pt; padding: 6px;">${item.harga_satuan}</td>
-                                            <td style="font-size: 8pt; padding: 6px;"><strong>${item.total}</strong></td>
-                                        </tr>
-                                        `;
-                                        });
-                                        } else {
-                                        tableContent += `
-                                        <tr>
-                                            <td colspan="10" class="text-center text-muted py-4" style="font-size: 8pt;">
-                                                <i class="bi bi-inbox display-4"></i>
-                                                <p class="mt-2" style="font-size: 8pt;">Belum ada data untuk ${tahapName} Tahun
-                                                    ${tahunAnggaran}</p>
-                                            </td>
-                                        </tr>
-                                        `;
-                                        }
-            
-                                        tableContent += `
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
-                                style="font-size: 8pt;">Tutup</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            `;
-            
-            // Remove existing modal if any
-            const existingModal = document.getElementById('tahapDetailModal');
-            if (existingModal) {
-            existingModal.remove();
-            }
-            
-            // Add new modal to body
-            document.body.insertAdjacentHTML('beforeend', tableContent);
-            
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('tahapDetailModal'));
-            modal.show();
-            
-            // Remove modal from DOM when hidden
-            document.getElementById('tahapDetailModal').addEventListener('hidden.bs.modal',
-            function() {
-            this.remove();
-            });
-            } else {
-            alert('Gagal memuat data detail tahap');
-            }
-            })
-            .catch(error => {
-            console.error('Error:', error);
-            alert('Terjadi kesalahan saat memuat data detail tahap');
-            });
-            };
-
-            // Add smooth animations for cards
-            document.addEventListener('DOMContentLoaded', function() {
-                const cards = document.querySelectorAll('.tahap-card');
-                cards.forEach((card, index) => {
-                    card.style.opacity = '0';
-                    card.style.transform = 'translateY(30px)';
-
-                    setTimeout(() => {
-                        card.style.transition = 'all 0.6s ease';
-                        card.style.opacity = '1';
-                        card.style.transform = 'translateY(0)';
-                    }, index * 200);
-                });
-            });
-
-            // Update Tahap cards on page load
-            setTimeout(updateTahapCards, 500);
-
-            // Update Tahap cards when data changes (after add/edit/delete)
-            window.updateTahapCards = updateTahapCards;
-        });
-    </script>
-
-    <style>
+    
         /* Fix dropdown menu z-index and overflow issues */
         .table-responsive {
             overflow: visible !important;
         }
-
+    
         .rkas-table-container {
             overflow: visible !important;
         }
-
+    
         .dropdown-menu {
             z-index: 1 !important;
             position: absolute !important;
@@ -2330,38 +1472,42 @@
             border: none !important;
             border-radius: 8px !important;
         }
-
+    
         .dropdown-item:hover {
             background-color: #f8f9fa !important;
             transform: translateX(2px);
         }
-
+    
         .dropdown-toggle::after {
             display: none;
         }
-
+    
         /* Ensure table cells don't clip dropdown */
         .rkas-table td {
             overflow: visible !important;
             position: relative;
         }
-
+    
         /* Fix card hover effects */
         .detail-item:hover {
             background: #e9ecef !important;
             transform: translateY(-1px);
         }
-
+    
         /* Smooth transitions for all interactive elements */
         .btn,
         .dropdown-item,
         .detail-item {
             transition: all 0.2s ease !important;
         }
-
+    
         /* Ensure dropdown stays on top of everything */
         .dropdown.show .dropdown-menu {
             z-index: 1070 !important;
         }
     </style>
+    <!-- JavaScript -->
+    @section('scripts')
+    <script src="{{ asset('assets/js/rkas.js') }}"></script>
+    @endsection
 @endsection
