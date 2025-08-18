@@ -27,9 +27,14 @@
                             style="font-size: 9pt;">
                             <i class="bi bi-plus me-2"></i>Tambah
                         </button>
-                        <button class="btn btn-outline-secondary" style="font-size: 9pt;">
-                            <i class="bi bi-pencil me-2"></i>Perubahan
-                        </button>
+                        <form action="{{ route('penganggaran.rkas-perubahan.salin') }}" method="POST" class="d-inline"
+                            onsubmit="return confirm('Apakah Anda yakin ingin membuat RKAS Perubahan? Data RKAS saat ini akan disalin.');">
+                            @csrf
+                            <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
+                            <button type="submit" class="btn btn-outline-secondary" style="font-size: 9pt;">
+                                <i class="bi bi-pencil me-2"></i>Perubahan
+                            </button>
+                        </form>
                         <button class="btn btn-outline-secondary" style="font-size: 9pt;">
                             <i class="bi bi-plus me-2"></i>Pergeseran
                         </button>
@@ -1507,7 +1512,7 @@
         }
     </style>
     <!-- JavaScript -->
-    @section('scripts')
+    @push('scripts')
     <script src="{{ asset('assets/js/rkas.js') }}"></script>
-    @endsection
+    @endpush
 @endsection

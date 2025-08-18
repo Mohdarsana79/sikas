@@ -49,6 +49,14 @@
                 </a>
             </li>
 
+            <!-- penatusahaan -->
+            <li class="nav-item">
+                <a href="{{ route('penatausahaan.bku') }}" class="nav-link" data-page="penatausahaan">
+                    <i class="bi bi-house-add nav-icon"></i>
+                    <span class="nav-text">Penatausahaan</span>
+                </a>
+            </li>
+
             <!-- Components -->
             <li class="nav-item">
                 <a href="#" class="nav-link" data-toggle="submenu" data-target="components-submenu">

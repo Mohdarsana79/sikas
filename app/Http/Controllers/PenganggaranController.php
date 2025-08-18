@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Penganggaran;
 use Illuminate\Http\Request;
 use App\Models\Rkas;
+use App\Models\RkasPerubahan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -18,9 +19,13 @@ class PenganggaranController extends Controller
         $anggarans = Penganggaran::orderBy('tahun_anggaran', 'desc')->get();
         $availableYears = Penganggaran::select('tahun_anggaran')->distinct()->orderBy('tahun_anggaran', 'desc')->pluck('tahun_anggaran');
 
-        // pengecekan data RKAS untuk setiap anggaran
+        // Pengecekan data RKAS dan RKAS Perubahan untuk setiap anggaran
         $anggarans->each(function ($anggaran) {
+            // Pengecekan untuk RKAS awal
             $anggaran->has_rkas = Rkas::where('penganggaran_id', $anggaran->id)->exists();
+
+            // Pengecekan untuk RKAS Perubahan
+            $anggaran->has_perubahan = RkasPerubahan::where('penganggaran_id', $anggaran->id)->exists();
         });
 
         return view('penganggaran.index', compact('anggarans', 'availableYears'));
@@ -41,7 +46,7 @@ class PenganggaranController extends Controller
     {
         //
         $request->validate([
-            'pagu_anggaran' => 'required|numeric',
+            'pagu_anggaran' => 'required', // Validasi numerik akan dilakukan setelah sanitasi
             'tahun_anggaran' => 'required|digits:4|integer|min:2000|max:' . (date('Y') + 5),
             'kepala_sekolah' => 'required|string|max:255',
             'bendahara' => 'required|string|max:255',
@@ -52,7 +57,7 @@ class PenganggaranController extends Controller
         ]);
 
         // Format angka sebelum disimpan
-        $pagu = str_replace(['.', ','], '', $request->pagu_anggaran);
+        $pagu = preg_replace('/[^\d]/', '', $request->pagu_anggaran);
 
         Penganggaran::create([
             'pagu_anggaran' => $pagu,
@@ -94,7 +99,7 @@ class PenganggaranController extends Controller
         $anggaran = Penganggaran::findOrFail($id);
 
         $request->validate([
-            'pagu_anggaran' => 'required|numeric',
+            'pagu_anggaran' => 'required', // Validasi numerik akan dilakukan setelah sanitasi
             'tahun_anggaran' => 'required|digits:4|integer|min:2000|max:' . (date('Y') + 5),
             'kepala_sekolah' => 'required|string|max:255',
             'bendahara' => 'required|string|max:255',
@@ -104,7 +109,8 @@ class PenganggaranController extends Controller
         ]);
 
         // Format angka sebelum disimpan
-        $pagu = str_replace(['.', ','], '', $request->pagu_anggaran);
+        $pagu = preg_replace('/[^\d]/', '', $request->pagu_anggaran);
+
 
         $anggaran->update([
             'pagu_anggaran' => $pagu,
@@ -134,6 +140,9 @@ class PenganggaranController extends Controller
 
             $anggaran = Penganggaran::findOrFail($id);
             $tahunAnggaran = $anggaran->tahun_anggaran;
+
+            // Hapus data RKAS Perubahan terkait
+            RkasPerubahan::where('penganggaran_id', $anggaran->id)->delete();
 
             // Delete all RKAS data related to this penganggaran
             Rkas::where('penganggaran_id', $anggaran->id)->delete();

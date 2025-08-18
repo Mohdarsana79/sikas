@@ -39,7 +39,7 @@
     <script src="{{ asset('assets/js/chart.js') }}"></script>
     <script src="{{ asset('assets/js/main.js') }}"></script>
     <script src="{{ asset('assets/js/sweetalert2@11.js') }}"></script>
-    <script src="{{ asset('assets/js/rkas.js') }}"></script>
+    @stack('scripts')
     <script>
         // Notifikasi Success
         @if (session('success'))
