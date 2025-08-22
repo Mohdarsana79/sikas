@@ -49,6 +49,12 @@ class Penganggaran extends Model
         return 'Belum diisi';
     }
 
+    // Relasi Model Rkas Perubahan
+    public function rkasPerubahan()
+    {
+        return $this->hasMany(RkasPerubahan::class);
+    }
+
     private function formatTanggalIndonesia($date)
     {
         // Daftar nama bulan dalam bahasa Indonesia

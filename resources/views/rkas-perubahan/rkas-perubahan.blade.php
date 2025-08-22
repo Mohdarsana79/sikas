@@ -30,7 +30,7 @@
                     <button class="btn btn-outline-secondary" style="font-size: 9pt;">
                         <i class="bi bi-plus me-2"></i>Pergeseran
                     </button>
-                    <a class="btn btn-primary" href="{{ route('penganggaran.rkas-perubahan.rekapan', ['tahun' => $tahun]) }}"
+                    <a class="btn btn-primary" href="{{ route('rkas-perubahan.rekapan-perubahan', ['tahun' => $tahun]) }}"
                         style="font-size: 9pt;">
                         <i class="bi bi-printer"></i> Cetak
                     </a>
@@ -354,7 +354,7 @@
                             <tbody id="table-body-{{ strtolower($month) }}">
                                 @if (isset($rkasData[$month]) && $rkasData[$month]->count() > 0)
                                 @foreach ($rkasData[$month] as $key => $rkas)
-                                <tr>
+                                <tr data-id="{{ $rkas->id }}" data-kode-id="{{ $rkas->kode_id }}" data-rekening-id="{{ $rkas->kode_rekening_id }}">
                                     <td>{{ $key + 1 }}</td>
                                     <td>{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->program : '-' }}
                                     </td>
@@ -396,14 +396,7 @@
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showSisipkanModal(
-                                                                            {{ $rkas->kode_id }}, 
-                                                                            '{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->program : '-' }}', 
-                                                                            '{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->sub_program : '-' }}',
-                                                                            {{ $rkas->kode_rekening_id }},
-                                                                            '{{ $rkas->rekeningBelanja ? $rkas->rekeningBelanja->kode_rekening.' - '.$rkas->rekeningBelanja->rincian_objek : '-' }}'
-                                                                        )"
-                                                        style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sisipkanRkasModal">
                                                         <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
                                                     </a>
                                                 </li>
@@ -494,7 +487,7 @@
             </div>
             @endif
 
-            <form id="tambahRkasForm" method="POST" action="{{ route('penganggaran.rkas-perubahan.store') }}">
+            <form id="tambahRkasForm" method="POST" action="{{ route('rkas-perubahan.store') }}">
                 @csrf
                 <div class="modal-body">
                     <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
@@ -842,125 +835,6 @@
     </div>
 </div>
 
-<!-- Modal Sisipkan RKAS -->
-<div class="modal fade" id="sisipkanRkasModal" tabindex="-1" aria-labelledby="sisipkanRkasModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-white">
-                <h5 class="modal-title" id="sisipkanRkasModalLabel">
-                    <i class="bi bi-plus-circle me-2"></i>Sisipkan Data RKAS
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-
-            @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
-                <i class="bi bi-check-circle me-2"></i>
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            @endif
-
-            @if ($errors->any()))
-            <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                <ul class="mb-0">
-                    @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            @endif
-
-            <form id="sisipkanRkasForm" method="POST" action="{{ route('penganggaran.rkas-perubahan.sisipkan') }}">
-                @csrf
-                <div class="modal-body">
-                    <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
-                    <input type="hidden" id="sisipkan_kode_id" name="kode_id">
-                    <input type="hidden" id="sisipkan_kode_rekening_id" name="kode_rekening_id">
-                    <input type="hidden" id="sisipkan_bulan" name="bulan">
-
-                    <!-- Program Kegiatan yang Disisipkan -->
-                    <div class="mb-4 p-3 bg-light rounded">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Program Kegiatan</label>
-                                    <input type="text" class="form-control" id="sisipkan_program" readonly>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Kegiatan</label>
-                                    <input type="text" class="form-control" id="sisipkan_kegiatan" readonly>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="mb-3">
-                                    <label class="form-label">Rekening Belanja</label>
-                                    <input type="text" class="form-control" id="sisipkan_rekening_belanja_display"
-                                        readonly>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Uraian -->
-                    <div class="mb-3">
-                        <label for="sisipkan_uraian" class="form-label">Uraian <span
-                                class="text-danger">*</span></label>
-                        <textarea class="form-control" id="sisipkan_uraian" name="uraian" rows="3"
-                            required>{{ old('uraian') }}</textarea>
-                    </div>
-
-                    <!-- Jumlah dan Satuan -->
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="sisipkan_jumlah" class="form-label">Jumlah <span
-                                    class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="sisipkan_jumlah" name="jumlah" placeholder="0"
-                                min="1" value="{{ old('jumlah') }}" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="sisipkan_satuan" class="form-label">Satuan <span
-                                    class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="sisipkan_satuan" name="satuan"
-                                placeholder="pcs, unit, buah" value="{{ old('satuan') }}" required>
-                        </div>
-                    </div>
-
-                    <!-- Harga Satuan -->
-                    <div class="mb-3">
-                        <label for="sisipkan_harga_satuan" class="form-label">Harga Satuan <span
-                                class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp</span>
-                            <input type="number" class="form-control" id="sisipkan_harga_satuan" name="harga_satuan"
-                                placeholder="0" step="0.01" min="0" value="{{ old('harga_satuan') }}" required>
-                        </div>
-                    </div>
-
-                    <!-- Total Anggaran -->
-                    <div class="alert alert-info">
-                        <strong>Total Anggaran:</strong> <span id="sisipkan_total_display">Rp 0</span>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="bi bi-check-circle me-2"></i>Simpan Data
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- Modal Hapus RKAS -->
 <div class="modal fade" id="deleteRkasModal" tabindex="-1" aria-labelledby="deleteRkasModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -1004,6 +878,85 @@
                     <i class="bi bi-trash me-2"></i>Ya, Hapus Data
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sisipkan RKAS -->
+<div class="modal fade" id="sisipkanRkasModal" tabindex="-1" aria-labelledby="sisipkanRkasModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title" id="sisipkanRkasModalLabel">
+                    <i class="bi bi-plus-circle me-2"></i>Sisipkan Data RKAS
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <form id="sisipkanRkasForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <input type="hidden" name="penganggaran_id" id="sisipkan-penganggaran-id">
+                    <input type="hidden" name="rkas_id" id="sisipkan-rkas-id">
+                    <input type="hidden" name="kode_id" id="sisipkan-kode-id">
+                    <input type="hidden" name="kode_rekening_id" id="sisipkan-rekening-id">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Program Kegiatan</label>
+                            <input type="text" class="form-control" id="sisipkan-program" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Kegiatan</label>
+                            <input type="text" class="form-control" id="sisipkan-kegiatan" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Rekening Belanja</label>
+                            <input type="text" class="form-control" id="sisipkan-rekening" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Bulan <span class="text-danger">*</span></label>
+                            <select class="form-select" name="bulan" required>
+                                <option value="">Pilih Bulan</option>
+                                @foreach(['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus',
+                                'September', 'Oktober', 'November', 'Desember'] as $month)
+                                <option value="{{ $month }}">{{ $month }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Uraian <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="uraian" rows="3" required></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Jumlah <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="jumlah" min="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Satuan <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="satuan" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Harga Satuan <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="harga_satuan" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-plus-circle me-2"></i>Sisipkan Data
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

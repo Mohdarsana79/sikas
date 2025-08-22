@@ -27,7 +27,7 @@
                             style="font-size: 9pt;">
                             <i class="bi bi-plus me-2"></i>Tambah
                         </button>
-                        <form action="{{ route('penganggaran.rkas-perubahan.salin') }}" method="POST" class="d-inline"
+                        <form action="{{ route('rkas-perubahan.salin') }}" method="POST" class="d-inline"
                             onsubmit="return confirm('Apakah Anda yakin ingin membuat RKAS Perubahan? Data RKAS saat ini akan disalin.');">
                             @csrf
                             <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
@@ -38,7 +38,7 @@
                         <button class="btn btn-outline-secondary" style="font-size: 9pt;">
                             <i class="bi bi-plus me-2"></i>Pergeseran
                         </button>
-                        <a class="btn btn-primary" href="{{ route('penganggaran.rkas.rekapan', ['tahun' => $tahun]) }}" style="font-size: 9pt;">
+                        <a class="btn btn-primary" href="{{ route('rkas.rekapan', ['tahun' => $tahun]) }}" style="font-size: 9pt;">
                             <i class="bi bi-printer"></i> Cetak
                         </a>
                     </div>
@@ -492,7 +492,7 @@
                     </div>
                 @endif
 
-                <form id="tambahRkasForm" method="POST" action="{{ route('penganggaran.rkas.store') }}">
+                <form id="tambahRkasForm" method="POST" action="{{ route('rkas.store') }}">
                     @csrf
                     <div class="modal-body">
                         <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
@@ -874,7 +874,7 @@
                 </div>
                 @endif
     
-                <form id="sisipkanRkasForm" method="POST" action="{{ route('penganggaran.rkas.sisipkan') }}">
+                <form id="sisipkanRkasForm" method="POST" action="{{ route('rkas.sisipkan') }}">
                     @csrf
                     <div class="modal-body">
                         <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">

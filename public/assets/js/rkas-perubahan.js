@@ -60,7 +60,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Fungsi setup event listeners
     function setupEventListeners() {
-        
         // Next button
         document.getElementById('nextStepBtn')?.addEventListener('click', function(e) {
             e.preventDefault();
@@ -107,9 +106,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target.id === 'edit-jumlah' || e.target.id === 'edit-harga-satuan') {
                 updateEditTotal();
             }
-            if (e.target.id === 'sisipkan_harga_satuan' || e.target.id === 'sisipkan_jumlah') {
-                updateSisipkanTotal();
-            }
         });
 
         // Month tab click handler
@@ -127,15 +123,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
 
-            
             const submitBtn = document.getElementById('submitBtn');
             if (submitBtn) {
                 submitBtn.innerHTML = '<span class="loading-spinner me-2"></span>Menyimpan...';
                 submitBtn.disabled = true;
             }
-
         });
-        
 
         // Edit form submission
         document.getElementById('editRkasForm')?.addEventListener('submit', function(e) {
@@ -159,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!response.ok) {
                         return response.json().then(err => { throw err; });
                     }
-                        return response.json();
+                    return response.json();
                 })
                 .then(data => {
                     if (data.success) {
@@ -185,69 +178,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 deleteRkas(currentRkasId);
             }
         });
-
+        
         // Modal reset on close
         document.getElementById('tambahRkasModal')?.addEventListener('hidden.bs.modal', function() {
             resetModal();
         });
 
-        // Sisipkan form submission
-        document.getElementById('sisipkanRkasForm')?.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = this;
-            const submitButton = form.querySelector('button[type="submit"]');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('sisipkanRkasModal'));
-            const currentMonth = getActiveTab();
-
-            submitButton.innerHTML = '<span class="loading-spinner me-2"></span>Menyimpan...';
-            submitButton.disabled = true;
-
-            fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        modal.hide();
-                        localStorage.setItem('activeRkasTab', currentMonth);
-                        Swal.fire('Berhasil!', data.message, 'success').then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        throw new Error(data.message || 'Gagal menyimpan data');
-                    }
-                })
-                .catch(error => {
-                    Swal.fire('Error', error.message, 'error');
-                })
-                .finally(() => {
-                    submitButton.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Data';
-                    submitButton.disabled = false;
-                });
-        });
+        
     }
+
+    
 
     // Fungsi-fungsi utilitas
     function formatNumber(num) {
         return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     }
 
-    function escapeHtml(unsafe) {
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
 
     function getActiveTab() {
         const activeTab = document.querySelector('#monthTabs .nav-link.active');
@@ -423,14 +369,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function updateSisipkanTotal() {
-        const hargaSatuan = parseFloat(document.getElementById('sisipkan_harga_satuan')?.value) || 0;
-        const jumlah = parseFloat(document.getElementById('sisipkan_jumlah')?.value) || 0;
-        const total = hargaSatuan * jumlah;
-
-        document.getElementById('sisipkan_total_display').textContent = 'Rp ' + formatNumber(total);
-    }
-
     function resetModal() {
         currentStep = 1;
         showStep(1);
@@ -506,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </td>
         </tr>`;
 
-        fetch(`/penganggaran/rkas-perubahan/bulan/${formattedMonth}?tahun=${document.querySelector('input[name="tahun_anggaran"]').value}`, {
+        fetch(`/rkas-perubahan/bulan/${formattedMonth}?tahun=${document.querySelector('input[name="tahun_anggaran"]').value}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -582,14 +520,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="#" onclick="showSisipkanModal(
-                                    ${item.kode_id},
-                                    '${escapeHtml(item.program_kegiatan)}',
-                                    '${escapeHtml(item.kegiatan)}',
-                                    ${item.kode_rekening_id},
-                                    '${escapeHtml(item.rekening_belanja)}'
-                                )">
-                                    <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
+                                <a class="dropdown-item" href="#">
+                                <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
                                 </a>
                             </li>
                             <li>
@@ -642,7 +574,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tahunAnggaran = document.querySelector('input[name="tahun_anggaran"]').value;
 
         // Update Tahap 1
-        fetch(`/penganggaran/rkas-perubahan/total-tahap1?tahun=${tahunAnggaran}`)
+        fetch(`/total-tahap1?tahun=${tahunAnggaran}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -673,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error('Error updating Tahap 1:', error));
 
         // Update Tahap 2
-        fetch(`/penganggaran/rkas-perubahan/total-tahap2?tahun=${tahunAnggaran}`)
+        fetch(`/total-tahap2?tahun=${tahunAnggaran}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -785,7 +717,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showDetailModal = function(id) {
         currentRkasId = id;
 
-        fetch(`/penganggaran/rkas-perubahan/${id}`, {
+        fetch(`/rkas-perubahan/${id}`, {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -823,7 +755,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showEditModal = function(id) {
         currentRkasId = id;
 
-        fetch(`/penganggaran/rkas-perubahan/${id}`, {
+        fetch(`/rkas-perubahan/${id}`, {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -845,7 +777,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('edit-satuan').value = rkas.satuan || '';
 
                     // Set form action
-                    document.getElementById('editRkasForm').action = `/penganggaran/rkas-perubahan/${id}`;
+                    document.getElementById('editRkasForm').action = `/rkas-perubahan/${id}`;
 
                     // Update total
                     updateEditTotal();
@@ -865,7 +797,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showDeleteModal = function(id) {
         currentRkasId = id;
 
-        fetch(`/penganggaran/rkas-perubahan/${id}`, {
+        fetch(`/rkas-perubahan/${id}`, {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -906,7 +838,7 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmBtn.disabled = true;
         const currentMonth = getActiveTab();
 
-        fetch(`/penganggaran/rkas-perubahan/${id}`, {
+        fetch(`/rkas-perubahan/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -942,7 +874,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tableHeaderClass = tahap === 1 ? 'table-primary' : 'table-success';
         const tahunAnggaran = document.querySelector('input[name="tahun_anggaran"]').value;
 
-        fetch(`/penganggaran/rkas-perubahan/data-tahap/${tahap}?tahun=${tahunAnggaran}`)
+        fetch(`/rkas-perubahan/data-tahap/${tahap}?tahun=${tahunAnggaran}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -1053,29 +985,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     };
 
-    window.showSisipkanModal = function(kodeId, program, kegiatan, rekeningId, rekeningDisplay) {
-        const activeTab = document.querySelector('#monthTabs .nav-link.active');
-        const bulan = activeTab ? activeTab.getAttribute('data-month') : '';
-
-        // Set nilai form
-        document.getElementById('sisipkan_kode_id').value = kodeId;
-        document.getElementById('sisipkan_kode_rekening_id').value = rekeningId;
-        document.getElementById('sisipkan_bulan').value = bulan;
-        document.getElementById('sisipkan_program').value = program;
-        document.getElementById('sisipkan_kegiatan').value = kegiatan;
-        document.getElementById('sisipkan_rekening_belanja_display').value = rekeningDisplay;
-
-        // Reset form lainnya
-        document.getElementById('sisipkan_uraian').value = '';
-        document.getElementById('sisipkan_harga_satuan').value = '';
-        document.getElementById('sisipkan_jumlah').value = '';
-        document.getElementById('sisipkan_satuan').value = '';
-        document.getElementById('sisipkan_total_display').textContent = 'Rp 0';
-
-        // Tampilkan modal
-        new bootstrap.Modal(document.getElementById('sisipkanRkasModal')).show();
-    };
-
     // Setelah halaman dimuat, aktifkan tab yang sesuai
     document.addEventListener('DOMContentLoaded', function() {
         const savedTab = localStorage.getItem('activeRkasTab');
@@ -1100,6 +1009,6 @@ function refreshCurrentMonthData() {
         const month = activeTab.getAttribute('data-month');
         refreshMonthData(month.toLowerCase());
     }
+
     
 }
-

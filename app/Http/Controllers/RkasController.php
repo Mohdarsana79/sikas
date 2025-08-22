@@ -51,7 +51,7 @@ class RkasController extends Controller
             $paguAnggaranTahap1 = $penganggaran->pagu_anggaran * 0.5;
             $paguAnggaranTahap2 = $penganggaran->pagu_anggaran * 0.5;
 
-            return view('penganggaran.rkas.rkas', compact(
+            return view('rkas.rkas', compact(
                 'kodeKegiatans',
                 'rekeningBelanjas',
                 'rkasData',
@@ -132,7 +132,7 @@ class RkasController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('penganggaran.rkas.index')->with('success', 'Data RKAS berhasil ditambahkan.');
+            return redirect()->route('rkas.index')->with('success', 'Data RKAS berhasil ditambahkan.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error storing RKAS: ' . $e->getMessage());
@@ -676,7 +676,7 @@ class RkasController extends Controller
             // Organisasikan data RKAS
             $dataTerkelola = $this->kelolaDataRkas($rkasData);
 
-            $pdf = PDF::loadView('penganggaran.rkas.rkas-tahap-pdf', [
+            $pdf = PDF::loadView('rkas.rkas-tahap-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
                 'belanja' => $dataTerkelola,
@@ -911,7 +911,7 @@ class RkasController extends Controller
 
             // Debug: Log hasil perhitungan
             Log::info("Total Tahap 1: {$totalTahap1}, Total Tahap 2: {$totalTahap2}");
-            return view('penganggaran.rkas.rekapan', [
+            return view('rkas.rekapan', [
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
                 'tahun' => $tahun,
@@ -1254,7 +1254,7 @@ class RkasController extends Controller
                 'tanggal_cetak' => $penganggaran->format_tanggal_cetak ?? 'Belum diisi'
             ];
 
-            $pdf = PDF::loadView('penganggaran.rkas.rka-rekap-pdf', [
+            $pdf = PDF::loadView('rkas.rka-rekap-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
                 'rekapData' => $rekapData,
@@ -1339,7 +1339,7 @@ class RkasController extends Controller
                 }
             }
 
-            return view('penganggaran.rkas.rekapan', [
+            return view('rkas.rekapan', [
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
                 'indikatorKinerja' => $indikatorKinerja,
@@ -1445,7 +1445,7 @@ class RkasController extends Controller
                 }
             }
 
-            $pdf = PDF::loadView('penganggaran.rkas.rka-dua-satu-pdf', [
+            $pdf = PDF::loadView('rkas.rka-dua-satu-pdf', [
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
                 'indikatorKinerja' => $indikatorKinerja,
@@ -1673,7 +1673,7 @@ class RkasController extends Controller
                 });
             });
 
-            $pdf = PDF::loadView('penganggaran.rkas.rka-bulanan-pdf', [
+            $pdf = PDF::loadView('rkas.rka-bulanan-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
                 'belanja' => $dataTerkelola,
@@ -1714,7 +1714,7 @@ class RkasController extends Controller
 
             return response()->json([
                 'success' => true,
-                'html' => view('penganggaran.rkas.partials.monthly-data', [
+                'html' => view('rkas.partials.monthly-data', [
                     'rkasBulanan' => $rkasBulanan,
                     'bulan' => $bulan,
                     'totalBulanan' => $totalBulanan

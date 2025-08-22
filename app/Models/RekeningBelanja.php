@@ -15,7 +15,12 @@ class RekeningBelanja extends Model
     ];
 
     public function rkas()
-{
-    return $this->hasMany(Rkas::class, 'kode_rekening_id');
-}
+    {
+        return $this->hasMany(Rkas::class, 'kode_rekening_id');
+    }
+
+    public function rkasPerubahan()
+    {
+        return $this->hasMany(RkasPerubahan::class, 'kode_rekening_id');
+    }
 }

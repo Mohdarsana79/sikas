@@ -38,7 +38,7 @@ class RkasPerubahanController extends Controller
                 $rkasAsli = Rkas::where('penganggaran_id', $penganggaran->id)->get();
 
                 if ($rkasAsli->isEmpty()) {
-                    return redirect()->route('penganggaran.rkas-perubahan.index', ['tahun' => $tahun])
+                    return redirect()->route('rkas-perubahan.index', ['tahun' => $tahun])
                         ->with('info', 'Tidak ada data RKAS yang dapat disalin untuk tahun ' . $tahun);
                 }
 
@@ -69,7 +69,7 @@ class RkasPerubahanController extends Controller
             }
 
             // 5. Arahkan ke halaman index RKAS Perubahan.
-            return redirect()->route('penganggaran.rkas-perubahan.index', ['tahun' => $tahun]);
+            return redirect()->route('rkas-perubahan.index', ['tahun' => $tahun]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error saat menyalin data RKAS ke Perubahan: ' . $e->getMessage());
@@ -95,7 +95,7 @@ class RkasPerubahanController extends Controller
                     $tahun = $latestPenganggaran->tahun_anggaran;
                 } else {
                     // Jika tidak ada data penganggaran sama sekali
-                    return view('penganggaran.rkas-perubahan.rkas-perubahan-kosong')->with('message', 'Belum ada data penganggaran yang tersedia.');
+                    return view('rkas-perubahan.rkas-perubahan-kosong')->with('message', 'Belum ada data penganggaran yang tersedia.');
                 }
             }
 
@@ -112,7 +112,7 @@ class RkasPerubahanController extends Controller
             $paguAnggaranTahap1 = $penganggaran->pagu_anggaran * 0.5;
             $paguAnggaranTahap2 = $penganggaran->pagu_anggaran * 0.5;
 
-            return view('penganggaran.rkas-perubahan.rkas-perubahan', compact(
+            return view('rkas-perubahan.rkas-perubahan', compact(
                 'kodeKegiatans',
                 'rekeningBelanjas',
                 'rkasData',
@@ -193,7 +193,7 @@ class RkasPerubahanController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('penganggaran.rkas-perubahan.index', ['tahun' => $tahun])->with('success', 'Data RKAS Perubahan berhasil ditambahkan.');
+            return redirect()->route('rkas-perubahan.index', ['tahun' => $tahun])->with('success', 'Data RKAS Perubahan berhasil ditambahkan.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error storing RKAS Perubahan: ' . $e->getMessage());
@@ -247,20 +247,35 @@ class RkasPerubahanController extends Controller
     {
         try {
             $request->validate([
+                'penganggaran_id' => 'required|exists:penganggarans,id',
+                'rkas_id' => 'required|exists:rkas_perubahans,id',
                 'kode_id' => 'required|exists:kode_kegiatans,id',
                 'kode_rekening_id' => 'required|exists:rekening_belanjas,id',
                 'uraian' => 'required|string',
-                'harga_satuan' => 'nullable|numeric|min:0',
-                'jumlah' => 'nullable|integer|min:1',
-                'satuan' => 'nullable|string',
-                'tahun_anggaran' => 'required',
-                'bulan' => 'required|string',
+                'harga_satuan' => 'required|numeric|min:0',
+                'jumlah' => 'required|integer|min:1',
+                'satuan' => 'required|string',
+                'bulan' => 'required|in:Januari,Februari,Maret,April,Mei,Juni,Juli,Agustus,September,Oktober,November,Desember',
             ]);
 
-            $penganggaran = Penganggaran::where('tahun_anggaran', $request->tahun_anggaran)->firstOrFail();
+            // Cek duplikasi data
+            $exists = RkasPerubahan::where('penganggaran_id', $request->penganggaran_id)
+                ->where('kode_id', $request->kode_id)
+                ->where('kode_rekening_id', $request->kode_rekening_id)
+                ->where('bulan', $request->bulan)
+                ->where('uraian', $request->uraian)
+                ->exists();
 
-            RkasPerubahan::create([
-                'penganggaran_id' => $penganggaran->id,
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Data untuk bulan {$request->bulan} sudah ada dengan uraian yang sama."
+                ], 422);
+            }
+
+            // Buat data baru
+            $rkas = RkasPerubahan::create([
+                'penganggaran_id' => $request->penganggaran_id,
                 'kode_id' => $request->kode_id,
                 'kode_rekening_id' => $request->kode_rekening_id,
                 'uraian' => $request->uraian,
@@ -268,15 +283,16 @@ class RkasPerubahanController extends Controller
                 'jumlah' => $request->jumlah,
                 'satuan' => $request->satuan,
                 'bulan' => $request->bulan,
-
+                'rkas_id' => $request->rkas_id // Simpan referensi ke data asal
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data berhasil disisipkan ke bulan ' . $request->bulan,
-                'bulan' => $request->bulan
+                'message' => 'Data berhasil disisipkan',
+                'data' => $rkas
             ]);
         } catch (\Exception $e) {
+            Log::error('Error inserting RKAS Perubahan: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
@@ -292,7 +308,7 @@ class RkasPerubahanController extends Controller
                 'kode_rekening_id' => 'required|exists:rekening_belanjas,id',
                 'uraian' => 'required|string',
                 'harga_satuan' => 'nullable|numeric|min:0',
-                'bulan' => 'required|in:' . implode(',', Rkas::getBulanList()),
+                'bulan' => 'required|in:' . implode(',', RkasPerubahan::getBulanList()),
                 'jumlah' => 'nullable|integer|min:1',
                 'satuan' => 'nullable|string',
             ]);
@@ -656,7 +672,7 @@ class RkasPerubahanController extends Controller
     }
 
     // Method untuk generate PDF
-    public function generatePdf(Request $request)
+    public function generateTahapanPdf(Request $request)
     {
         try {
             // Ambil tahun dari parameter
@@ -665,6 +681,7 @@ class RkasPerubahanController extends Controller
             if (!$tahun) {
                 throw new \Exception("Parameter tahun diperlukan");
             }
+
             // Ambil data penganggaran berdasarkan tahun yang dipilih
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
@@ -679,7 +696,7 @@ class RkasPerubahanController extends Controller
                 throw new \Exception("Data sekolah belum tersedia");
             }
 
-            // Ambil semua data RKAS dikelompokkan berdasarkan kode kegiatan - filter by penganggaran_id
+
             $rkasData = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
                 ->where('penganggaran_id', $penganggaran->id)
                 ->orderBy('kode_id')
@@ -720,14 +737,14 @@ class RkasPerubahanController extends Controller
                 ]
             ];
 
-            // Hitung total berdasarkan penganggaran_id
+            // PERBAIKAN: Hitung total menggunakan RkasPerubahan
             $totalTahap1 = RkasPerubahan::getTotalTahap1($penganggaran->id);
             $totalTahap2 = RkasPerubahan::getTotalTahap2($penganggaran->id);
 
             // Organisasikan data RKAS
-            $dataTerkelola = $this->kelolaDataRkas($rkasData);
+            $dataTerkelola = $this->kelolaDataRkasPerubahan($rkasData);
 
-            $pdf = PDF::loadView('penganggaran.rkas-perubahan.rkas-tahap-pdf', [
+            $pdf = PDF::loadView('rkas-perubahan.rkas-perubahan-tahap-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
                 'belanja' => $dataTerkelola,
@@ -737,14 +754,14 @@ class RkasPerubahanController extends Controller
                 'penganggaran' => $penganggaran
             ]);
 
-            return $pdf->stream('RKAS-Tahap.pdf');
+            return $pdf->stream('RKAS-Perubahan-Tahap.pdf'); // Ubah nama file untuk membedakan
         } catch (\Exception $e) {
-            Log::error('Error saat membuat PDF RKAS: ' . $e->getMessage());
-            return back()->with('error', 'Gagal menghasilkan PDF RKAS: ' . $e->getMessage());
+            Log::error('Error saat membuat PDF RKAS Perubahan: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghasilkan PDF RKAS Perubahan: ' . $e->getMessage());
         }
     }
 
-    private function kelolaDataRkas($rkasData)
+    private function kelolaDataRkasPerubahan($rkasData)
     {
         $terorganisir = [];
 
@@ -816,6 +833,7 @@ class RkasPerubahanController extends Controller
                 }
 
                 $jumlah = $item->jumlah * $item->harga_satuan;
+                // PERBAIKAN: Gunakan method getBulanTahap1() dari RkasPerubahan
                 $isTahap1 = in_array($item->bulan, RkasPerubahan::getBulanTahap1());
 
                 $groupedItems[$key]['volume'] += $item->jumlah;
@@ -872,7 +890,7 @@ class RkasPerubahanController extends Controller
         return $terorganisir;
     }
 
-    public function showRekapan(Request $request)
+    public function showRekapanPerubahan(Request $request)
     {
         try {
             $tahun = $request->input('tahun');
@@ -889,7 +907,7 @@ class RkasPerubahanController extends Controller
             }
 
             // Data untuk RKAS Tahapan - filter by penganggaran_id
-            $belanja = $this->kelolaDataRkas(
+            $belanja = $this->kelolaDataRkasPerubahan(
                 RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
                     ->where('penganggaran_id', $penganggaran->id)
                     ->orderBy('kode_id')
@@ -909,7 +927,7 @@ class RkasPerubahanController extends Controller
             ];
 
             // Data untuk RKAS Tahapan - ambil berdasarkan penganggaran_id
-            $dataTerkelola = $this->kelolaDataRkas(
+            $dataTerkelola = $this->kelolaDataRkasPerubahan(
                 RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
                     ->where('penganggaran_id', $penganggaran->id)
                     ->orderBy('kode_id')
@@ -920,7 +938,7 @@ class RkasPerubahanController extends Controller
             );
 
             // Data untuk RKA Rekap - ambil berdasarkan penganggaran_id
-            $rekapData = $this->getRekapRkas($penganggaran->id);
+            $rekapData = $this->getRekapRkasPerubahan($penganggaran->id);
 
             // Data untuk Lembar Kerja 221 - ambil berdasarkan penganggaran_id
             [$groupedItemsFor221, $totalsFor221] = $this->prepare221Data($penganggaran->id);
@@ -960,9 +978,12 @@ class RkasPerubahanController extends Controller
             $totalTahap1 = RkasPerubahan::getTotalTahap1($penganggaran->id);
             $totalTahap2 = RkasPerubahan::getTotalTahap2($penganggaran->id);
 
+            Log::info('RKAS Perubahan Data for bulan ' . $bulan . ': ' . $rkasBulanan->count() . ' items');
+            Log::info('RKAS Perubahan Total: ' . $totalBulanan);
+
             // Debug: Log hasil perhitungan
             Log::info("Total Tahap 1: {$totalTahap1}, Total Tahap 2: {$totalTahap2}");
-            return view('penganggaran.rkas-perubahan.rekapan', [
+            return view('rkas-perubahan.rekapan-perubahan', [
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
                 'tahun' => $tahun,
@@ -1045,7 +1066,7 @@ class RkasPerubahanController extends Controller
         return [$groupedItems, $totals];
     }
 
-    private function getRekapRkas($penganggaranId)
+    private function getRekapRkasPerubahan($penganggaranId)
     {
         try {
             $penganggaran = Penganggaran::findOrFail($penganggaranId);
@@ -1289,7 +1310,7 @@ class RkasPerubahanController extends Controller
             ];
 
             // Data belanja (rekap) - ambil berdasarkan penganggaran_id
-            $rekapData = $this->getRekapRkas($penganggaran->id);
+            $rekapData = $this->getRekapRkasPerubahan($penganggaran->id);
 
             // Data tahapan - ambil berdasarkan penganggaran_id
             $totalTahap1 = RkasPerubahan::where('penganggaran_id', $penganggaran->id)
@@ -1305,7 +1326,7 @@ class RkasPerubahanController extends Controller
                 'tanggal_cetak' => $penganggaran->format_tanggal_cetak ?? 'Belum diisi'
             ];
 
-            $pdf = PDF::loadView('penganggaran.rkas-perubahan.rka-rekap-pdf', [
+            $pdf = PDF::loadView('rkas-perubahan.rka-rekap-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
                 'rekapData' => $rekapData,
@@ -1390,7 +1411,7 @@ class RkasPerubahanController extends Controller
                 }
             }
 
-            return view('penganggaran.rkas-perubahan.rekapan', [
+            return view('rkas-perubahan.rekapan', [
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
                 'indikatorKinerja' => $indikatorKinerja,
@@ -1496,7 +1517,7 @@ class RkasPerubahanController extends Controller
                 }
             }
 
-            $pdf = PDF::loadView('penganggaran.rkas-perubahan.rka-dua-satu-pdf', [
+            $pdf = PDF::loadView('rkas-perubahan.rka-dua-satu-pdf', [
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
                 'indikatorKinerja' => $indikatorKinerja,
@@ -1724,7 +1745,7 @@ class RkasPerubahanController extends Controller
                 });
             });
 
-            $pdf = PDF::loadView('penganggaran.rkas-perubahan.rka-bulanan-pdf', [
+            $pdf = PDF::loadView('rkas-perubahan.rka-bulanan-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
                 'belanja' => $dataTerkelola,
@@ -1743,13 +1764,24 @@ class RkasPerubahanController extends Controller
     public function getMonthlyData(Request $request)
     {
         try {
+            Log::info('getMonthlyData called for RKAS Perubahan');
+            Log::info('Bulan: ' . $request->input('bulan'));
+            Log::info('Tahun: ' . $request->input('tahun'));
+
             $bulan = $request->input('bulan', 'Januari');
             $tahun = $request->input('tahun');
+
+            if (!$tahun) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parameter tahun diperlukan'
+                ], 400);
+            }
 
             // Ambil data penganggaran berdasarkan tahun
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
-            // Query data untuk bulan yang dipilih berdasarkan penganggaran_id
+            // Query data untuk bulan yang dipilih berdasarkan penganggaran_id - PASTIKAN menggunakan RkasPerubahan
             $rkasBulanan = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
                 ->where('penganggaran_id', $penganggaran->id)
                 ->where('bulan', $bulan)
@@ -1763,9 +1795,11 @@ class RkasPerubahanController extends Controller
                 ->where('bulan', $bulan)
                 ->sum(DB::raw('jumlah * harga_satuan'));
 
+            Log::info('RKAS Perubahan Data for bulan ' . $bulan . ': ' . $rkasBulanan->count() . ' items');
+
             return response()->json([
                 'success' => true,
-                'html' => view('penganggaran.rkas-perubahan.partials.monthly-data', [
+                'html' => view('rkas-perubahan.partials.monthly-data-perubahan', [
                     'rkasBulanan' => $rkasBulanan,
                     'bulan' => $bulan,
                     'totalBulanan' => $totalBulanan
@@ -1785,6 +1819,12 @@ class RkasPerubahanController extends Controller
     {
         try {
             $tahun = request()->query('tahun');
+            if (!$tahun) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parameter tahun diperlukan'
+                ], 400);
+            }
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
             // Fix: Gunakan whereBulan dengan nilai yang konsisten (huruf pertama kapital)

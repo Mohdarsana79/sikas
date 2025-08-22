@@ -93,6 +93,19 @@ class RkasPerubahan extends Model
         ];
     }
 
+    public static function getBulanTahap1()
+    {
+        return ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+    }
+
+    /**
+     * Static method untuk mendapatkan daftar bulan Tahap 2
+     */
+    public static function getBulanTahap2()
+    {
+        return ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    }
+
     /**
      * Scope untuk filter berdasarkan tahap.
      */

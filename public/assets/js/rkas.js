@@ -493,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </td>
         </tr>`;
 
-        fetch(`/penganggaran/rkas/bulan/${formattedMonth}?tahun=${document.querySelector('input[name="tahun_anggaran"]').value}`, {
+        fetch(`/rkas/bulan/${formattedMonth}?tahun=${document.querySelector('input[name="tahun_anggaran"]').value}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -629,7 +629,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tahunAnggaran = document.querySelector('input[name="tahun_anggaran"]').value;
 
         // Update Tahap 1
-        fetch(`/penganggaran/rkas/total-tahap1?tahun=${tahunAnggaran}`)
+        fetch(`/rkas/total-tahap1?tahun=${tahunAnggaran}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -660,7 +660,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error('Error updating Tahap 1:', error));
 
         // Update Tahap 2
-        fetch(`/penganggaran/rkas/total-tahap2?tahun=${tahunAnggaran}`)
+        fetch(`/rkas/total-tahap2?tahun=${tahunAnggaran}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -772,7 +772,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showDetailModal = function(id) {
         currentRkasId = id;
 
-        fetch(`/penganggaran/rkas/${id}`, {
+        fetch(`/rkas/${id}`, {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -810,7 +810,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showEditModal = function(id) {
         currentRkasId = id;
 
-        fetch(`/penganggaran/rkas/${id}`, {
+        fetch(`/rkas/${id}`, {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -832,7 +832,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('edit-satuan').value = rkas.satuan || '';
 
                     // Set form action
-                    document.getElementById('editRkasForm').action = `/penganggaran/rkas/${id}`;
+                    document.getElementById('editRkasForm').action = `/rkas/${id}`;
 
                     // Update total
                     updateEditTotal();
@@ -852,7 +852,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showDeleteModal = function(id) {
         currentRkasId = id;
 
-        fetch(`/penganggaran/rkas/${id}`, {
+        fetch(`/rkas/${id}`, {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -893,7 +893,7 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmBtn.disabled = true;
         const currentMonth = getActiveTab();
 
-        fetch(`/penganggaran/rkas/${id}`, {
+        fetch(`/rkas/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -929,7 +929,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tableHeaderClass = tahap === 1 ? 'table-primary' : 'table-success';
         const tahunAnggaran = document.querySelector('input[name="tahun_anggaran"]').value;
 
-        fetch(`/penganggaran/rkas/data-tahap/${tahap}?tahun=${tahunAnggaran}`)
+        fetch(`/rkas/data-tahap/${tahap}?tahun=${tahunAnggaran}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {

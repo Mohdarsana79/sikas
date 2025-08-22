@@ -44,43 +44,88 @@ Route::middleware(['auth'])->prefix('penganggaran')->group(function () {
     Route::delete('/penganggaran/{id}', [PenganggaranController::class, 'destroy'])->name('penganggaran.destroy');
 });
 
-Route::middleware(['auth'])->prefix('penganggaran/rkas')->group(function () {
-    Route::get('/', [RkasController::class, 'index'])->name('penganggaran.rkas.index');
-    Route::post('/', [RkasController::class, 'store'])->name('penganggaran.rkas.store');
-    Route::get('/bulan/{bulan}', [RkasController::class, 'getByMonth'])->name('penganggaran.rkas.getByMonth');
-    Route::get('/all-data', [RkasController::class, 'getAllData'])->name('penganggaran.rkas.getAllData');
-    Route::put('/{id}', [RkasController::class, 'update'])->name('penganggaran.rkas.update');
+// Rkas Perubahan
+Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
+    // RKAS Perubahan
+    Route::get('/', [RkasPerubahanController::class, 'index'])->name('rkas-perubahan.index');
+
+    // ROUTE BARU UNTUK PROSES PENYALINAN DATA
+    Route::post('/salin-rkas', [RkasPerubahanController::class, 'salinDariRkas'])
+        ->name('rkas-perubahan.salin');
+
+    Route::post('/', [RkasPerubahanController::class, 'store'])->name('rkas-perubahan.store');
+    Route::get('/bulan/{bulan}', [RkasPerubahanController::class, 'getByMonth'])->name('rkas-perubahan.getByMonth');
+    Route::get('/all-data', [RkasPerubahanController::class, 'getAllData'])->name('rkas-perubahan.getAllData');
+    Route::put('/{id}', [RkasPerubahanController::class, 'update'])->name('rkas-perubahan.update');
     Route::put('/{id}/update-tanggal-cetak', [PenganggaranController::class, 'updateTanggalCetak'])
         ->name('penganggaran.update-tanggal-cetak');
-    Route::get('/{id}', [RkasController::class, 'show'])->name('penganggaran.rkas.show');
-    Route::post('/penganggaran/rkas/sisipkan', [RkasController::class, 'sisipkan'])
-        ->name('penganggaran.rkas.sisipkan');
-    Route::delete('/{id}', [RkasController::class, 'destroy'])->name('penganggaran.rkas.destroy');
-    Route::get('/total/per-bulan', [RkasController::class, 'getTotalPerBulan'])->name('penganggaran.rkas.getTotalPerBulan');
+    Route::get('/{id}', [RkasPerubahanController::class, 'show'])->name('rkas-perubahan.show');
+    Route::post('/sisipkan', [RkasPerubahanController::class, 'sisipkan'])
+        ->name('rkas-perubahan.sisipkan');
+    Route::delete('/{id}', [RkasPerubahanController::class, 'destroy'])->name('rkas-perubahan.destroy');
+    Route::get('/total/per-bulan', [RkasPerubahanController::class, 'getTotalPerBulan'])->name('rkas-perubahan.getTotalPerBulan');
     // Routes for Tahap 1 and Tahap 2 functionality
-    Route::get('/total-tahap1', [RkasController::class, 'getTotalTahap1'])->name('penganggaran.rkas.total-tahap1');
-    Route::get('/total-tahap2', [RkasController::class, 'getTotalTahap2'])->name('penganggaran.rkas.total-tahap2');
-    Route::get('/data-tahap/{tahap}', [RkasController::class, 'getDataByTahap'])->name('penganggaran.rkas.data-tahap');
+    Route::get('/total-tahap1', [RkasPerubahanController::class, 'getTotalTahap1'])->name('rkas-perubahan.total-tahap1');
+    Route::get('/total-tahap2', [RkasPerubahanController::class, 'getTotalTahap2'])->name('rkas-perubahan.total-tahap2');
+    Route::get('/data-tahap/{tahap}', [RkasPerubahanController::class, 'getDataByTahap'])->name('rkas-perubahan.data-tahap');
+    Route::get('/rkas-perubahan/rekapan-perubahan', [RkasPerubahanController::class, 'showRekapanPerubahan'])
+        ->name('rkas-perubahan.rekapan-perubahan');
 
     // Routes untuk PDF dan Preview
-    Route::get('/generate-pdf', [RkasController::class, 'generatePdf'])->name('penganggaran.rkas.generate-pdf');
-    Route::get('/penganggaran/rkas/generate-pdf-rekap', [RkasController::class, 'generatePdfRkaRekap'])->name('penganggaran.rkas.generate-pdf-rekap');
-    Route::get('/penganggaran/rkas/generate-rka-221-pdf', [RkasController::class, 'generateRkaDuaSatuPdf'])
-        ->name('penganggaran.rkas.generate-rka-221-pdf');
+    Route::get('/rkas-perubahan/generate-tahapan-pdf', [RkasPerubahanController::class, 'generateTahapanPdf'])
+        ->name('rkas-perubahan.generate-tahapan-pdf');
+    Route::get('/rkas-perubahan/generate-pdf-rekap', [RkasPerubahanController::class, 'generatePdfRkaRekap'])->name('rkas-perubahan.generate-pdf-rekap');
+    Route::get('/rkas-perubahan/generate-rka-221-pdf', [RkasPerubahanController::class, 'generateRkaDuaSatuPdf'])
+        ->name('rkas-perubahan.generate-rka-221-pdf');
 
-    Route::get('/penganggaran/rkas/rekapan', [RkasController::class, 'showRekapan'])
-        ->name('penganggaran.rkas.rekapan');
+    Route::get('/rkas-perubahan/get-monthly-data', [RkasPerubahanController::class, 'getMonthlyData'])
+        ->name('rkas-perubahan.get-monthly-data');
 
-    Route::get('/penganggaran/rkas/get-monthly-data', [RkasController::class, 'getMonthlyData'])
-        ->name('penganggaran.rkas.get-monthly-data');
+    Route::get('/rkas-perubahan/bulan/{month}', [RkasPerubahanController::class, 'getDataByMonth'])->name('rkas-perubahan.get-data-by-month');
 
-    Route::get('/penganggaran/rkas/bulan/{month}', [RkasController::class, 'getDataByMonth'])->name('penganggaran.rkas.get-data-by-month');
+    Route::get('/rkas-perubahan/rekap-bulanan/{bulan}', [RkasPerubahanController::class, 'getRekapBulanan'])
+        ->name('rkas-perubahan.rekap-bulanan');
 
-    Route::get('/penganggaran/rkas/rekap-bulanan/{bulan}', [RkasController::class, 'getRekapBulanan'])
-        ->name('penganggaran.rkas.rekap-bulanan');
+    Route::get('/rkas-perubahan/rka-bulanan-pdf/{tahun}/{bulan}', [RkasPerubahanController::class, 'generatePdfBulanan'])
+        ->name('rkas-perubahan.rka-bulanan-pdf')->middleware('noCache');
+});
 
-    Route::get('/penganggaran/rkas/rka-bulanan-pdf/{tahun}/{bulan}', [RkasController::class, 'generatePdfBulanan'])
-        ->name('penganggaran.rkas.rka-bulanan-pdf')->middleware('noCache');
+Route::middleware(['auth'])->prefix('rkas')->group(function () {
+    Route::get('/', [RkasController::class, 'index'])->name('rkas.index');
+    Route::post('/', [RkasController::class, 'store'])->name('rkas.store');
+    Route::get('/bulan/{bulan}', [RkasController::class, 'getByMonth'])->name('rkas.getByMonth');
+    Route::get('/all-data', [RkasController::class, 'getAllData'])->name('rkas.getAllData');
+    Route::put('/{id}', [RkasController::class, 'update'])->name('rkas.update');
+    Route::put('/{id}/update-tanggal-cetak', [PenganggaranController::class, 'updateTanggalCetak'])
+        ->name('penganggaran.update-tanggal-cetak');
+    Route::get('/{id}', [RkasController::class, 'show'])->name('rkas.show');
+    Route::post('/sisipkan', [RkasController::class, 'sisipkan'])
+        ->name('rkas.sisipkan');
+    Route::delete('/{id}', [RkasController::class, 'destroy'])->name('rkas.destroy');
+    Route::get('/total/per-bulan', [RkasController::class, 'getTotalPerBulan'])->name('rkas.getTotalPerBulan');
+    // Routes for Tahap 1 and Tahap 2 functionality
+    Route::get('/total-tahap1', [RkasController::class, 'getTotalTahap1'])->name('rkas.total-tahap1');
+    Route::get('/total-tahap2', [RkasController::class, 'getTotalTahap2'])->name('rkas.total-tahap2');
+    Route::get('/data-tahap/{tahap}', [RkasController::class, 'getDataByTahap'])->name('rkas.data-tahap');
+    Route::get('/rkas/rekapan', [RkasController::class, 'showRekapan'])
+        ->name('rkas.rekapan');
+
+    // Routes untuk PDF dan Preview
+    Route::get('/rkas/generate-pdf', [RkasController::class, 'generatePdf'])->name('rkas.generate-pdf');
+    Route::get('/rkas/generate-pdf-rekap', [RkasController::class, 'generatePdfRkaRekap'])->name('rkas.generate-pdf-rekap');
+    Route::get('/rkas/generate-rka-221-pdf', [RkasController::class, 'generateRkaDuaSatuPdf'])
+        ->name('rkas.generate-rka-221-pdf');
+
+    Route::get('/rkas/get-monthly-data', [RkasController::class, 'getMonthlyData'])
+        ->name('rkas.get-monthly-data');
+
+    Route::get('/rkas/bulan/{month}', [RkasController::class, 'getDataByMonth'])->name('rkas.get-data-by-month');
+
+    Route::get('/rkas/rekap-bulanan/{bulan}', [RkasController::class, 'getRekapBulanan'])
+        ->name('rkas.rekap-bulanan');
+
+    Route::get('/rkas/rka-bulanan-pdf/{tahun}/{bulan}', [RkasController::class, 'generatePdfBulanan'])
+        ->name('rkas.rka-bulanan-pdf')->middleware('noCache');
 });
 
 
@@ -112,52 +157,7 @@ Route::middleware(['auth'])->prefix('referensi')->group(function () {
         ->name('penganggaran.rkas.generate-pdf');
 });
 
-// Rkas Perubahan
-Route::middleware(['auth'])->prefix('penganggaran/rkas-perubahan')->group(function () {
-    // RKAS Perubahan
-    Route::get('/', [RkasPerubahanController::class, 'index']) // Ubah route index agar tidak ada parameter tahun
-        ->name('penganggaran.rkas-perubahan.index');
 
-    // ROUTE BARU UNTUK PROSES PENYALINAN DATA
-    Route::post('/salin-rkas', [RkasPerubahanController::class, 'salinDariRkas'])
-        ->name('penganggaran.rkas-perubahan.salin');
-
-    Route::post('/', [RkasPerubahanController::class, 'store'])->name('penganggaran.rkas-perubahan.store');
-    Route::get('/bulan/{bulan}', [RkasPerubahanController::class, 'getByMonth'])->name('penganggaran.rkas-perubahan.getByMonth');
-    Route::get('/all-data', [RkasPerubahanController::class, 'getAllData'])->name('penganggaran.rkas-perubahan.getAllData');
-    Route::put('/{id}', [RkasPerubahanController::class, 'update'])->name('penganggaran.rkas-perubahan.update');
-    Route::put('/{id}/update-tanggal-cetak', [PenganggaranController::class, 'updateTanggalCetak'])
-        ->name('penganggaran.update-tanggal-cetak');
-    Route::get('/{id}', [RkasPerubahanController::class, 'show'])->name('penganggaran.rkas-perubahan.show');
-    Route::post('/penganggaran/rkas-perubahan/sisipkan', [RkasPerubahanController::class, 'sisipkan'])
-        ->name('penganggaran.rkas-perubahan.sisipkan');
-    Route::delete('/{id}', [RkasPerubahanController::class, 'destroy'])->name('penganggaran.rkas-perubahan.destroy');
-    Route::get('/total/per-bulan', [RkasPerubahanController::class, 'getTotalPerBulan'])->name('penganggaran.rkas-perubahan.getTotalPerBulan');
-    // Routes for Tahap 1 and Tahap 2 functionality
-    Route::get('/total-tahap1', [RkasPerubahanController::class, 'getTotalTahap1'])->name('penganggaran.rkas-perubahan.total-tahap1');
-    Route::get('/total-tahap2', [RkasPerubahanController::class, 'getTotalTahap2'])->name('penganggaran.rkas-perubahan.total-tahap2');
-    Route::get('/data-tahap/{tahap}', [RkasPerubahanController::class, 'getDataByTahap'])->name('penganggaran.rkas-perubahan.data-tahap');
-
-    // Routes untuk PDF dan Preview
-    Route::get('/generate-pdf', [RkasPerubahanController::class, 'generatePdf'])->name('penganggaran.rkas-perubahan.generate-pdf');
-    Route::get('/penganggaran/rkas-perubahan/generate-pdf-rekap', [RkasPerubahanController::class, 'generatePdfRkaRekap'])->name('penganggaran.rkas-perubahan.generate-pdf-rekap');
-    Route::get('/penganggaran/rkas-perubahan/generate-rka-221-pdf', [RkasPerubahanController::class, 'generateRkaDuaSatuPdf'])
-        ->name('penganggaran.rkas-perubahan.generate-rka-221-pdf');
-
-    Route::get('/penganggaran/rkas-perubahan/rekapan', [RkasPerubahanController::class, 'showRekapan'])
-        ->name('penganggaran.rkas-perubahan.rekapan');
-
-    Route::get('/penganggaran/rkas-perubahan/get-monthly-data', [RkasPerubahanController::class, 'getMonthlyData'])
-        ->name('penganggaran.rkas-perubahan.get-monthly-data');
-
-    Route::get('/penganggaran/rkas-perubahan/bulan/{month}', [RkasPerubahanController::class, 'getDataByMonth'])->name('penganggaran.rkas-perubahan.get-data-by-month');
-
-    Route::get('/penganggaran/rkas-perubahan/rekap-bulanan/{bulan}', [RkasPerubahanController::class, 'getRekapBulanan'])
-        ->name('penganggaran.rkas-perubahan.rekap-bulanan');
-
-    Route::get('/penganggaran/rkas-perubahan/rka-bulanan-pdf/{tahun}/{bulan}', [RkasPerubahanController::class, 'generatePdfBulanan'])
-        ->name('penganggaran.rkas-perubahan.rka-bulanan-pdf')->middleware('noCache');
-});
 
 Route::middleware(['auth'])->prefix('penatausahaan')->group(function () {
     Route::get('/bku', [BkuController::class, 'index'])->name('penatausahaan.bku');

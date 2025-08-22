@@ -18,7 +18,12 @@ class KodeKegiatan extends Model
     ];
 
     public function rkas()
-{
-    return $this->hasMany(Rkas::class, 'kode_id');
-}
+    {
+        return $this->hasMany(Rkas::class, 'kode_id');
+    }
+
+    public function rkasPerubahan()
+    {
+        return $this->hasMany(RkasPerubahan::class, 'kode_id');
+    }
 }

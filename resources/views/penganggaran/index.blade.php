@@ -252,13 +252,13 @@
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <a href="{{ route('penganggaran.rkas.index', ['tahun' => $anggaran->tahun_anggaran]) }}"
+                                    <a href="{{ route('rkas.index', ['tahun' => $anggaran->tahun_anggaran]) }}"
                                         class="btn btn-sm btn-outline-primary" title="Lihat RKAS Awal">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     @if($anggaran->has_rkas)
                                     <a class="btn btn-sm btn-outline-dark"
-                                        href="{{ route('penganggaran.rkas.rekapan', ['tahun' => $anggaran->tahun_anggaran]) }}"
+                                        href="{{ route('rkas.rekapan', ['tahun' => $anggaran->tahun_anggaran]) }}"
                                         title="Cetak RKAS Awal">
                                         <i class="bi bi-printer"></i>
                                     </a>
@@ -292,12 +292,12 @@
                                 </div>
                                 <div class="d-flex gap-2">
                                     <!-- Tombol mata mengarah ke route rkas-perubahan -->
-                                    <a href="{{ route('penganggaran.rkas-perubahan.index', ['tahun' => $anggaran->tahun_anggaran]) }}"
+                                    <a href="{{ route('rkas-perubahan.index', ['tahun' => $anggaran->tahun_anggaran]) }}"
                                         class="btn btn-sm btn-outline-warning" title="Lihat RKAS Perubahan">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     <a class="btn btn-sm btn-outline-dark"
-                                        href="{{ route('penganggaran.rkas-perubahan.rekapan', ['tahun' => $anggaran->tahun_anggaran]) }}"
+                                        href="{{ route('rkas-perubahan.rekapan-perubahan', ['tahun' => $anggaran->tahun_anggaran]) }}"
                                         title="Cetak RKAS Perubahan">
                                         <i class="bi bi-printer"></i>
                                     </a>

@@ -148,7 +148,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>KERTAS KERJA RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS) PER TAHAP</h1>
+            <h1>KERTAS KERJA RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS) PERUBAHAN PER TAHAP</h1>
             <p>TAHUN ANGGARAN : {{ $dataSekolah['tahun_anggaran'] }}</p>
             <table class="no-border" style="width: auto; border: none;">
                 <tr class="no-border">

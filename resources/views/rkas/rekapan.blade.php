@@ -9,8 +9,8 @@
             <!-- Page Title -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h1 class="h3 mb-1 text-gradient">Rekapan RKAS</h1>
-                    <p class="mb-0 text-muted">Rekap Rencana Kegiatan dan Anggaran Sekolah</p>
+                    <h1 class="h3 mb-1 text-gradient">Rekapan RKAS Perubahan</h1>
+                    <p class="mb-0 text-muted">Rekap Rencana Kegiatan dan Anggaran Sekolah Perubahan</p>
                 </div>
                 <div class="tanggal-cetak" style="font-size: 10pt;">
     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#editTanggalCetak" style="font-size: 10pt;">
@@ -69,7 +69,7 @@
                         <div class="tab-pane fade show active" id="rka-tahapan" role="tabpanel">
                             <div class="p-4">
                                 <div class="d-flex justify-content-end">
-                                    <a class="btn btn-primary" target="_blank" href="{{ route('penganggaran.rkas.generate-pdf', ['tahun' => $tahun]) }}" style="font-size: 9pt;">
+                                    <a class="btn btn-primary" target="_blank" href="{{route('rkas.generate-pdf',['tahun' => $tahun])}}" style="font-size: 9pt;">
                                         <i class="bi bi-printer me-2"></i>
                                         Cetak
                                     </a>
@@ -215,7 +215,7 @@
                         <div class="tab-pane fade" id="rka-rekap" role="tabpanel">
                             <div class="p-4">
                                 <div class="d-flex justify-content-end mb-3">
-                                    <a class="btn btn-primary" target="_window" href="{{ route('penganggaran.rkas.generate-pdf-rekap', ['tahun' => $tahun]) }}" style="font-size: 9pt;">
+                                    <a class="btn btn-primary" target="_window" href="{{ route('rkas.generate-pdf-rekap', ['tahun' => $tahun]) }}" style="font-size: 9pt;">
                                         <i class="bi bi-printer me-2"></i>
                                         Cetak
                                     </a>
@@ -335,7 +335,7 @@
                             <div class="p-4">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="mb-0">LEMBAR KERTAS KERJA</h5>
-                                    <a class="btn btn-primary btn-sm" href="{{ route('penganggaran.rkas.generate-rka-221-pdf', ['tahun' => $tahun]) }}"
+                                    <a class="btn btn-primary btn-sm" href="{{ route('rkas.generate-rka-221-pdf', ['tahun' => $tahun]) }}"
                                         target="_blank">
                                         <i class="bi bi-printer me-2"></i>Cetak
                                     </a>
@@ -417,7 +417,7 @@
                         {{-- Rka Bulanan --}}
                         <div class="tab-pane fade" id="rka-bulan" role="tabpanel">
                             <div class="p-4">
-                                <form method="GET" action="{{ route('penganggaran.rkas.rekapan') }}" id="bulanForm">
+                                <form method="GET" action="{{ route('rkas.rekapan') }}" id="bulanForm">
                                     <input type="hidden" name="tahun" value="{{ $tahun }}">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <div>
@@ -429,7 +429,7 @@
                                         </div>
                                         <div>
                                             <a class="btn btn-primary btn-sm" id="cetakPdfButton"
-                                                href="{{ route('penganggaran.rkas.rka-bulanan-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}" target="_blank"
+                                                href="{{ route('rkas.rka-bulanan-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}" target="_blank"
                                                 style="font-size: 9pt;">
                                                 <i class="bi bi-printer me-2"></i> Cetak
                                             </a>
@@ -459,7 +459,7 @@
                                             </div>
                                             <p>Memuat data...</p>
                                         </div>
-                                            @include('penganggaran.rkas.partials.monthly-data', [
+                                            @include('rkas.partials.monthly-data', [
                                             'rkasBulanan' => $rkasBulanan,
                                             'bulan' => $bulan,
                                             'totalBulanan' => $totalBulanan
@@ -628,7 +628,7 @@
         if (!bulan) return;
         
         // Update URL cetak PDF secara langsung
-        const pdfUrl = "{{ route('penganggaran.rkas.rka-bulanan-pdf', ['tahun' => ':tahun', 'bulan' => ':bulan']) }}"
+        const pdfUrl = "{{ route('rkas.rka-bulanan-pdf', ['tahun' => ':tahun', 'bulan' => ':bulan']) }}"
         .replace(':tahun', tahun)
         .replace(':bulan', bulan);
         $('#cetakPdfButton').attr('href', pdfUrl);
@@ -638,7 +638,7 @@
         $('#rka-bulan table tbody').hide();
         
         $.ajax({
-        url: "{{ route('penganggaran.rkas.get-monthly-data') }}",
+        url: "{{ route('rkas.get-monthly-data') }}",
         type: "GET",
         data: {
         bulan: bulan,
