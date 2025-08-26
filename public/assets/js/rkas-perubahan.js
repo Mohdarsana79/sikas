@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let monthIndex = 1;
     let currentRkasId = null;
     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    let firstSatuanValue = ''; // Variabel untuk menyimpan satuan pertama
 
     // Inisialisasi komponen
     initializeSelect2();
@@ -58,6 +59,40 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function lockTahap1Actions() {
+        const lockedMonths = ['januari', 'februari', 'maret', 'april', 'mei', 'juni'];
+        const activeTab = document.querySelector('#monthTabs .nav-link.active');
+        
+        if (activeTab) {
+            const month = activeTab.getAttribute('data-month').toLowerCase();
+            const isLocked = lockedMonths.includes(month);
+            
+            // Nonaktifkan tombol tambah jika bulan terkunci
+            const addButton = document.querySelector('.rkas-actions .btn-success');
+            if (addButton && isLocked) {
+                addButton.classList.add('locked-action');
+                addButton.disabled = true;
+                addButton.title = 'Bulan terkunci - tidak dapat menambah data';
+            } else if (addButton) {
+                addButton.classList.remove('locked-action');
+                addButton.disabled = false;
+                addButton.title = '';
+            }
+        }
+    }
+
+    // Panggil fungsi saat halaman dimuat dan saat tab diubah
+    document.addEventListener('DOMContentLoaded', function() {
+        lockTahap1Actions();
+        
+        // Juga panggil saat tab diubah
+        document.querySelectorAll('.nav-link[data-month]').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                setTimeout(lockTahap1Actions, 300);
+            });
+        });
+    });
+
     // Fungsi setup event listeners
     function setupEventListeners() {
         // Next button
@@ -99,7 +134,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Input changes
-        document.addEventListener('input', function(e) {
+        document.addEventListener('input', function (e) {
+            if (e.target.classList.contains('satuan-input')) {updateSatuanOtomatis(e.target.value);
+            }
+            if (e.target.classList.contains('satuan-input') || e.target.id === 'satuan') {
+                updateTotalAnggaran();
+            }
             if (e.target.classList.contains('jumlah-input') || e.target.id === 'harga_satuan') {
                 updateTotalAnggaran();
             }
@@ -187,7 +227,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
     }
 
-    
+    function updateSatuanOtomatis(satuanValue) {
+        // Simpan nilai satuan pertama
+        firstSatuanValue = satuanValue;
+        
+        // Update semua input satuan kecuali yang pertama
+        const allSatuanInputs = document.querySelectorAll('.satuan-input');
+        allSatuanInputs.forEach((input, index) => {
+            if (index > 0 && satuanValue) {
+                input.value = satuanValue;
+                input.readOnly = true;
+            }
+        });
+    }
 
     // Fungsi-fungsi utilitas
     function formatNumber(num) {
@@ -299,6 +351,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function addMonthEntry() {
+        // Ambil nilai satuan pertama jika ada
+        const firstSatuan = document.querySelector('.satuan-input')?.value || '';
+        // batas bulan yang diizinkan
+        const allowedMonths = ['Juli','Agustus','September', 'Oktober', 'November', 'Desember'];
         const monthTemplate = `
             <div class="month-entry border rounded p-3 mb-3" data-index="${monthIndex}">
                 <div class="row align-items-center mb-2">
@@ -306,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label class="form-label">Bulan <span class="text-danger">*</span></label>
                         <select class="form-select month-select" name="bulan[]" required>
                             <option value="">Pilih Bulan</option>
-                            ${months.map(month => `<option value="${month}">${month}</option>`).join('')}
+                            ${allowedMonths.map(month => `<option value="${month}">${month}</option>`).join('')}
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -317,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-3">
                         <label class="form-label">Satuan <span class="text-danger">*</span></label>
                         <input type="text" class="form-control satuan-input"
-                            name="satuan[]" placeholder="pcs, unit, buah">
+                            name="satuan[]" placeholder="pcs, unit, buah" value="${firstSatuan}" ${firstSatuan ? 'readonly' : ''} required>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Total</label>
@@ -334,6 +390,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (container) {
             container.insertAdjacentHTML('beforeend', monthTemplate);
             monthIndex++;
+
+            updateTotalAnggaran();
         }
     }
 
@@ -372,6 +430,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetModal() {
         currentStep = 1;
         showStep(1);
+        firstSatuanValue = ''; // Reset nilai satuan pertama
 
         const form = document.getElementById('tambahRkasForm');
         if (form) form.reset();
@@ -389,6 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = false;
         }
 
+        const allowedMonths = ['Juli','Agustus','September', 'Oktober', 'November', 'Desember'];
         // Reset to single month entry
         const container = document.getElementById('bulanContainer');
         if (container) {
@@ -420,6 +480,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         }
+
+        // Reset semua input satuan menjadi editable
+        document.querySelectorAll('.satuan-input').forEach(input => {
+            input.readOnly = false;
+        });
 
         monthIndex = 1;
         updateTotalAnggaran();
@@ -517,11 +582,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             <li>
                                 <a class="dropdown-item" href="#" onclick="showDetailModal(${item.id})">
                                     <i class="bi bi-eye me-2"></i>Detail
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="#">
-                                <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
                                 </a>
                             </li>
                             <li>
@@ -794,7 +854,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     };
 
-    window.showDeleteModal = function(id) {
+    window.showDeleteModal = function (id) {
         currentRkasId = id;
 
         fetch(`/rkas-perubahan/${id}`, {
@@ -992,6 +1052,20 @@ document.addEventListener('DOMContentLoaded', function() {
             setActiveTab(savedTab);
             localStorage.removeItem('activeRkasTab');
         }
+    
+    // Juga panggil saat tab diubah
+    document.querySelectorAll('.nav-link[data-month]').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            setTimeout(hideTahap1Actions, 300);
+        });
+    });
+    
+    // Juga panggil saat tab diubah
+    document.querySelectorAll('.nav-link[data-month]').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            setTimeout(lockTahap1Actions, 300);
+        });
+    });
 
         // Simpan tab aktif saat berpindah tab
         document.querySelectorAll('#monthTabs .nav-link').forEach(tab => {
@@ -999,6 +1073,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('activeRkasTab', this.getAttribute('data-month'));
             });
         });
+
+        
     });
 });
 

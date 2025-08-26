@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('nip_kepala_sekolah');
             $table->string('nip_bendahara');
             $table->date('tanggal_cetak')->nullable();
+            $table->date('tanggal_perubahan')->nullable();
             $table->timestamps();
         });
     }

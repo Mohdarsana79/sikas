@@ -17,63 +17,136 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class RkasPerubahanController extends Controller
 {
+
+    /**
+     * Memeriksa apakah sudah dilakukan perubahan untuk tahun tertentu
+     */
+    public function checkStatusPerubahan(Request $request)
+    {
+        try {
+            $tahun = $request->input('tahun');
+
+            Log::info('Check status perubahan untuk tahun: ' . $tahun);
+
+            if (!$tahun) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parameter tahun diperlukan'
+                ], 400);
+            }
+
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                Log::warning('Penganggaran tidak ditemukan untuk tahun: ' . $tahun);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan untuk tahun ' . $tahun
+                ], 404);
+            }
+
+            $perubahanExists = RkasPerubahan::where('penganggaran_id', $penganggaran->id)->exists();
+
+            Log::info('Status perubahan untuk tahun ' . $tahun . ': ' . ($perubahanExists ? 'ADA' : 'TIDAK ADA'));
+
+            return response()->json([
+                'success' => true,
+                'has_perubahan' => $perubahanExists,
+                'tahun' => $tahun,
+                'penganggaran_id' => $penganggaran->id
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in checkStatusPerubahan: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memeriksa status perubahan.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Menyalin data dari RKAS asli ke RKAS Perubahan.
      */
     public function salinDariRkas(Request $request)
     {
+        // Set header untuk response JSON
+        header('Content-Type: application/json');
+
         $request->validate([
             'tahun_anggaran' => 'required|integer',
         ]);
 
         try {
             $tahun = $request->tahun_anggaran;
-            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
-            // 1. Periksa apakah data perubahan untuk tahun ini sudah ada.
-            $perubahanExists = RkasPerubahan::where('penganggaran_id', $penganggaran->id)->exists();
-
-            if (!$perubahanExists) {
-                // 2. Jika belum ada, ambil semua data RKAS asli.
-                $rkasAsli = Rkas::where('penganggaran_id', $penganggaran->id)->get();
-
-                if ($rkasAsli->isEmpty()) {
-                    return redirect()->route('rkas-perubahan.index', ['tahun' => $tahun])
-                        ->with('info', 'Tidak ada data RKAS yang dapat disalin untuk tahun ' . $tahun);
-                }
-
-                // 3. Mulai transaksi database untuk memastikan integritas data.
-                DB::beginTransaction();
-
-                $dataToInsert = [];
-                foreach ($rkasAsli as $item) {
-                    $dataToInsert[] = [
-                        'penganggaran_id' => $item->penganggaran_id,
-                        'kode_id' => $item->kode_id,
-                        'kode_rekening_id' => $item->kode_rekening_id,
-                        'uraian' => $item->uraian,
-                        'harga_satuan' => $item->harga_satuan,
-                        'bulan' => $item->bulan,
-                        'jumlah' => $item->jumlah,
-                        'satuan' => $item->satuan,
-                        'rkas_id' => $item->id, // Simpan referensi ke ID RKAS asli
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-
-                // 4. Salin data ke tabel rkas_perubahans.
-                RkasPerubahan::insert($dataToInsert);
-
-                DB::commit();
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran untuk tahun ' . $tahun . ' tidak ditemukan.'
+                ], 404);
             }
 
-            // 5. Arahkan ke halaman index RKAS Perubahan.
-            return redirect()->route('rkas-perubahan.index', ['tahun' => $tahun]);
+            // Periksa apakah data perubahan untuk tahun ini sudah ada
+            $perubahanExists = RkasPerubahan::where('penganggaran_id', $penganggaran->id)->exists();
+
+            if ($perubahanExists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mohon Maaf Anda Telah Melakukan Perubahan, RKAS Perubahan hanya dapat dilakukan sekali, Terima Kasih Atas Antusias Anda'
+                ]);
+            }
+
+            // Ambil semua data RKAS asli
+            $rkasAsli = Rkas::where('penganggaran_id', $penganggaran->id)->get();
+
+            if ($rkasAsli->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada data RKAS yang dapat disalin untuk tahun ' . $tahun
+                ]);
+            }
+
+            // Mulai transaksi database
+            DB::beginTransaction();
+
+            $dataToInsert = [];
+            foreach ($rkasAsli as $item) {
+                $dataToInsert[] = [
+                    'penganggaran_id' => $item->penganggaran_id,
+                    'kode_id' => $item->kode_id,
+                    'kode_rekening_id' => $item->kode_rekening_id,
+                    'uraian' => $item->uraian,
+                    'harga_satuan' => $item->harga_satuan,
+                    'bulan' => $item->bulan,
+                    'jumlah' => $item->jumlah,
+                    'satuan' => $item->satuan,
+                    'rkas_id' => $item->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            // Salin data ke tabel rkas_perubahans
+            RkasPerubahan::insert($dataToInsert);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data RKAS berhasil disalin ke RKAS Perubahan.',
+                'redirect' => route('rkas-perubahan.index', ['tahun' => $tahun])
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error saat menyalin data RKAS ke Perubahan: ' . $e->getMessage());
-            return back()->with('error', 'Terjadi kesalahan saat memproses data perubahan.');
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memproses data perubahan: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -132,6 +205,15 @@ class RkasPerubahanController extends Controller
 
     public function store(Request $request)
     {
+        $lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+
+        // Validasi bulan yang dikunci
+        $bulanArray = $request->bulan;
+        foreach ($bulanArray as $bulan) {
+            if (in_array($bulan, $lockedMonths)) {
+                return back()->withErrors(['bulan' => "Tidak dapat menambah data untuk bulan {$bulan} karena bulan tersebut terkunci."]);
+            }
+        }
         try {
             $request->validate([
                 'kode_id' => 'required|exists:kode_kegiatans,id',
@@ -139,7 +221,7 @@ class RkasPerubahanController extends Controller
                 'uraian' => 'required|string',
                 'harga_satuan' => 'nullable|numeric|min:0',
                 'bulan' => 'required|array',
-                'bulan.*' => 'required|string',
+                'bulan.*' => 'required|string|in:Juli,Agustus,September,Oktober,November,Desember',
                 'jumlah' => 'nullable|array',
                 'jumlah.*' => 'nullable|integer|min:1',
                 'satuan' => 'nullable|array',
@@ -243,72 +325,24 @@ class RkasPerubahanController extends Controller
         }
     }
 
-    public function sisipkan(Request $request)
-    {
-        try {
-            $request->validate([
-                'penganggaran_id' => 'required|exists:penganggarans,id',
-                'rkas_id' => 'required|exists:rkas_perubahans,id',
-                'kode_id' => 'required|exists:kode_kegiatans,id',
-                'kode_rekening_id' => 'required|exists:rekening_belanjas,id',
-                'uraian' => 'required|string',
-                'harga_satuan' => 'required|numeric|min:0',
-                'jumlah' => 'required|integer|min:1',
-                'satuan' => 'required|string',
-                'bulan' => 'required|in:Januari,Februari,Maret,April,Mei,Juni,Juli,Agustus,September,Oktober,November,Desember',
-            ]);
-
-            // Cek duplikasi data
-            $exists = RkasPerubahan::where('penganggaran_id', $request->penganggaran_id)
-                ->where('kode_id', $request->kode_id)
-                ->where('kode_rekening_id', $request->kode_rekening_id)
-                ->where('bulan', $request->bulan)
-                ->where('uraian', $request->uraian)
-                ->exists();
-
-            if ($exists) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Data untuk bulan {$request->bulan} sudah ada dengan uraian yang sama."
-                ], 422);
-            }
-
-            // Buat data baru
-            $rkas = RkasPerubahan::create([
-                'penganggaran_id' => $request->penganggaran_id,
-                'kode_id' => $request->kode_id,
-                'kode_rekening_id' => $request->kode_rekening_id,
-                'uraian' => $request->uraian,
-                'harga_satuan' => $request->harga_satuan,
-                'jumlah' => $request->jumlah,
-                'satuan' => $request->satuan,
-                'bulan' => $request->bulan,
-                'rkas_id' => $request->rkas_id // Simpan referensi ke data asal
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Data berhasil disisipkan',
-                'data' => $rkas
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error inserting RKAS Perubahan: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
     public function update(Request $request, $id)
     {
+        $lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+
+        // Validasi bulan yang dikunci
+        if (in_array($request->bulan, $lockedMonths)) {
+            return response()->json([
+                'success' => false,
+                'message' => "Tidak dapat mengupdate data untuk bulan {$request->bulan} karena bulan tersebut terkunci."
+            ], 422);
+        }
         try {
             $request->validate([
                 'kode_id' => 'required|exists:kode_kegiatans,id',
                 'kode_rekening_id' => 'required|exists:rekening_belanjas,id',
                 'uraian' => 'required|string',
                 'harga_satuan' => 'nullable|numeric|min:0',
-                'bulan' => 'required|in:' . implode(',', RkasPerubahan::getBulanList()),
+                'bulan' => 'required|in:Juli,Agustus,September,Oktober,November,Desember',
                 'jumlah' => 'nullable|integer|min:1',
                 'satuan' => 'nullable|string',
             ]);
@@ -357,6 +391,7 @@ class RkasPerubahanController extends Controller
     {
         try {
             $rkas = RkasPerubahan::findOrFail($id);
+
             $rkas->delete();
 
             return response()->json([
@@ -696,8 +731,8 @@ class RkasPerubahanController extends Controller
                 throw new \Exception("Data sekolah belum tersedia");
             }
 
-
-            $rkasData = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
+            // Data untuk RKAS Tahapan - dengan relasi rkasAsli
+            $rkasData = RkasPerubahan::withTrashedData()->with(['rkasAsli', 'kodeKegiatan', 'rekeningBelanja'])
                 ->where('penganggaran_id', $penganggaran->id)
                 ->orderBy('kode_id')
                 ->get()
@@ -724,7 +759,7 @@ class RkasPerubahanController extends Controller
                 'komite' => $penganggaran->komite
             ];
 
-            // Data penerimaan - ambil dari penganggaran yang dipilih
+            // Data penerimaan
             $penerimaan = [
                 'penganggaran' => $penganggaran,
                 'total' => $penganggaran->pagu_anggaran,
@@ -737,24 +772,35 @@ class RkasPerubahanController extends Controller
                 ]
             ];
 
-            // PERBAIKAN: Hitung total menggunakan RkasPerubahan
-            $totalTahap1 = RkasPerubahan::getTotalTahap1($penganggaran->id);
-            $totalTahap2 = RkasPerubahan::getTotalTahap2($penganggaran->id);
-
             // Organisasikan data RKAS
-            $dataTerkelola = $this->kelolaDataRkasPerubahan($rkasData);
+            $belanja = $this->kelolaDataRkasPerubahan($rkasData);
+
+            // Hitung total bertambah dan berkurang
+            $totalBertambah = 0;
+            $totalBerkurang = 0;
+            $totalTahap1 = 0;
+            $totalTahap2 = 0;
+
+            foreach ($belanja as $program) {
+                $totalBertambah += $program['bertambah'] ?? 0;
+                $totalBerkurang += $program['berkurang'] ?? 0;
+                $totalTahap1 += $program['tahap1'] ?? 0;
+                $totalTahap2 += $program['tahap2'] ?? 0;
+            }
 
             $pdf = PDF::loadView('rkas-perubahan.rkas-perubahan-tahap-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
-                'belanja' => $dataTerkelola,
+                'belanja' => $belanja,
                 'totalTahap1' => $totalTahap1,
                 'totalTahap2' => $totalTahap2,
+                'totalBertambah' => $totalBertambah,
+                'totalBerkurang' => $totalBerkurang,
                 'totalBelanja' => $totalTahap1 + $totalTahap2,
                 'penganggaran' => $penganggaran
             ]);
 
-            return $pdf->stream('RKAS-Perubahan-Tahap.pdf'); // Ubah nama file untuk membedakan
+            return $pdf->stream('RKAS-Perubahan-Tahap.pdf');
         } catch (\Exception $e) {
             Log::error('Error saat membuat PDF RKAS Perubahan: ' . $e->getMessage());
             return back()->with('error', 'Gagal menghasilkan PDF RKAS Perubahan: ' . $e->getMessage());
@@ -770,21 +816,23 @@ class RkasPerubahanController extends Controller
 
             $bagian = explode('.', $kode);
 
-            // Level program (contoh: "03")
+            // Level program
             $kodeProgram = $bagian[0];
             if (!isset($terorganisir[$kodeProgram])) {
                 $firstItem = $items->first();
                 $terorganisir[$kodeProgram] = [
                     'uraian' => optional($firstItem->kodeKegiatan)->program ?? '-',
                     'sub_programs' => [],
-                    'total' => 0,
+                    'total_asli' => 0,
+                    'total_perubahan' => 0,
+                    'bertambah' => 0,
+                    'berkurang' => 0,
                     'tahap1' => 0,
-                    'tahap2' => 0,
-                    'jumlah' => 0 // Jumlah = tahap1 + tahap2
+                    'tahap2' => 0
                 ];
             }
 
-            // Level sub-program (contoh: "03.03")
+            // Level sub-program
             $kodeSubProgram = count($bagian) > 1 ? $bagian[0] . '.' . $bagian[1] : null;
             if ($kodeSubProgram && !isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram])) {
                 $firstItem = $items->first();
@@ -792,24 +840,28 @@ class RkasPerubahanController extends Controller
                     'uraian' => optional($firstItem->kodeKegiatan)->sub_program ?? '-',
                     'uraian_programs' => [],
                     'items' => [],
-                    'total' => 0,
+                    'total_asli' => 0,
+                    'total_perubahan' => 0,
+                    'bertambah' => 0,
+                    'berkurang' => 0,
                     'tahap1' => 0,
-                    'tahap2' => 0,
-                    'jumlah' => 0 // Jumlah = tahap1 + tahap2
+                    'tahap2' => 0
                 ];
             }
 
-            // Level uraian (contoh: "03.03.06")
+            // Level uraian
             $kodeUraian = $kode;
             if ($kodeSubProgram && !isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian])) {
                 $firstItem = $items->first();
                 $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian] = [
                     'uraian' => optional($firstItem->kodeKegiatan)->uraian ?? '-',
                     'items' => [],
-                    'total' => 0,
+                    'total_asli' => 0,
+                    'total_perubahan' => 0,
+                    'bertambah' => 0,
+                    'berkurang' => 0,
                     'tahap1' => 0,
-                    'tahap2' => 0,
-                    'jumlah' => 0 // Jumlah = tahap1 + tahap2
+                    'tahap2' => 0
                 ];
             }
 
@@ -819,30 +871,90 @@ class RkasPerubahanController extends Controller
                 if (!$item->rekeningBelanja) continue;
 
                 $key = $item->rekeningBelanja->kode_rekening . '-' . $item->uraian;
+
+                // Data sebelum perubahan (dari RKAS asli) - AGREGAT SEMUA BULAN
+                $jumlahAsli = 0;
+                $volumeAsli = 0;
+                $hargaSatuanAsli = 0;
+
+                if ($item->rkasAsli) {
+                    // Ambil semua data RKAS asli dengan kode dan uraian yang sama
+                    $rkasAsliItems = Rkas::where('penganggaran_id', $item->penganggaran_id)
+                        ->where('kode_id', $item->kode_id)
+                        ->where('kode_rekening_id', $item->kode_rekening_id)
+                        ->where('uraian', $item->uraian)
+                        ->get();
+
+                    foreach ($rkasAsliItems as $asliItem) {
+                        $volumeAsli += $asliItem->jumlah;
+                        $hargaSatuanAsli = $asliItem->harga_satuan; // Harga satuan dianggap sama
+                        $jumlahAsli += $asliItem->jumlah * $asliItem->harga_satuan;
+                    }
+                }
+
+                // Data setelah perubahan - AGREGAT SEMUA BULAN (termasuk yang dihapus)
+                $rkasPerubahanItems = RkasPerubahan::withTrashedData()
+                    ->where('penganggaran_id', $item->penganggaran_id)
+                    ->where('kode_id', $item->kode_id)
+                    ->where('kode_rekening_id', $item->kode_rekening_id)
+                    ->where('uraian', $item->uraian)
+                    ->get();
+
+                $volumePerubahan = 0;
+                $hargaSatuanPerubahan = 0;
+                $jumlahPerubahan = 0;
+
+                foreach ($rkasPerubahanItems as $perubahanItem) {
+                    // Jika data dihapus, set volume dan jumlah ke 0
+                    if ($perubahanItem->trashed()) {
+                        $volumePerubahan += 0;
+                        $hargaSatuanPerubahan = 0;
+                        $jumlahPerubahan += 0;
+                    } else {
+                        $volumePerubahan += $perubahanItem->jumlah;
+                        $hargaSatuanPerubahan = $perubahanItem->harga_satuan;
+                        $jumlahPerubahan += $perubahanItem->jumlah * $perubahanItem->harga_satuan;
+                    }
+                }
+
+                // Hitung selisih
+                $selisih = $jumlahPerubahan - $jumlahAsli;
+                $bertambah = $selisih > 0 ? $selisih : 0;
+                $berkurang = $selisih < 0 ? abs($selisih) : 0;
+
+                // Tentukan tahap
+                $tahap1 = 0;
+                $tahap2 = 0;
+
+                foreach ($rkasPerubahanItems as $perubahanItem) {
+                    $isTahap1 = in_array($perubahanItem->bulan, RkasPerubahan::getBulanTahap1());
+
+                    // Jika data dihapus, jumlah item = 0
+                    $jumlahItem = $perubahanItem->trashed() ? 0 : $perubahanItem->jumlah * $perubahanItem->harga_satuan;
+
+                    if ($isTahap1) {
+                        $tahap1 += $jumlahItem;
+                    } else {
+                        $tahap2 += $jumlahItem;
+                    }
+                }
+
                 if (!isset($groupedItems[$key])) {
                     $groupedItems[$key] = [
                         'kode_rekening' => $item->rekeningBelanja->kode_rekening,
                         'uraian' => $item->uraian,
-                        'volume' => 0,
+                        'volume_asli' => $volumeAsli,
+                        'volume_perubahan' => $volumePerubahan,
                         'satuan' => $item->satuan,
-                        'harga_satuan' => $item->harga_satuan,
-                        'jumlah' => 0, // Jumlah = tahap1 + tahap2
-                        'tahap1' => 0,
-                        'tahap2' => 0
+                        'harga_satuan_asli' => $hargaSatuanAsli,
+                        'harga_satuan_perubahan' => $hargaSatuanPerubahan,
+                        'jumlah_asli' => $jumlahAsli,
+                        'jumlah_perubahan' => $jumlahPerubahan,
+                        'bertambah' => $bertambah,
+                        'berkurang' => $berkurang,
+                        'tahap1' => $tahap1,
+                        'tahap2' => $tahap2
                     ];
-                }
-
-                $jumlah = $item->jumlah * $item->harga_satuan;
-                // PERBAIKAN: Gunakan method getBulanTahap1() dari RkasPerubahan
-                $isTahap1 = in_array($item->bulan, RkasPerubahan::getBulanTahap1());
-
-                $groupedItems[$key]['volume'] += $item->jumlah;
-                $groupedItems[$key]['jumlah'] += $jumlah;
-
-                if ($isTahap1) {
-                    $groupedItems[$key]['tahap1'] += $jumlah;
-                } else {
-                    $groupedItems[$key]['tahap2'] += $jumlah;
                 }
             }
 
@@ -850,23 +962,28 @@ class RkasPerubahanController extends Controller
             if ($kodeSubProgram) {
                 foreach ($groupedItems as $item) {
                     // Update program
+                    $terorganisir[$kodeProgram]['total_asli'] += $item['jumlah_asli'];
+                    $terorganisir[$kodeProgram]['total_perubahan'] += $item['jumlah_perubahan'];
+                    $terorganisir[$kodeProgram]['bertambah'] += $item['bertambah'];
+                    $terorganisir[$kodeProgram]['berkurang'] += $item['berkurang'];
                     $terorganisir[$kodeProgram]['tahap1'] += $item['tahap1'];
                     $terorganisir[$kodeProgram]['tahap2'] += $item['tahap2'];
-                    $terorganisir[$kodeProgram]['jumlah'] = $terorganisir[$kodeProgram]['tahap1'] + $terorganisir[$kodeProgram]['tahap2'];
 
                     // Update sub program
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['total_asli'] += $item['jumlah_asli'];
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['total_perubahan'] += $item['jumlah_perubahan'];
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['bertambah'] += $item['bertambah'];
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['berkurang'] += $item['berkurang'];
                     $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap1'] += $item['tahap1'];
                     $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap2'] += $item['tahap2'];
-                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['jumlah'] =
-                        $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap1'] +
-                        $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['tahap2'];
 
                     // Update uraian program
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['total_asli'] += $item['jumlah_asli'];
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['total_perubahan'] += $item['jumlah_perubahan'];
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['bertambah'] += $item['bertambah'];
+                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['berkurang'] += $item['berkurang'];
                     $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap1'] += $item['tahap1'];
                     $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap2'] += $item['tahap2'];
-                    $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['jumlah'] =
-                        $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap1'] +
-                        $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['tahap2'];
 
                     // Tambahkan item detail
                     $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram]['uraian_programs'][$kodeUraian]['items'][] = $item;
@@ -906,9 +1023,9 @@ class RkasPerubahanController extends Controller
                 throw new \Exception("Data sekolah tidak ditemukan");
             }
 
-            // Data untuk RKAS Tahapan - filter by penganggaran_id
+            // Data untuk RKAS Tahapan - dengan relasi rkasAsli
             $belanja = $this->kelolaDataRkasPerubahan(
-                RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
+                RkasPerubahan::withTrashedData()->with(['rkasAsli', 'kodeKegiatan', 'rekeningBelanja'])
                     ->where('penganggaran_id', $penganggaran->id)
                     ->orderBy('kode_id')
                     ->get()
@@ -916,6 +1033,40 @@ class RkasPerubahanController extends Controller
                         return optional($item->kodeKegiatan)->kode;
                     })
             );
+
+            // Hitung total bertambah dan berkurang
+            $totalBertambah = 0;
+            $totalBerkurang = 0;
+            $totalAsli = 0;
+            $totalPerubahan = 0;
+
+            foreach ($belanja as $program) {
+                $totalAsli += $program['total_asli'] ?? 0;
+                $totalPerubahan += $program['total_perubahan'] ?? 0;
+                // $totalBertambah += $program['bertambah'] ?? 0;
+                // $totalBerkurang += $program['berkurang'] ?? 0;
+
+                foreach ($program['sub_programs'] as $subProgram) {
+                    $totalAsli += $subProgram['total_asli'] ?? 0;
+                    $totalPerubahan += $subProgram['total_perubahan'] ?? 0;
+                    // $totalBertambah += $subProgram['bertambah'] ?? 0;
+                    // $totalBerkurang += $subProgram['berkurang'] ?? 0;
+
+                    foreach ($subProgram['uraian_programs'] as $uraian) {
+                        $totalAsli += $uraian['total_asli'] ?? 0;
+                        $totalPerubahan += $uraian['total_perubahan'] ?? 0;
+                        // $totalBertambah += $uraian['bertambah'] ?? 0;
+                        // $totalBerkurang += $uraian['berkurang'] ?? 0;
+
+                        foreach ($uraian['items'] as $item) {
+                            $totalAsli += $item['jumlah_asli'] ?? 0;
+                            $totalPerubahan += $item['jumlah_perubahan'] ?? 0;
+                            $totalBertambah += $item['bertambah'] ?? 0;
+                            $totalBerkurang += $item['berkurang'] ?? 0;
+                        }
+                    }
+                }
+            }
 
             // Data indikator kinerja
             $indikatorKinerja = [
@@ -988,6 +1139,8 @@ class RkasPerubahanController extends Controller
                 'sekolah' => $sekolah,
                 'tahun' => $tahun,
                 'bulan' => $bulan,
+                'totalBertambah' => $totalBertambah,
+                'totalBerkurang' => $totalBerkurang,
                 'rkasBulanan' => $rkasBulanan,
                 'totalBulanan' => $totalBulanan,
                 'months' => RkasPerubahan::getBulanList(),
@@ -1322,8 +1475,8 @@ class RkasPerubahanController extends Controller
                 ->sum(DB::raw('jumlah * harga_satuan'));
 
             // Format tanggal cetak
-            $tanggalCetak = [
-                'tanggal_cetak' => $penganggaran->format_tanggal_cetak ?? 'Belum diisi'
+            $tanggalPerubahan = [
+                'tanggal_perubahan' => $penganggaran->format_tanggal_perubahan ?? 'Belum diisi'
             ];
 
             $pdf = PDF::loadView('rkas-perubahan.rka-rekap-pdf', [
@@ -1332,7 +1485,7 @@ class RkasPerubahanController extends Controller
                 'rekapData' => $rekapData,
                 'totalTahap1' => $totalTahap1,
                 'totalTahap2' => $totalTahap2,
-                'tanggalCetak' => $tanggalCetak,
+                'tanggalPerubahan' => $tanggalPerubahan,
                 'penganggaran' => $penganggaran
             ]);
 
@@ -1411,7 +1564,7 @@ class RkasPerubahanController extends Controller
                 }
             }
 
-            return view('rkas-perubahan.rekapan', [
+            return view('rkas-perubahan.rekapan-perubahan', [
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
                 'indikatorKinerja' => $indikatorKinerja,

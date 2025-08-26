@@ -21,7 +21,8 @@ class Penganggaran extends Model
         'komite',
         'nip_kepala_sekolah',
         'nip_bendahara',
-        'tanggal_cetak'
+        'tanggal_cetak',
+        'tanggal_perubahan'
     ];
 
     protected $casts = [
@@ -45,6 +46,14 @@ class Penganggaran extends Model
     {
         if ($this->tanggal_cetak) {
             return $this->formatTanggalIndonesia($this->tanggal_cetak);
+        }
+        return 'Belum diisi';
+    }
+
+    public function getFormatTanggalPerubahanAttribute()
+    {
+        if ($this->tanggal_perubahan) {
+            return $this->formatTanggalIndonesia($this->tanggal_perubahan);
         }
         return 'Belum diisi';
     }

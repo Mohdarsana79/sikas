@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RkasPerubahan extends Model
 {
     //
+    use softDeletes;
     protected $table = 'rkas_perubahans';
     protected $fillable = [
         'penganggaran_id',
@@ -25,6 +27,8 @@ class RkasPerubahan extends Model
         'harga_satuan' => 'decimal:2',
         'jumlah' => 'integer',
     ];
+
+    protected $dates = ['deleted_at'];
 
     public function penganggaran()
     {
@@ -45,7 +49,7 @@ class RkasPerubahan extends Model
     /**
      * Relasi ke data RKAS asli.
      */
-    public function rkas()
+    public function rkasAsli()
     {
         return $this->belongsTo(Rkas::class, 'rkas_id');
     }
@@ -93,6 +97,16 @@ class RkasPerubahan extends Model
         ];
     }
 
+    public static function getAllowedBulanList()
+    {
+        return [
+            'September',
+            'Oktober',
+            'November',
+            'Desember'
+        ];
+    }
+
     public static function getBulanTahap1()
     {
         return ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
@@ -121,5 +135,42 @@ class RkasPerubahan extends Model
         }
 
         return $query;
+    }
+
+    /**
+     * Accessor untuk menghitung total anggaran
+     */
+    public function getTotalAnggaranAttribute()
+    {
+        return $this->harga_satuan * $this->jumlah;
+    }
+
+    /**
+     * Method untuk mendapatkan data perubahan dengan data asli
+     */
+    public static function getDataPerubahanWithAsli($penganggaranId)
+    {
+        return self::with(['rkasAsli', 'kodeKegiatan', 'rekeningBelanja'])
+            ->where('penganggaran_id', $penganggaranId)
+            ->get()
+            ->map(function ($item) {
+                $item->jumlah_asli = $item->rkasAsli ? $item->rkasAsli->jumlah : 0;
+                $item->harga_satuan_asli = $item->rkasAsli ? $item->rkasAsli->harga_satuan : 0;
+                $item->total_asli = $item->rkasAsli ? $item->rkasAsli->jumlah * $item->rkasAsli->harga_satuan : 0;
+                $item->total_perubahan = $item->jumlah * $item->harga_satuan;
+                $item->selisih = $item->total_perubahan - $item->total_asli;
+                $item->bertambah = $item->selisih > 0 ? $item->selisih : 0;
+                $item->berkurang = $item->selisih < 0 ? abs($item->selisih) : 0;
+
+                return $item;
+            });
+    }
+
+    /**
+     * Scope untuk mendapatkan data termasuk yang sudah dihapus
+     */
+    public function scopeWithTrashedData($query)
+    {
+        return $query->withTrashed();
     }
 }

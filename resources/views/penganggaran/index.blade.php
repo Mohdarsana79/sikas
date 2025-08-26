@@ -245,10 +245,10 @@
                                         </h6>
                                         <p class="mb-1">Pagu: Rp {{ number_format($anggaran->pagu_anggaran, 0, ',', '.')
                                             }}</p>
-                                        <button class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                        {{-- <button class="btn btn-success btn-sm" data-bs-toggle="modal"
                                             data-bs-target="#editAnggaranModal{{ $anggaran->id }}">
                                             <i class="bi bi-pencil me-2"></i>Edit Anggaran
-                                        </button>
+                                        </button> --}}
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">

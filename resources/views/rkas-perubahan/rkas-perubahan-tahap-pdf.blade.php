@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RKAS Tahap</title>
+    <title>RKAS TAHAPAN PERUBAHAN</title>
     <style>
         @page {
             size: landscape;
@@ -13,7 +13,7 @@
 
         body {
             font-family: Arial, sans-serif;
-            font-size: 9pt;
+            font-size: 8pt;
             line-height: 1.3;
         }
 
@@ -58,7 +58,7 @@
             text-align: center;
             font-weight: bold;
             background-color: #f2f2f2;
-            font-size: 8pt;
+            font-size: 7pt;
         }
 
         .text-center {
@@ -71,12 +71,16 @@
 
         .main-category {
             font-weight: bold;
-            background-color: #f2f2f2;
+            background-color: #e6f2ff;
         }
 
         .sub-category {
             font-weight: bold;
-            padding-left: 5px;
+            background-color: #f0f8ff;
+        }
+
+        .uraian-category {
+            font-weight: bold;
             background-color: #f9f9f9;
         }
 
@@ -99,13 +103,21 @@
             width: 30%;
         }
 
-        .signature-block p {
-            margin: 0;
+        .section-title {
+            font-weight: bold;
             font-size: 9pt;
+            margin: 5px 0;
         }
 
-        .signature-block p:first-child {
-            margin-bottom: 40px;
+        .subsection-title {
+            font-weight: bold;
+            font-size: 8pt;
+            margin: 3px 0;
+        }
+
+        .total-row {
+            font-weight: bold;
+            background-color: #d9edf7;
         }
 
         .no-border {
@@ -115,40 +127,13 @@
         .no-padding {
             padding: 0;
         }
-
-        .section-title {
-            font-weight: bold;
-            font-size: 10pt;
-            margin: 5px 0;
-        }
-
-        .subsection-title {
-            font-weight: bold;
-            font-size: 9pt;
-            margin: 3px 0;
-        }
-
-        .total-row {
-            font-weight: bold;
-            background-color: #f2f2f2;
-        }
-
-        .uraian-category {
-            padding-left: 15px;
-            background-color: #f0f0f0;
-            font-weight: bold;
-        }
-
-        .detail-item {
-            padding-left: 30px;
-        }
     </style>
 </head>
 
 <body>
     <div class="container">
         <header>
-            <h1>KERTAS KERJA RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS) PERUBAHAN PER TAHAP</h1>
+            <h1>RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS) PERUBAHAN PER TAHAP</h1>
             <p>TAHUN ANGGARAN : {{ $dataSekolah['tahun_anggaran'] }}</p>
             <table class="no-border" style="width: auto; border: none;">
                 <tr class="no-border">
@@ -176,11 +161,6 @@
                     <td class="no-border no-padding" style="text-align: left;">:</td>
                     <td class="no-border no-padding" style="text-align: left;">{{ $dataSekolah['provinsi'] }}</td>
                 </tr>
-                <tr class="no-border">
-                    <td class="no-border no-padding" style="text-align: left;">Tahap</td>
-                    <td class="no-border no-padding" style="text-align: left;">:</td>
-                    <td class="no-border no-padding" style="text-align: left;">{{ $dataSekolah['tahap'] }}</td>
-                </tr>
             </table>
         </header>
 
@@ -197,11 +177,11 @@
                 </thead>
                 <tbody>
                     @foreach ($penerimaan['items'] as $item)
-                        <tr>
-                            <td>{{ $item['kode'] }}</td>
-                            <td>{{ $item['uraian'] }}</td>
-                            <td class="text-right">{{ number_format($item['jumlah'], 0, ',', '.') }}</td>
-                        </tr>
+                    <tr>
+                        <td>{{ $item['kode'] }}</td>
+                        <td>{{ $item['uraian'] }}</td>
+                        <td class="text-right">{{ number_format($item['jumlah'], 0, ',', '.') }}</td>
+                    </tr>
                     @endforeach
                 </tbody>
                 <tfoot>
@@ -216,139 +196,202 @@
         <section class="belanja">
             <p class="section-title">B. BELANJA</p>
             <table>
-                <!-- Di bagian thead tabel belanja, ubah struktur kolomnya -->
                 <thead>
                     <tr>
-                        <th rowspan="2" style="width: 3%;">No.</th>
-                        <th rowspan="2" style="width: 8%;">Kode Rekening</th>
-                        <th rowspan="2" style="width: 8%;">Kode Program</th>
-                        <th rowspan="2" style="width: 22%;">Uraian</th>
-                        <th colspan="3" style="width: 20%;">Rincian Perhitungan</th>
-                        <th rowspan="2" style="width: 10%;">Jumlah</th> <!-- Gabungkan kolom jumlah -->
-                        <th colspan="2" style="width: 20%;">Tahap</th>
+                        <th rowspan="3" style="width: 3%;">No.</th>
+                        <th rowspan="3" style="width: 8%;">Kode Rekening</th>
+                        <th rowspan="3" style="width: 8%;">Kode Program</th>
+                        <th rowspan="3" style="width: 20%;">Uraian</th>
+                        <th colspan="4" style="width: 20%;">Rincian Perhitungan Sebelum Perubahan</th>
+                        <th colspan="4" style="width: 20%;">Rincian Perhitungan Sesudah Perubahan</th>
+                        <th colspan="2" style="width: 8%;">Perubahan</th>
+                        <th colspan="2" style="width: 8%;">Tahap</th>
                     </tr>
                     <tr>
-                        <th style="width: 6%;">Volume</th>
-                        <th style="width: 6%;">Satuan</th>
-                        <th style="width: 8%;">Tarif Harga</th>
-                        <!-- Hapus kolom jumlah yang kedua -->
-                        <th style="width: 10%;">1</th>
-                        <th style="width: 10%;">2</th>
+                        <th colspan="4">Sebelum Perubahan</th>
+                        <th colspan="4">Sesudah Perubahan</th>
+                        <th rowspan="2" style="width: 4%;">Bertambah</th>
+                        <th rowspan="2" style="width: 4%;">Berkurang</th>
+                        <th rowspan="2" style="width: 4%;">Tahap 1</th>
+                        <th rowspan="2" style="width: 4%;">Tahap 2</th>
+                    </tr>
+                    <tr>
+                        <!-- Sebelum Perubahan -->
+                        <th style="width: 5%;">Volume</th>
+                        <th style="width: 5%;">Satuan</th>
+                        <th style="width: 5%;">Tarif</th>
+                        <th style="width: 5%;">Jumlah</th>
+
+                        <!-- Sesudah Perubahan -->
+                        <th style="width: 5%;">Volume</th>
+                        <th style="width: 5%;">Satuan</th>
+                        <th style="width: 5%;">Tarif</th>
+                        <th style="width: 5%;">Jumlah</th>
                     </tr>
                 </thead>
-
-                <!-- Di bagian tbody -->
-                <!-- Di bagian tbody -->
                 <tbody>
                     @php $counter = 1; @endphp
                     @foreach ($belanja as $kodeProgram => $program)
-                        <!-- Baris Program -->
-                        <tr class="main-category">
-                            <td class="text-center">{{ $counter++ }}</td>
-                            <td></td>
-                            <td>{{ $kodeProgram }}</td>
-                            <td>{{ $program['uraian'] }}</td>
-                            <td>-</td>
-                            <td>-</td>
-                            <td>-</td>
-                            <td class="text-right">
-                                {{ number_format($program['tahap1'] + $program['tahap2'], 0, ',', '.') }}</td>
-                            <td class="text-right">{{ number_format($program['tahap1'], 0, ',', '.') }}</td>
-                            <td class="text-right">{{ number_format($program['tahap2'], 0, ',', '.') }}</td>
-                        </tr>
+                    <!-- Baris Program -->
+                    <tr class="main-category">
+                        <td class="text-center">{{ $counter++ }}</td>
+                        <td></td>
+                        <td>{{ $kodeProgram }}</td>
+                        <td><strong>{{ $program['uraian'] }}</strong></td>
 
-                        @foreach ($program['sub_programs'] as $kodeSubProgram => $subProgram)
-                            <!-- Baris Sub Program -->
-                            <tr class="sub-category">
-                                <td class="text-center">{{ $counter++ }}</td>
-                                <td></td>
-                                <td>{{ $kodeSubProgram }}</td>
-                                <td>{{ $subProgram['uraian'] }}</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td class="text-right">
-                                    {{ number_format($subProgram['tahap1'] + $subProgram['tahap2'], 0, ',', '.') }}
-                                </td>
-                                <td class="text-right">{{ number_format($subProgram['tahap1'], 0, ',', '.') }}</td>
-                                <td class="text-right">{{ number_format($subProgram['tahap2'], 0, ',', '.') }}</td>
-                            </tr>
+                        <!-- Sebelum Perubahan - Program -->
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-right">{{ number_format($program['total_asli'], 0, ',', '.') }}</td>
 
-                            @foreach ($subProgram['uraian_programs'] as $kodeUraian => $uraian)
-                                <!-- Baris Uraian Program -->
-                                <tr class="uraian-category">
-                                    <td class="text-center">{{ $counter++ }}</td>
-                                    <td></td>
-                                    <td>{{ $kodeUraian }}</td>
-                                    <td>{{ $uraian['uraian'] }}</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td class="text-right">
-                                        {{ number_format($uraian['tahap1'] + $uraian['tahap2'], 0, ',', '.') }}</td>
-                                    <td class="text-right">{{ number_format($uraian['tahap1'], 0, ',', '.') }}</td>
-                                    <td class="text-right">{{ number_format($uraian['tahap2'], 0, ',', '.') }}</td>
-                                </tr>
+                        <!-- Sesudah Perubahan - Program -->
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-right">{{ number_format($program['total_perubahan'], 0, ',', '.') }}</td>
 
-                                @foreach ($uraian['items'] as $item)
-                                    <!-- Baris Item Detail -->
-                                    <tr>
-                                        <td class="text-center">{{ $counter++ }}</td>
-                                        <td>{{ $item['kode_rekening'] }}</td>
-                                        <td>{{ $kodeUraian }}</td>
-                                        <td class="detail-item">{{ $item['uraian'] }}</td>
-                                        <td class="text-center">{{ $item['volume'] }}</td>
-                                        <td class="text-center">{{ $item['satuan'] }}</td>
-                                        <td class="text-right">{{ number_format($item['harga_satuan'], 0, ',', '.') }}
-                                        </td>
-                                        <td class="text-right">
-                                            {{ number_format($item['tahap1'] + $item['tahap2'], 0, ',', '.') }}</td>
-                                        <td class="text-right">{{ number_format($item['tahap1'], 0, ',', '.') }}</td>
-                                        <td class="text-right">{{ number_format($item['tahap2'], 0, ',', '.') }}</td>
-                                    </tr>
-                                @endforeach
-                            @endforeach
-                        @endforeach
+                        <!-- Perubahan -->
+                        <td class="text-right">-</td>
+                        <td class="text-right">-</td>
+
+                        <!-- Tahap -->
+                        <td class="text-right">{{ number_format($program['tahap1'], 0, ',', '.') }}</td>
+                        <td class="text-right">{{ number_format($program['tahap2'], 0, ',', '.') }}</td>
+                    </tr>
+
+                    @foreach ($program['sub_programs'] as $kodeSubProgram => $subProgram)
+                    <!-- Baris Sub Program -->
+                    <tr class="sub-category">
+                        <td class="text-center">{{ $counter++ }}</td>
+                        <td></td>
+                        <td>{{ $kodeSubProgram }}</td>
+                        <td><strong>{{ $subProgram['uraian'] }}</strong></td>
+
+                        <!-- Sebelum Perubahan - Sub Program -->
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-right">{{ number_format($subProgram['total_asli'], 0, ',', '.') }}</td>
+
+                        <!-- Sesudah Perubahan - Sub Program -->
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-right">{{ number_format($subProgram['total_perubahan'], 0, ',', '.') }}</td>
+
+                        <!-- Perubahan -->
+                        <td class="text-right">-</td>
+                        <td class="text-right">-</td>
+
+                        <!-- Tahap -->
+                        <td class="text-right">{{ number_format($subProgram['tahap1'], 0, ',', '.') }}</td>
+                        <td class="text-right">{{ number_format($subProgram['tahap2'], 0, ',', '.') }}</td>
+                    </tr>
+
+                    @foreach ($subProgram['uraian_programs'] as $kodeUraian => $uraian)
+                    <!-- Baris Uraian Program -->
+                    <tr class="uraian-category">
+                        <td class="text-center">{{ $counter++ }}</td>
+                        <td></td>
+                        <td>{{ $kodeUraian }}</td>
+                        <td><strong>{{ $uraian['uraian'] }}</strong></td>
+
+                        <!-- Sebelum Perubahan - Uraian -->
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-right">{{ number_format($uraian['total_asli'], 0, ',', '.') }}</td>
+
+                        <!-- Sesudah Perubahan - Uraian -->
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center">-</td>
+                        <td class="text-right">{{ number_format($uraian['total_perubahan'], 0, ',', '.') }}</td>
+
+                        <!-- Perubahan -->
+                        <td class="text-right">-</td>
+                        <td class="text-right">-</td>
+
+                        <!-- Tahap -->
+                        <td class="text-right">{{ number_format($uraian['tahap1'], 0, ',', '.') }}</td>
+                        <td class="text-right">{{ number_format($uraian['tahap2'], 0, ',', '.') }}</td>
+                    </tr>
+
+                    @foreach ($uraian['items'] as $item)
+                    <!-- Baris Item Detail -->
+                    <tr>
+                        <td class="text-center">{{ $counter++ }}</td>
+                        <td>{{ $item['kode_rekening'] }}</td>
+                        <td>{{ $kodeUraian }}</td>
+                        <td class="detail-item">{{ $item['uraian'] }}</td>
+
+                        <!-- Sebelum Perubahan - Detail -->
+                        <td class="text-center">{{ $item['volume_asli'] }}</td>
+                        <td class="text-center">{{ $item['satuan'] }}</td>
+                        <td class="text-right">{{ number_format($item['harga_satuan_asli'], 0, ',', '.') }}</td>
+                        <td class="text-right">{{ number_format($item['jumlah_asli'], 0, ',', '.') }}</td>
+
+                        <!-- Sesudah Perubahan - Detail -->
+                        <td class="text-center">{{ $item['volume_perubahan'] }}</td>
+                        <td class="text-center">{{ $item['satuan'] }}</td>
+                        <td class="text-right">{{ number_format($item['harga_satuan_perubahan'], 0, ',', '.') }}</td>
+                        <td class="text-right">{{ number_format($item['jumlah_perubahan'], 0, ',', '.') }}</td>
+
+                        <!-- Perubahan -->
+                        <td class="text-right">{{ number_format($item['bertambah'], 0, ',', '.') }}</td>
+                        <td class="text-right">{{ number_format($item['berkurang'], 0, ',', '.') }}</td>
+
+                        <!-- Tahap -->
+                        <td class="text-right">{{ number_format($item['tahap1'], 0, ',', '.') }}</td>
+                        <td class="text-right">{{ number_format($item['tahap2'], 0, ',', '.') }}</td>
+                    </tr>
+                    @endforeach
+                    @endforeach
+                    @endforeach
                     @endforeach
                 </tbody>
                 <tfoot>
                     <tr class="total-row">
-                        <td colspan="7">Jumlah</td>
-                        <td class="text-right">{{ number_format($totalTahap1 + $totalTahap2, 0, ',', '.') }}</td>
-                        <td class="text-right">{{ number_format($totalTahap1, 0, ',', '.') }}</td>
-                        <td class="text-right">{{ number_format($totalTahap2, 0, ',', '.') }}</td>
+                        <td colspan="12" class="text-center"><strong>JUMLAH</strong></td>
+                        <td class="text-right"><strong>{{ number_format($totalBertambah, 0, ',', '.') }}</strong></td>
+                        <td class="text-right"><strong>{{ number_format($totalBerkurang, 0, ',', '.') }}</strong></td>
+                        <td class="text-right"><strong>{{ number_format($totalTahap1, 0, ',', '.') }}</strong></td>
+                        <td class="text-right"><strong>{{ number_format($totalTahap2, 0, ',', '.') }}</strong></td>
                     </tr>
                 </tfoot>
             </table>
         </section>
 
         <footer>
-            <table style="width: 100%; margin-top: 0; border: none;">
+            <table style="width: 100%; margin-top: 20px; border: none;">
                 <tr>
                     <!-- Kolom Komite -->
-                    <td style="width: 33%; text-align: center; border: none; ">
-                        <p><br></p>
+                    <td style="width: 33%; text-align: center; border: none;">
                         <p>Ketua Komite,</p>
-                        <div style="margin-top: 80px;"></div>
-                        <p style="text-decoration: underline; margin: 0; font-weight: bold;"><u>{{ $dataSekolah['komite'] }}</u></p>
-                        <p style="margin: 0;"><br></p>
+                        <div style="margin-top: 60px;"></div>
+                        <p style="text-decoration: underline; margin: 0; font-weight: bold;">{{ $dataSekolah['komite']
+                            }}</p>
                     </td>
-        
+
                     <!-- Kolom Kepala Sekolah -->
                     <td style="width: 33%; text-align: center; border: none;">
                         <p>Mengetahui,</p>
                         <p>Kepala Sekolah,</p>
-                        <div style="margin-top: 80px;"></div>
-                        <p style="text-decoration: underline; margin: 0; font-weight: bold;"><u>{{ $dataSekolah['kepala_sekolah'] }}</u></p>
+                        <div style="margin-top: 60px;"></div>
+                        <p style="text-decoration: underline; margin: 0; font-weight: bold;">{{
+                            $dataSekolah['kepala_sekolah'] }}</p>
                         <p style="margin: 0;">NIP. {{ $dataSekolah['nip_kepala_sekolah'] }}</p>
                     </td>
-        
+
                     <!-- Kolom Bendahara -->
                     <td style="width: 33%; text-align: center; border: none;">
-                        <p>{{ $dataSekolah['kabupaten'] }}, {{ $penganggaran->format_tanggal_cetak }}</p>
+                        <p>{{ $dataSekolah['kabupaten'] }}, {{ $penganggaran->format_tanggal_perubahan ?? date('d/m/Y') }}
+                        </p>
                         <p>Bendahara,</p>
-                        <div style="margin-top: 80px;"></div>
-                        <p style="text-decoration: underline; margin: 0; font-weight: bold;"><u>{{ $dataSekolah['bendahara'] }}</u></p>
+                        <div style="margin-top: 60px;"></div>
+                        <p style="text-decoration: underline; margin: 0; font-weight: bold;">{{
+                            $dataSekolah['bendahara'] }}</p>
                         <p style="margin: 0;">NIP. {{ $dataSekolah['nip_bendahara'] }}</p>
                     </td>
                 </tr>

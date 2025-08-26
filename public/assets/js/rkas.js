@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let monthIndex = 1;
     let currentRkasId = null;
     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    let firstSatuanValue = ''; // Variabel untuk menyimpan satuan 
 
     // Inisialisasi komponen
     initializeSelect2();
@@ -99,7 +100,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Input changes
-        document.addEventListener('input', function(e) {
+        document.addEventListener('input', function (e) {
+            if (e.target.classList.contains('satuan-input')) {updateSatuanOtomatis(e.target.value);
+            }
+            if (e.target.classList.contains('satuan-input') || e.target.id === 'satuan') {
+                updateTotalAnggaran();
+            }
             if (e.target.classList.contains('jumlah-input') || e.target.id === 'harga_satuan') {
                 updateTotalAnggaran();
             }
@@ -109,6 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target.id === 'sisipkan_harga_satuan' || e.target.id === 'sisipkan_jumlah') {
                 updateSisipkanTotal();
             }
+
         });
 
         // Month tab click handler
@@ -220,7 +227,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     submitButton.disabled = false;
                 });
         });
+
     }
+
+    function updateSatuanOtomatis(satuanValue) {
+        // Simpan nilai satuan pertama
+        firstSatuanValue = satuanValue;
+        
+        // Update semua input satuan kecuali yang pertama
+        const allSatuanInputs = document.querySelectorAll('.satuan-input');
+        allSatuanInputs.forEach((input, index) => {
+            if (index > 0 && satuanValue) {
+                input.value = satuanValue;
+                input.readOnly = true;
+            }
+        });
+    }
+
 
     // Fungsi-fungsi utilitas
     function formatNumber(num) {
@@ -340,6 +363,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function addMonthEntry() {
+        // Ambil nilai satuan pertama jika ada
+        const firstSatuan = document.querySelector('.satuan-input')?.value || '';
+
         const monthTemplate = `
             <div class="month-entry border rounded p-3 mb-3" data-index="${monthIndex}">
                 <div class="row align-items-center mb-2">
@@ -358,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-3">
                         <label class="form-label">Satuan <span class="text-danger">*</span></label>
                         <input type="text" class="form-control satuan-input"
-                            name="satuan[]" placeholder="pcs, unit, buah" required>
+                            name="satuan[]" placeholder="pcs, unit, buah" value="${firstSatuan}" ${firstSatuan ? 'readonly' : ''} required>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Total</label>
@@ -375,6 +401,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (container) {
             container.insertAdjacentHTML('beforeend', monthTemplate);
             monthIndex++;
+
+            updateTotalAnggaran();
         }
     }
 
@@ -421,6 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetModal() {
         currentStep = 1;
         showStep(1);
+        firstSatuanValue = ''; // Reset nilai satuan pertama
 
         const form = document.getElementById('tambahRkasForm');
         if (form) form.reset();
@@ -469,6 +498,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         }
+
+        // Reset semua input satuan menjadi editable
+        document.querySelectorAll('.satuan-input').forEach(input => {
+            input.readOnly = false;
+        });
 
         monthIndex = 1;
         updateTotalAnggaran();
@@ -1071,6 +1105,8 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.removeItem('activeRkasTab');
         }
 
+        
+
         // Simpan tab aktif saat berpindah tab
         document.querySelectorAll('#monthTabs .nav-link').forEach(tab => {
             tab.addEventListener('click', function() {
@@ -1087,5 +1123,7 @@ function refreshCurrentMonthData() {
         const month = activeTab.getAttribute('data-month');
         refreshMonthData(month.toLowerCase());
     }
+
+    
 }
 

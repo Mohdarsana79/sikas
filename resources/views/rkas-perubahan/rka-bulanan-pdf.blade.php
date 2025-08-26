@@ -254,7 +254,7 @@
                 <p>NIP. {{ $dataSekolah['nip_kepala_sekolah'] }}</p>
             </td>
             <td>
-                <p>{{ $dataSekolah['kabupaten'] }}, {{ $penganggaran->format_tanggal_cetak }}</p>
+                <p>{{ $dataSekolah['kabupaten'] }}, {{ $penganggaran->format_tanggal_perubahan }}</p>
                 <p>Bendahara,</p>
                 <p class="nama">{{ $dataSekolah['bendahara'] }}</p>
                 <p>NIP. {{ $dataSekolah['nip_bendahara'] }}</p>

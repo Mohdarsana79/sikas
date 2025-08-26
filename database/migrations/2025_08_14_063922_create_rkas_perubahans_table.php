@@ -22,6 +22,7 @@ return new class extends Migration
             $table->decimal('harga_satuan', 15, 2);
             $table->integer('jumlah');
             $table->string('satuan');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

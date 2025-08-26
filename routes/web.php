@@ -48,20 +48,20 @@ Route::middleware(['auth'])->prefix('penganggaran')->group(function () {
 Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
     // RKAS Perubahan
     Route::get('/', [RkasPerubahanController::class, 'index'])->name('rkas-perubahan.index');
+    Route::get('/rkas-perubahan/check-status', [RkasPerubahanController::class, 'checkStatusPerubahan'])
+        ->name('rkas-perubahan.check-status');
 
     // ROUTE BARU UNTUK PROSES PENYALINAN DATA
-    Route::post('/salin-rkas', [RkasPerubahanController::class, 'salinDariRkas'])
+    Route::post('/rkas-perubahan/salin', [RkasPerubahanController::class, 'salinDariRkas'])
         ->name('rkas-perubahan.salin');
 
     Route::post('/', [RkasPerubahanController::class, 'store'])->name('rkas-perubahan.store');
     Route::get('/bulan/{bulan}', [RkasPerubahanController::class, 'getByMonth'])->name('rkas-perubahan.getByMonth');
     Route::get('/all-data', [RkasPerubahanController::class, 'getAllData'])->name('rkas-perubahan.getAllData');
     Route::put('/{id}', [RkasPerubahanController::class, 'update'])->name('rkas-perubahan.update');
-    Route::put('/{id}/update-tanggal-cetak', [PenganggaranController::class, 'updateTanggalCetak'])
-        ->name('penganggaran.update-tanggal-cetak');
+    Route::put('/{id}/update-tanggal-perubahan', [PenganggaranController::class, 'updateTanggalPerubahan'])
+        ->name('penganggaran.update-tanggal-perubahan');
     Route::get('/{id}', [RkasPerubahanController::class, 'show'])->name('rkas-perubahan.show');
-    Route::post('/sisipkan', [RkasPerubahanController::class, 'sisipkan'])
-        ->name('rkas-perubahan.sisipkan');
     Route::delete('/{id}', [RkasPerubahanController::class, 'destroy'])->name('rkas-perubahan.destroy');
     Route::get('/total/per-bulan', [RkasPerubahanController::class, 'getTotalPerBulan'])->name('rkas-perubahan.getTotalPerBulan');
     // Routes for Tahap 1 and Tahap 2 functionality

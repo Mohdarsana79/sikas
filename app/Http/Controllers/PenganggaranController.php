@@ -54,6 +54,7 @@ class PenganggaranController extends Controller
             'nip_kepala_sekolah' => 'required|string|max:255',
             'nip_bendahara' => 'required|string|max:255',
             'tanggal_cetak' => 'nullable|date',
+            'tanggal_perubahan' => 'nullable|date',
         ]);
 
         // Format angka sebelum disimpan
@@ -68,6 +69,7 @@ class PenganggaranController extends Controller
             'nip_bendahara' => $request->nip_bendahara,
             'komite' => $request->komite,
             'tanggal_cetak' => $request->tanggal_cetak,
+            'tanggal_perubahan' => $request->tanggal_perubahan,
         ]);
 
         return redirect()->route('penganggaran.index')
@@ -93,39 +95,40 @@ class PenganggaranController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
-    {
-        //
-        $anggaran = Penganggaran::findOrFail($id);
+    // public function update(Request $request, $id)
+    // {
+    //     //
+    //     $anggaran = Penganggaran::findOrFail($id);
 
-        $request->validate([
-            'pagu_anggaran' => 'required', // Validasi numerik akan dilakukan setelah sanitasi
-            'tahun_anggaran' => 'required|digits:4|integer|min:2000|max:' . (date('Y') + 5),
-            'kepala_sekolah' => 'required|string|max:255',
-            'bendahara' => 'required|string|max:255',
-            'komite' => 'required|string|max:255',
-            'nip_kepala_sekolah' => 'required|string|max:255',
-            'nip_bendahara' => 'required|string|max:255',
-        ]);
+    //     $request->validate([
+    //         'pagu_anggaran' => 'required', // Validasi numerik akan dilakukan setelah sanitasi
+    //         'tahun_anggaran' => 'required|digits:4|integer|min:2000|max:' . (date('Y') + 5),
+    //         'kepala_sekolah' => 'required|string|max:255',
+    //         'bendahara' => 'required|string|max:255',
+    //         'komite' => 'required|string|max:255',
+    //         'nip_kepala_sekolah' => 'required|string|max:255',
+    //         'nip_bendahara' => 'required|string|max:255',
+    //     ]);
 
-        // Format angka sebelum disimpan
-        $pagu = preg_replace('/[^\d]/', '', $request->pagu_anggaran);
+    //     // Format angka sebelum disimpan
+    //     $pagu = preg_replace('/[^\d]/', '', $request->pagu_anggaran);
 
 
-        $anggaran->update([
-            'pagu_anggaran' => $pagu,
-            'tahun_anggaran' => $request->tahun_anggaran,
-            'kepala_sekolah' => $request->kepala_sekolah,
-            'nip_kepala_sekolah' => $request->nip_kepala_sekolah,
-            'bendahara' => $request->bendahara,
-            'nip_bendahara' => $request->nip_bendahara,
-            'komite' => $request->komite,
-            'tanggal_cetak' => $request->tanggal_cetak,
-        ]);
+    //     $anggaran->update([
+    //         'pagu_anggaran' => $pagu,
+    //         'tahun_anggaran' => $request->tahun_anggaran,
+    //         'kepala_sekolah' => $request->kepala_sekolah,
+    //         'nip_kepala_sekolah' => $request->nip_kepala_sekolah,
+    //         'bendahara' => $request->bendahara,
+    //         'nip_bendahara' => $request->nip_bendahara,
+    //         'komite' => $request->komite,
+    //         'tanggal_cetak' => $request->tanggal_cetak,
+    //         'tanggal_perubahan' => $request->tanggal_perubahan,
+    //     ]);
 
-        return redirect()->route('penganggaran.index')
-            ->with('success', 'Data anggaran berhasil diperbaharui');
-    }
+    //     return redirect()->route('penganggaran.index')
+    //         ->with('success', 'Data anggaran berhasil diperbaharui');
+    // }
 
     /**
      * Remove the specified resource from storage.
@@ -174,6 +177,21 @@ class PenganggaranController extends Controller
         ]);
 
         return redirect()->back()
-            ->with('success', 'Tanggal cetak berhasil diperbarui');
+            ->with('success', 'Tanggal cetak berhasil disimpan');
+    }
+
+    public function updateTanggalPerubahan(Request $request, $id)
+    {
+        $request->validate([
+            'tanggal_perubahan' => 'nullable|date',
+        ]);
+
+        $anggaran = Penganggaran::findOrFail($id);
+        $anggaran->update([
+            'tanggal_perubahan' => $request->tanggal_perubahan,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Tanggal cetak berhasil disimpan');
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Rkas;
 use App\Models\KodeKegiatan;
 use App\Models\RekeningBelanja;
 use App\Models\Penganggaran;
+use App\Models\RkasPerubahan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -51,6 +52,9 @@ class RkasController extends Controller
             $paguAnggaranTahap1 = $penganggaran->pagu_anggaran * 0.5;
             $paguAnggaranTahap2 = $penganggaran->pagu_anggaran * 0.5;
 
+            // Cek status perubahan
+            $hasPerubahan = RkasPerubahan::where('penganggaran_id', $penganggaran->id)->exists();
+
             return view('rkas.rkas', compact(
                 'kodeKegiatans',
                 'rekeningBelanjas',
@@ -61,7 +65,8 @@ class RkasController extends Controller
                 'totalTahap2',
                 'paguAnggaranTahap1',
                 'paguAnggaranTahap2',
-                'tahun' // Pass the selected year to view
+                'tahun', // Pass the selected year to view
+                'hasPerubahan'
             ));
         } catch (\Exception $e) {
             Log::error('Error in RKAS index: ' . $e->getMessage());

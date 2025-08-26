@@ -181,7 +181,7 @@
     <div class="footer">
         <div></div>
         <div class="signature">
-            {{ $dataSekolah['kabupaten'] }}, {{ $tanggalCetak['tanggal_cetak'] }}
+            {{ $dataSekolah['kabupaten'] }}, {{ $tanggalPerubahan['tanggal_perubahan'] }}
             <br><br><br><br>
             <strong>{{ $dataSekolah['kepala_sekolah'] }}</strong><br>
             NIP. {{ $dataSekolah['nip_kepala_sekolah'] }}

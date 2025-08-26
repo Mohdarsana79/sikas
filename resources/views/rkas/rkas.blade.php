@@ -22,16 +22,21 @@
                         <p class="rkas-subtitle">BOSP REGULER {{ $penganggaran->tahun_anggaran }}</p>
                     </div>
                     <!-- Action Buttons -->
+                    @php
+                    $hasPerubahan = isset($hasPerubahan) ? $hasPerubahan : false;
+                    @endphp
                     <div class="rkas-actions mb-4 fs-6 btn btn-sm">
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#tambahRkasModal"
+                        @if (!$hasPerubahan)
+                        <button class="btn btn-success" id="btnTambah" data-bs-toggle="modal" data-bs-target="#tambahRkasModal"
                             style="font-size: 9pt;">
                             <i class="bi bi-plus me-2"></i>Tambah
                         </button>
-                        <form action="{{ route('rkas-perubahan.salin') }}" method="POST" class="d-inline"
-                            onsubmit="return confirm('Apakah Anda yakin ingin membuat RKAS Perubahan? Data RKAS saat ini akan disalin.');">
+                        @endif
+                        <!-- Di rkas.blade.php -->
+                        <form action="{{ route('rkas-perubahan.salin') }}" method="POST" class="d-inline" id="perubahanForm">
                             @csrf
                             <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
-                            <button type="submit" class="btn btn-outline-secondary" style="font-size: 9pt;">
+                            <button type="submit" class="btn btn-outline-secondary" id="btnPerubahan" style="font-size: 9pt;">
                                 <i class="bi bi-pencil me-2"></i>Perubahan
                             </button>
                         </form>
@@ -119,7 +124,7 @@
                                     </div>
                                 </div>
 
-                                <div class="budget-details mb-3">
+                                {{-- <div class="budget-details mb-3">
                                     <div class="row g-2">
                                         <div class="col-6">
                                             <div class="detail-item p-3"
@@ -146,7 +151,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </div> --}}
 
                                 <div class="sisa-anggaran mb-3">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -214,7 +219,7 @@
                                     </div>
                                 </div>
 
-                                <div class="budget-details mb-3">
+                                {{-- <div class="budget-details mb-3">
                                     <div class="row g-2">
                                         <div class="col-6">
                                             <div class="detail-item p-3"
@@ -241,7 +246,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </div> --}}
 
                                 <div class="sisa-anggaran mb-3">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -329,7 +334,7 @@
                     <div class="tab-pane fade {{ $index === 0 ? 'show active' : '' }}" id="{{ strtolower($month) }}"
                         role="tabpanel">
                         <!-- RKAS Table -->
-                        <div class="rkas-table-container">
+                        <div class="rkas-table-container {{ $hasPerubahan ? 'table-disabled' : '' }}">
                             <div class="table-responsive">
                                 <table class="table rkas-table" style="font-size: 8pt;">
                                     <thead>
@@ -470,27 +475,6 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
-
-                <!-- Display Success/Error Messages -->
-                @if (session('success'))
-                    <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
-                        <i class="bi bi-check-circle me-2"></i>
-                        {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                @endif
-
-                @if ($errors->any())
-                    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        <ul class="mb-0">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                @endif
 
                 <form id="tambahRkasForm" method="POST" action="{{ route('rkas.store') }}">
                     @csrf
@@ -799,7 +783,7 @@
                                     <div class="input-group">
                                         <span class="input-group-text">Rp</span>
                                         <input type="number" class="form-control" id="edit-harga-satuan"
-                                            name="harga_satuan" placeholder="0" step="0.01" min="0" required>
+                                            name="harga_satuan" placeholder="0" step="0.01" min="0" readonly>
                                     </div>
                                 </div>
                             </div>
@@ -1510,9 +1494,411 @@
         .dropdown.show .dropdown-menu {
             z-index: 1070 !important;
         }
+
+        /* Style untuk tombol yang dinonaktifkan */
+        .btn.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+        }
+        
+        /* Style untuk tooltip */
+        .tooltip {
+        font-size: 9pt;
+        max-width: 300px;
+        }
+        
+        .tooltip-inner {
+        text-align: center;
+        padding: 8px 12px;
+        background-color: #ffc107;
+        color: #000;
+        border-radius: 6px;
+        }
+        
+        .bs-tooltip-auto[data-popper-placement^=top] .tooltip-arrow::before,
+        .bs-tooltip-top .tooltip-arrow::before {
+        border-top-color: #ffc107;
+        }
+
+        /* Di bagian CSS yang sudah ada, tambahkan: */
+        .table-disabled {
+        opacity: 0.6;
+        pointer-events: none;
+        user-select: none;
+        }
+        
+        .table-disabled .btn {
+        opacity: 0.5;
+        cursor: not-allowed;
+        }
+        
+        .table-disabled .dropdown-menu {
+        display: none !important;
+        }
+        
+        .btn.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+        }
+
+        .satuan-input:read-only {
+        background-color: #f8f9fa;
+        border-color: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
+        }
+        
+        .satuan-input:read-only:focus {
+        border-color: #e9ecef;
+        box-shadow: none;
+        }
+
     </style>
     <!-- JavaScript -->
     @push('scripts')
     <script src="{{ asset('assets/js/rkas.js') }}"></script>
+    @endpush
+
+    @push('scripts')
+        <script>
+            // Fungsi untuk menonaktifkan tabel dan tombol setelah perubahan
+            function disableRkasAfterPerubahan() {
+            // Nonaktifkan semua tabel
+            const tableContainers = document.querySelectorAll('.rkas-table-container');
+            tableContainers.forEach(container => {
+            container.classList.add('table-disabled');
+            });
+            
+            // Sembunyikan tombol tambah
+            const btnTambah = document.getElementById('btnTambah');
+            if (btnTambah) {
+            btnTambah.style.display = 'none';
+            }
+            
+            // Nonaktifkan semua dropdown aksi
+            const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+            dropdownToggles.forEach(toggle => {
+            toggle.disabled = true;
+            toggle.style.pointerEvents = 'none';
+            toggle.style.opacity = '0.6';
+            });
+            }
+            
+            // Fungsi untuk mengecek status perubahan saat halaman dimuat
+            function checkPerubahanStatusOnLoad() {
+            const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
+            
+            if (!tahun) return;
+            
+            fetch(`/rkas-perubahan/check-status?tahun=${tahun}`, {
+            method: 'GET',
+            headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'X-Requested-With': 'XMLHttpRequest'
+            }
+            })
+            .then(response => response.json())
+            .then(data => {
+            if (data.success && data.has_perubahan) {
+            disableRkasAfterPerubahan();
+            }
+            })
+            .catch(error => {
+            console.error('Error checking perubahan status:', error);
+            });
+            }
+            
+            // Panggil fungsi saat halaman dimuat
+            document.addEventListener('DOMContentLoaded', function() {
+            checkPerubahanStatusOnLoad();
+            
+            // Jika sudah ada status perubahan dari server, nonaktifkan langsung
+            @if($hasPerubahan)
+            disableRkasAfterPerubahan();
+            @endif
+            });
+        // Fungsi untuk menonaktifkan tombol perubahan
+        function disablePerubahanButton() {
+        const btnPerubahan = document.getElementById('btnPerubahan');
+        if (btnPerubahan && !btnPerubahan.disabled) {
+        btnPerubahan.disabled = true;
+        btnPerubahan.classList.add('disabled');
+        btnPerubahan.title = 'RKAS Perubahan sudah dilakukan';
+        
+        // Tambahkan tooltip
+        btnPerubahan.setAttribute('data-bs-toggle', 'tooltip');
+        btnPerubahan.setAttribute('data-bs-placement', 'top');
+        btnPerubahan.setAttribute('data-bs-title', 'Mohon Maaf Anda Telah Melakukan Perubahan, RKAS Perubahan hanya dapat dilakukan sekali, Terima Kasih Atas Antusias Anda');
+        
+        // Inisialisasi tooltip Bootstrap
+        const existingTooltip = bootstrap.Tooltip.getInstance(btnPerubahan);
+        if (existingTooltip) {
+        existingTooltip.dispose();
+        }
+        new bootstrap.Tooltip(btnPerubahan);
+        
+        // Simpan status di localStorage
+        const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
+        if (tahun) {
+        localStorage.setItem('rkas_perubahan_done_' + tahun, 'true');
+        }
+        
+        console.log('Tombol perubahan dinonaktifkan');
+        }
+        }
+        
+        // Fungsi untuk mengaktifkan tombol perubahan
+        function enablePerubahanButton() {
+            const btnPerubahan = document.getElementById('btnPerubahan');
+            if (btnPerubahan && btnPerubahan.disabled) {
+                btnPerubahan.disabled = false;
+                btnPerubahan.classList.remove('disabled');
+                btnPerubahan.removeAttribute('title');
+                btnPerubahan.removeAttribute('data-bs-toggle');
+                btnPerubahan.removeAttribute('data-bs-placement');
+                btnPerubahan.removeAttribute('data-bs-title');
+                
+                // Hapus tooltip jika ada
+                const tooltip = bootstrap.Tooltip.getInstance(btnPerubahan);
+                if (tooltip) {
+                    tooltip.dispose();
+                }
+                
+                // Hapus status dari localStorage
+                const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
+                if (tahun) {
+                    localStorage.removeItem('rkas_perubahan_done_' + tahun);
+                }
+            }
+        }
+        
+        // Fungsi untuk sync status dengan server
+        function syncPerubahanStatus() {
+            const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
+            
+            if (!tahun) return;
+        
+            // Cek status dari server untuk memastikan sync
+            fetch(`/rkas-perubahan/check-status?tahun=${tahun}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.has_perubahan) {
+                        // Jika server mengatakan sudah ada perubahan, disable tombol
+                        disablePerubahanButton();
+                    } else {
+                        // Jika server mengatakan belum ada perubahan, enable tombol
+                        enablePerubahanButton();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error syncing perubahan status:', error);
+                // Fallback: gunakan localStorage status
+                const isDoneInLocalStorage = localStorage.getItem('rkas_perubahan_done_' + tahun) === 'true';
+                if (isDoneInLocalStorage) {
+                    disablePerubahanButton();
+                } else {
+                    enablePerubahanButton();
+                }
+            });
+        }
+
+       // Fungsi untuk handle form submission dengan AJAX
+    function handlePerubahanSubmission(event) {
+    event.preventDefault();
+    
+    const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
+    
+    if (!tahun) {
+    Swal.fire({
+    icon: 'error',
+    title: 'Error',
+    text: 'Tahun anggaran tidak ditemukan',
+    confirmButtonText: 'OK'
+    });
+    return;
+    }
+    
+    console.log('Memeriksa status perubahan untuk tahun:', tahun);
+    
+    // Cek status perubahan terlebih dahulu sebelum menampilkan konfirmasi
+    fetch(`{{ route('rkas-perubahan.check-status') }}?tahun=${tahun}`, {
+    method: 'GET',
+    headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+    'X-Requested-With': 'XMLHttpRequest'
+    }
+    })
+    .then(response => {
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+    // Jika response tidak ok, coba parse error message
+    return response.json().then(errorData => {
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }).catch(() => {
+    throw new Error(`HTTP error! status: ${response.status}`);
+    });
+    }
+    return response.json();
+    })
+    .then(data => {
+    console.log('Response data:', data);
+    
+    if (!data.success) {
+    throw new Error(data.message || 'Gagal memeriksa status perubahan');
+    }
+    
+    if (data.has_perubahan) {
+    // Jika sudah ada perubahan, tampilkan warning langsung
+    Swal.fire({
+    icon: 'warning',
+    title: 'Perubahan Sudah Dilakukan',
+    text: 'Mohon Maaf Anda Telah Melakukan Perubahan, RKAS Perubahan hanya dapat dilakukan sekali, Terima Kasih Atas Antusias Anda',
+    confirmButtonText: 'Mengerti'
+    });
+    
+    } else {
+    // Jika belum ada perubahan, tampilkan konfirmasi
+    showPerubahanConfirmation();
+    }
+    })
+    .catch(error => {
+    console.error('Error checking perubahan status:', error);
+    Swal.fire({
+    icon: 'error',
+    title: 'Error',
+    text: 'Terjadi kesalahan saat memeriksa status perubahan: ' + error.message,
+    confirmButtonText: 'OK'
+    });
+    });
+    }
+        
+        // Fungsi untuk menampilkan konfirmasi perubahan
+        function showPerubahanConfirmation() {
+        const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
+        
+        Swal.fire({
+        title: 'Konfirmasi Perubahan',
+        text: 'Apakah Anda yakin ingin membuat RKAS Perubahan? Data RKAS saat ini akan disalin.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Buat Perubahan',
+        cancelButtonText: 'Batal',
+        showLoaderOnConfirm: true,
+        preConfirm: async () => {
+        try {
+        // Submit form menggunakan AJAX
+        const formData = new FormData(document.getElementById('perubahanForm'));
+        
+        const response = await fetch('{{ route('rkas-perubahan.salin') }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        'X-Requested-With': 'XMLHttpRequest'
+        }
+        });
+        
+        // Handle response properly
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        
+        if (data.success) {
+        return data;
+        } else {
+        // Tampilkan error message dari server
+        throw new Error(data.message || 'Gagal membuat perubahan');
+        }
+        } else {
+        // Handle non-JSON response
+        const text = await response.text();
+        throw new Error(`Unexpected response: ${text}`);
+        }
+        } catch (error) {
+        Swal.showValidationMessage(
+        `Error: ${error.message}`
+        );
+        return false;
+        }
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+        if (result.isConfirmed) {
+        if (result.value && result.value.success) {
+            // Nonaktifkan tombol dan tabel setelah berhasil
+            disableRkasAfterPerubahan();
+        
+        Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: result.value.message || 'Data RKAS berhasil disalin ke RKAS Perubahan.',
+        confirmButtonText: 'OK'
+        }).then(() => {
+        // Redirect ke halaman RKAS Perubahan
+        if (result.value.redirect) {
+        window.location.href = result.value.redirect;
+        }
+        });
+        }
+        }
+        });
+        }
+
+        
+        
+        // Event listener untuk halaman RKAS
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cek apakah kita berada di halaman RKAS
+            const isRkasPage = window.location.pathname.includes('/rkas') && 
+                              !window.location.pathname.includes('/rkas-perubahan');
+            
+            if (isRkasPage) {
+                // Setup event listener untuk form perubahan
+                const perubahanForm = document.getElementById('perubahanForm');
+                if (perubahanForm) {
+                    perubahanForm.addEventListener('submit', handlePerubahanSubmission);
+                }
+                
+                // Sync status dengan server saat halaman dimuat
+                syncPerubahanStatus();
+                
+                // Tangani pesan flash dari server
+                @if(session('warning'))
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Perubahan Sudah Dilakukan',
+                        text: '{{ session('warning') }}',
+                        confirmButtonText: 'Mengerti'
+                    });
+                @endif
+        
+                @if(session('success'))
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: '{{ session('success') }}',
+                        confirmButtonText: 'OK'
+                    });
+                @endif
+                
+            }
+        });
+        
+        window.syncPerubahanStatus = syncPerubahanStatus;
+        </script>
     @endpush
 @endsection

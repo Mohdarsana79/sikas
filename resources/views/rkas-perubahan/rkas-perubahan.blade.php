@@ -38,7 +38,7 @@
             </div>
 
             <!-- Budget Info -->
-            <div class="rkas-budget-info">
+            <div class="rkas-budget-info justify-content-between align-content-between">
                 <div class="row g-4">
                     <!-- Pagu Dana BOSP Reguler Card -->
                     <div class="col-lg-4 col-md-6 col-12">
@@ -99,9 +99,9 @@
                                         <i class="bi bi-calendar-range text-white" style="font-size: 24px;"></i>
                                     </div>
                                     <div>
-                                        <h6 class="text-dark mb-1" style="font-size: 16px; font-weight: 700;">Anggaran
+                                        <h6 class="text-dark mb-1" style="font-size: 10pt; font-weight: 700;">Anggaran
                                             Tahap 1</h6>
-                                        <small class="text-muted" style="font-size: 13px; font-weight: 500;">Januari -
+                                        <small class="text-muted" style="font-size: 10pt; font-weight: 500;">Januari -
                                             Juni (Semester
                                             1)</small>
                                     </div>
@@ -115,7 +115,7 @@
                                 </div>
                             </div>
 
-                            <div class="budget-details mb-3">
+                            {{-- <div class="budget-details mb-3">
                                 <div class="row g-2">
                                     <div class="col-6">
                                         <div class="detail-item p-3"
@@ -144,7 +144,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> --}}
 
                             <div class="sisa-anggaran mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -214,8 +214,8 @@
                                         $paguAnggaranTahap2) * 100 : 0, 0) }}%</span>
                                 </div>
                             </div>
-
-                            <div class="budget-details mb-3">
+                            
+                            {{-- <div class="budget-details mb-3">
                                 <div class="row g-2">
                                     <div class="col-6">
                                         <div class="detail-item p-3"
@@ -244,7 +244,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> --}}
 
                             <div class="sisa-anggaran mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -313,11 +313,25 @@
             'Desember',
             ];
             @endphp
+
+            {{-- locked --}}
+            @php
+            $lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+            @endphp
+            {{-- end locked --}}
+
             @foreach ($months as $index => $month)
+
+            {{-- locked --}}
+            @php
+            $isLocked = in_array($month, $lockedMonths);
+            @endphp
+            {{-- end locked --}}
+
             <li class="nav-item" role="presentation">
-                <button class="nav-link {{ $index === 0 ? 'active' : '' }}" id="{{ strtolower($month) }}-tab"
+                <button class="nav-link {{ $index === 0 ? 'active' : '' }} {{ $isLocked ? 'text-muted' : '' }}" id="{{ strtolower($month) }}-tab"
                     data-bs-toggle="tab" data-bs-target="#{{ strtolower($month) }}" type="button" role="tab"
-                    data-month="{{ $month }}">
+                    data-month="{{ $month }}" @if($isLocked) title="Bulan terkunci" @endif>
                     {{ $month }}
                     @if (isset($rkasData[$month]) && $rkasData[$month]->count() > 0)
                     <span class="badge bg-success ms-2">{{ $rkasData[$month]->count() }}</span>
@@ -330,10 +344,17 @@
         <!-- Tab Content -->
         <div class="tab-content" id="monthTabsContent">
             @foreach ($months as $index => $month)
+            {{-- Kunci tabel untuk bulan Januari hingga Agustus --}}
+            @php
+            $lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+            $currentMonth = $months[$index] ?? '';
+            $isLocked = in_array($currentMonth, $lockedMonths);
+            @endphp
+            {{-- end kunci tabel --}}
             <div class="tab-pane fade {{ $index === 0 ? 'show active' : '' }}" id="{{ strtolower($month) }}"
                 role="tabpanel">
                 <!-- RKAS Table -->
-                <div class="rkas-table-container">
+                <div class="rkas-table-container {{ $isLocked ? 'table-locked' : '' }}">
                     <div class="table-responsive">
                         <table class="table rkas-table" style="font-size: 8pt;">
                             <thead>
@@ -376,45 +397,39 @@
                                             {{ number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.')
                                             }}</strong>
                                     </td>
+                                    
                                     <td style="font-size: 8pt; position: relative;">
                                         <!-- Dropdown Action Button -->
                                         <div class="dropdown" style="position: relative; z-index: 1050;">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                                                type="button" id="actionDropdown{{ $rkas->id }}"
-                                                data-bs-toggle="dropdown" aria-expanded="false"
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                                id="actionDropdown{{ $rkas->id }}" data-bs-toggle="dropdown" aria-expanded="false"
                                                 style="border: 1px solid #dee2e6; background: white; color: #6c757d; font-size: 8pt; padding: 4px 8px; min-width: 40px;">
                                                 <i class="bi bi-three-dots-vertical"></i>
                                             </button>
-                                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
-                                                aria-labelledby="actionDropdown{{ $rkas->id }}"
+                                            @if(!$isLocked)
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="actionDropdown{{ $rkas->id }}"
                                                 style="z-index: 1060; min-width: 120px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;">
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#"
-                                                        onclick="showDetailModal({{ $rkas->id }})"
+                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showDetailModal({{ $rkas->id }})"
                                                         style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                         <i class="bi bi-eye me-2 text-primary"></i>Detail
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sisipkanRkasModal">
-                                                        <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#"
-                                                        onclick="showEditModal({{ $rkas->id }})"
+                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showEditModal({{ $rkas->id }})"
                                                         style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                         <i class="bi bi-pencil me-2 text-warning"></i>Edit
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center text-danger"
-                                                        href="#" onclick="showDeleteModal({{ $rkas->id }})"
+                                                    <a class="dropdown-item d-flex align-items-center text-danger" href="#"
+                                                        onclick="showDeleteModal({{ $rkas->id }})"
                                                         style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                         <i class="bi bi-trash me-2"></i>Hapus
                                                     </a>
                                                 </li>
                                             </ul>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -430,15 +445,18 @@
                                 </tr>
                                 @else
                                 <tr class="no-data-row">
-                                    <td colspan="11" class="text-center text-muted">
+                                    <td colspan="{{ $isLocked ? 11 : 12 }}" class="text-center text-muted">
                                         <div class="py-4">
                                             <i class="bi bi-inbox display-4"></i>
                                             <p class="mt-2">Belum ada data untuk bulan
                                                 {{ $month }}</p>
-                                            <button class="btn btn-success btn-sm" data-bs-toggle="modal"
-                                                data-bs-target="#tambahRkasModal">
+                                            @if(!$isLocked)
+                                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#tambahRkasModal">
                                                 <i class="bi bi-plus me-2"></i>Tambah Data
                                             </button>
+                                            @else
+                                            <span class="badge bg-secondary">Bulan terkunci</span>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -598,7 +616,7 @@
                                         <label class="form-label">Bulan <span class="text-danger">*</span></label>
                                         <select class="form-select month-select" name="bulan[]" required>
                                             <option value="">Pilih Bulan</option>
-                                            @foreach ($months as $month)
+                                            @foreach (['Juli','Agustus','September', 'Oktober', 'November', 'Desember'] as $month)
                                             <option value="{{ $month }}">{{ $month }}</option>
                                             @endforeach
                                         </select>
@@ -708,9 +726,6 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                <button type="button" class="btn btn-primary" onclick="editFromDetail()">
-                    <i class="bi bi-pencil me-2"></i>Edit Data
-                </button>
             </div>
         </div>
     </div>
@@ -782,7 +797,7 @@
                                         class="text-danger">*</span></label>
                                 <select class="form-select" id="edit-bulan" name="bulan" required>
                                     <option value="">-- Pilih Bulan --</option>
-                                    @foreach ($months as $month)
+                                    @foreach (['Juli','Agustus','September', 'Oktober', 'November', 'Desember'] as $month)
                                     <option value="{{ $month }}">{{ $month }}</option>
                                     @endforeach
                                 </select>
@@ -878,85 +893,6 @@
                     <i class="bi bi-trash me-2"></i>Ya, Hapus Data
                 </button>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Sisipkan RKAS -->
-<div class="modal fade" id="sisipkanRkasModal" tabindex="-1" aria-labelledby="sisipkanRkasModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-white">
-                <h5 class="modal-title" id="sisipkanRkasModalLabel">
-                    <i class="bi bi-plus-circle me-2"></i>Sisipkan Data RKAS
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <form id="sisipkanRkasForm" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <input type="hidden" name="penganggaran_id" id="sisipkan-penganggaran-id">
-                    <input type="hidden" name="rkas_id" id="sisipkan-rkas-id">
-                    <input type="hidden" name="kode_id" id="sisipkan-kode-id">
-                    <input type="hidden" name="kode_rekening_id" id="sisipkan-rekening-id">
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Program Kegiatan</label>
-                            <input type="text" class="form-control" id="sisipkan-program" readonly>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Kegiatan</label>
-                            <input type="text" class="form-control" id="sisipkan-kegiatan" readonly>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Rekening Belanja</label>
-                            <input type="text" class="form-control" id="sisipkan-rekening" readonly>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Bulan <span class="text-danger">*</span></label>
-                            <select class="form-select" name="bulan" required>
-                                <option value="">Pilih Bulan</option>
-                                @foreach(['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus',
-                                'September', 'Oktober', 'November', 'Desember'] as $month)
-                                <option value="{{ $month }}">{{ $month }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Uraian <span class="text-danger">*</span></label>
-                        <textarea class="form-control" name="uraian" rows="3" required></textarea>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <label class="form-label">Jumlah <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="jumlah" min="1" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Satuan <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="satuan" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Harga Satuan <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="harga_satuan" min="0" step="0.01" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="bi bi-plus-circle me-2"></i>Sisipkan Data
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -1462,6 +1398,34 @@
     /* Ensure dropdown stays on top of everything */
     .dropdown.show .dropdown-menu {
         z-index: 1070 !important;
+    }
+
+    /* Style untuk tabel terkunci */
+    .table-locked {
+    opacity: 0.7;
+    pointer-events: none;
+    }
+    
+    .locked-action {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    }
+    
+    .lock-indicator {
+    background-color: #f8f9fa;
+    border-left: 4px solid #6c757d;
+    }
+
+    .satuan-input:read-only {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+    }
+    
+    .satuan-input:read-only:focus {
+    border-color: #e9ecef;
+    box-shadow: none;
     }
 </style>
 <!-- JavaScript -->
