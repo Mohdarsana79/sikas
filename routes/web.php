@@ -90,6 +90,11 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
         ->name('rkas-perubahan.rka-bulanan-pdf')->middleware('noCache');
 });
 
+// Rekaman Perubahan routes (TERPISAH)
+Route::middleware(['auth'])->prefix('rekaman-perubahan')->group(function () {
+    Route::get('/', [RekamanPerubahanController::class, 'index'])->name('rekaman-perubahan.index');
+});
+
 Route::middleware(['auth'])->prefix('rkas')->group(function () {
     Route::get('/', [RkasController::class, 'index'])->name('rkas.index');
     Route::post('/', [RkasController::class, 'store'])->name('rkas.store');

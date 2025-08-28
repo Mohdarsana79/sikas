@@ -27,9 +27,9 @@
                         style="font-size: 9pt;">
                         <i class="bi bi-plus me-2"></i>Tambah
                     </button>
-                    <button class="btn btn-outline-secondary" style="font-size: 9pt;">
-                        <i class="bi bi-plus me-2"></i>Pergeseran
-                    </button>
+                    <a href="{{ route('rekaman-perubahan.index', ['tahun' => $tahun]) }}" class="btn btn-warning" style="font-size: 9pt;">
+                        <i class="bi bi-plus me-2"></i>Rekaman Perubahan
+                    </a>
                     <a class="btn btn-primary" href="{{ route('rkas-perubahan.rekapan-perubahan', ['tahun' => $tahun]) }}"
                         style="font-size: 9pt;">
                         <i class="bi bi-printer"></i> Cetak

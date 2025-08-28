@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('action'); // 'update', 'delete'
             $table->json('changes')->nullable(); // Menyimpan perubahan data
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

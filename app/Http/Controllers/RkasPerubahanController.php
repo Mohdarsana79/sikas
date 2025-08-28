@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Sekolah;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\RekamanPerubahanService;
 
 class RkasPerubahanController extends Controller
 {
@@ -214,6 +215,7 @@ class RkasPerubahanController extends Controller
                 return back()->withErrors(['bulan' => "Tidak dapat menambah data untuk bulan {$bulan} karena bulan tersebut terkunci."]);
             }
         }
+
         try {
             $request->validate([
                 'kode_id' => 'required|exists:kode_kegiatans,id',
@@ -247,6 +249,8 @@ class RkasPerubahanController extends Controller
                 return back()->withErrors(['bulan' => 'Tidak boleh ada bulan yang sama dalam satu kegiatan.']);
             }
 
+            $createdRecords = []; // Simpan semua record yang dibuat
+
             // Create RKAS entries for each month
             for ($i = 0; $i < count($bulanArray); $i++) {
                 // Check if combination already exists
@@ -262,7 +266,7 @@ class RkasPerubahanController extends Controller
                     return back()->withErrors(['bulan' => "Data untuk bulan {$bulanArray[$i]} sudah ada dengan kegiatan dan rekening yang sama."]);
                 }
 
-                RkasPerubahan::create([
+                $rkasPerubahan = RkasPerubahan::create([
                     'penganggaran_id' => $penganggaran->id,
                     'kode_id' => $request->kode_id,
                     'kode_rekening_id' => $request->kode_rekening_id,
@@ -272,6 +276,29 @@ class RkasPerubahanController extends Controller
                     'jumlah' => $jumlahArray[$i],
                     'satuan' => $satuanArray[$i],
                 ]);
+
+                $createdRecords[] = $rkasPerubahan; // Simpan record yang dibuat
+            }
+
+            // Catat penambahan data untuk SEMUA record yang dibuat
+            foreach ($createdRecords as $record) {
+                RekamanPerubahanService::catatPerubahan(
+                    $record->id,
+                    'create',
+                    [
+                        'kode_kegiatan' => $record->kodeKegiatan->kode ?? '-',
+                        'program' => $record->kodeKegiatan->program ?? '-',
+                        'sub_program' => $record->kodeKegiatan->sub_program ?? '-',
+                        'kode_rekening' => $record->rekeningBelanja->kode_rekening ?? '-',
+                        'rincian_objek' => $record->rekeningBelanja->rincian_objek ?? '-',
+                        'uraian' => $record->uraian,
+                        'jumlah' => $record->jumlah,
+                        'satuan' => $record->satuan,
+                        'harga_satuan' => $record->harga_satuan,
+                        'bulan' => $record->bulan,
+                        'total' => $record->jumlah * $record->harga_satuan
+                    ]
+                );
             }
 
             DB::commit();
@@ -364,6 +391,17 @@ class RkasPerubahanController extends Controller
                 ], 422);
             }
 
+            // Simpan data sebelum diubah
+            $dataSebelum = [
+                'kode_id' => $rkasPerubahan->kode_id,
+                'kode_rekening_id' => $rkasPerubahan->kode_rekening_id,
+                'uraian' => $rkasPerubahan->uraian,
+                'harga_satuan' => $rkasPerubahan->harga_satuan,
+                'bulan' => $rkasPerubahan->bulan,
+                'jumlah' => $rkasPerubahan->jumlah,
+                'satuan' => $rkasPerubahan->satuan
+            ];
+
             $rkasPerubahan->update([
                 'kode_id' => $request->kode_id,
                 'kode_rekening_id' => $request->kode_rekening_id,
@@ -373,6 +411,20 @@ class RkasPerubahanController extends Controller
                 'jumlah' => $request->jumlah,
                 'satuan' => $request->satuan,
             ]);
+
+            // Simpan data sesudah diubah
+            $dataSesudah = [
+                'kode_id' => $rkasPerubahan->fresh()->kode_id,
+                'kode_rekening_id' => $rkasPerubahan->fresh()->kode_rekening_id,
+                'uraian' => $rkasPerubahan->fresh()->uraian,
+                'harga_satuan' => $rkasPerubahan->fresh()->harga_satuan,
+                'bulan' => $rkasPerubahan->fresh()->bulan,
+                'jumlah' => $rkasPerubahan->fresh()->jumlah,
+                'satuan' => $rkasPerubahan->fresh()->satuan
+            ];
+
+            // Catat perubahan
+            RekamanPerubahanService::catatUpdate($id, $dataSebelum, $dataSesudah);
 
             return response()->json([
                 'success' => true,
@@ -391,6 +443,9 @@ class RkasPerubahanController extends Controller
     {
         try {
             $rkas = RkasPerubahan::findOrFail($id);
+
+            // Catat penghapusan data sebelum dihapus
+            RekamanPerubahanService::catatPerubahan($id, 'delete');
 
             $rkas->delete();
 
