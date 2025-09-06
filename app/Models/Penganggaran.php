@@ -85,4 +85,9 @@ class Penganggaran extends Model
         $date = Carbon::parse($date);
         return $date->day . ' ' . $bulan[$date->month] . ' ' . $date->year;
     }
+
+    public function penerimaanDanas()
+    {
+        return $this->hasMany(PenerimaanDana::class, 'penganggaran_id');
+    }
 }

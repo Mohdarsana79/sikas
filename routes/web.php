@@ -11,7 +11,9 @@ use App\Http\Controllers\KodeKegiatanController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\RkasPerubahanController;
 use App\Http\Controllers\RekamanPerubahanController;
-use App\Http\Controllers\BkuController;
+use App\Http\Controllers\PenatausahaanController;
+use App\Http\Controllers\BukuKasUmumController;
+use App\Http\Controllers\PenerimaanDanaController;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -165,5 +167,11 @@ Route::middleware(['auth'])->prefix('referensi')->group(function () {
 
 
 Route::middleware(['auth'])->prefix('penatausahaan')->group(function () {
-    Route::get('/bku', [BkuController::class, 'index'])->name('penatausahaan.bku');
+    Route::get('/penatausahaan', [PenatausahaanController::class, 'index'])->name('penatausahaan.penatausahaan');
+    Route::post('/', [PenerimaanDanaController::class, 'store'])->name('penerimaan-dana.store');
+    Route::get('penerimaan-dana/{penganggaran_id}', [PenerimaanDanaController::class, 'getByPenganggaran'])->name('penerimaan-dana.getByPenganggaran');
+});
+
+Route::middleware(['auth'])->prefix('bku')->group(function () {
+    Route::get('/{tahun}/{bulan}', [BukuKasUmumController::class, 'showByBulan'])->name('bku.showByBulan');
 });
