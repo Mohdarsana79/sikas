@@ -113,6 +113,17 @@
         transition: all 0.3s ease;
     }
 </style>
+@php
+$tahun = $tahun ?? date('Y');
+$bulan = $bulan ?? 'Januari';
+$bulanList = [
+'Januari' => 1, 'Februari' => 2, 'Maret' => 3, 'April' => 4,
+'Mei' => 5, 'Juni' => 6, 'Juli' => 7, 'Agustus' => 8,
+'September' => 9, 'Oktober' => 10, 'November' => 11, 'Desember' => 12
+];
+$bulanAngka = $bulanList[$bulan] ?? 1;
+$lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
+@endphp
 <!-- Modal -->
 <div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -149,7 +160,10 @@
                                 <label class="form-label">Tanggal Transaksi</label>
                                 <div class="input-group input-group-sm mb-3">
                                     <input type="date" class="form-control" name="tanggal_transaksi" id="tanggal_transaksi"
-                                        aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm">
+                                        aria-label="Sizing example input" aria-describedby="dateHelp1"
+                                        min="{{ $tahun }}-{{ str_pad($bulanAngka, 2, '0', STR_PAD_LEFT) }}-01"
+                                        max="{{ $tahun }}-{{ str_pad($bulanAngka, 2, '0', STR_PAD_LEFT) }}-{{ str_pad($lastDay, 2, '0', STR_PAD_LEFT) }}"
+                                        required>
                                 </div>
                             </div>
                             <div class="col-md-6 mb-3">
@@ -246,8 +260,11 @@
                             <div class="col-md-6 mb-3">
                                 <label for="tanggal_nota" class="form-label">Tanggal Belanja/Nota</label>
                                 <div class="input-group input-group-sm mb-3">
-                                    <input type="date" class="form-control" aria-label="Sizing example input"
-                                        aria-describedby="inputGroup-sizing-sm" id="tanggal_nota">
+                                    <input type="date" class="form-control" id="tanggal_nota" aria-label="Sizing example input"
+                                        aria-describedby="dateHelp2"
+                                        min="{{ $tahun }}-{{ str_pad($bulanAngka, 2, '0', STR_PAD_LEFT) }}-01"
+                                        max="{{ $tahun }}-{{ str_pad($bulanAngka, 2, '0', STR_PAD_LEFT) }}-{{ str_pad($lastDay, 2, '0', STR_PAD_LEFT) }}"
+                                        required>
                                 </div>
                             </div>
                             <!-- Container untuk kegiatan -->
@@ -448,15 +465,77 @@
     $(document).ready(function() {
         let currentStep = 1;
         const totalSteps = 3;
+        const tahun = '{{ $tahun }}';
+        const bulan = '{{ $bulan }}';
         
         // Variabel global untuk menyimpan total transaksi
         window.currentTotalTransaksi = 0;
+
+        // Fungsi untuk mendapatkan range tanggal berdasarkan bulan dan tahun
+        function getDateRangeForMonth(bulan, tahun) {
+        const bulanAngka = {
+        'Januari': 1, 'Februari': 2, 'Maret': 3, 'April': 4,
+        'Mei': 5, 'Juni': 6, 'Juli': 7, 'Agustus': 8,
+        'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12
+        }[bulan] || 1;
+        
+        // Hitung hari terakhir dalam bulan
+        const lastDay = new Date(tahun, bulanAngka, 0).getDate();
+        
+        return {
+        min: `${tahun}-${String(bulanAngka).padStart(2, '0')}-01`,
+        max: `${tahun}-${String(bulanAngka).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+        };
+        }
+
+        // Fungsi untuk memvalidasi tanggal
+        function validateDate(inputElement, bulan, tahun) {
+            const dateRange = getDateRangeForMonth(bulan, tahun);
+            const selectedDate = new Date(inputElement.value);
+            const minDate = new Date(dateRange.min);
+            const maxDate = new Date(dateRange.max);
+
+            if (inputElement.value && (selectedDate < minDate || selectedDate > maxDate)) {
+                // Reset ke tanggal yang valid
+                inputElement.value = dateRange.min;
+                
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Tanggal Tidak Valid',
+                    text: `Tanggal harus dalam bulan ${bulan} ${tahun}`,
+                    confirmButtonColor: '#0d6efd',
+                });
+                return false;
+            }
+            return true;
+        }
+
+        // Fungsi untuk menonaktifkan tanggal di luar range
+        function disableOutOfRangeDates() {
+        const dateRange = getDateRangeForMonth(bulan, tahun);
+        
+        // Set min dan max attributes
+        $('#tanggal_transaksi, #tanggal_nota').attr({
+        'min': dateRange.min,
+        'max': dateRange.max
+        });
+        }
 
         // Initialize modal
         $('#transactionModal').on('show.bs.modal', function() {
             resetSteps();
             loadKegiatanDanRekening();
             window.currentTotalTransaksi = 0;
+
+            // Set tanggal range dan default values
+            disableOutOfRangeDates();
+            const dateRange = getDateRangeForMonth(bulan, tahun);
+            $('#tanggal_transaksi, #tanggal_nota').val(dateRange.min);
+        });
+
+        // Validasi tanggal saat input berubah
+        $('#tanggal_transaksi, #tanggal_nota').on('change', function() {
+        validateDate(this, bulan, tahun);
         });
 
         // Next button click
@@ -506,6 +585,11 @@
         $('#tanggal_transaksi').focus();
         return false;
         }
+
+        // Validasi tanggal sesuai range
+        if (!validateDate(document.getElementById('tanggal_transaksi'), bulan, tahun)) {
+        return false;
+        }
         
         if (!jenisTransaksi) {
         showValidationError('Jenis transaksi harus dipilih');
@@ -549,6 +633,11 @@
         if (!tanggalNota) {
         showValidationError('Tanggal belanja/nota harus diisi');
         $('#tanggal_nota').focus();
+        return false;
+        }
+
+        // Validasi tanggal sesuai range
+        if (!validateDate(document.getElementById('tanggal_nota'), bulan, tahun)) {
         return false;
         }
         
