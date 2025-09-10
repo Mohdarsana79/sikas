@@ -26,4 +26,14 @@ class KodeKegiatan extends Model
     {
         return $this->hasMany(RkasPerubahan::class, 'kode_id');
     }
+
+    public function penganggarans()
+    {
+        return $this->hasMany(Penganggaran::class, 'kode_kegiatan_id');
+    }
+
+    public function bukuKasUmum()
+    {
+        return $this->hasMany(BukuKasUmum::class, 'kode_kegiatan_id');
+    }
 }

@@ -106,7 +106,7 @@
                                     @php
                                     $bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
                                     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-                                    @endphp;
+                                    @endphp
 
                                     @foreach($bulanList as $bulan)
                                     <div class="col-md-3 mb-3">

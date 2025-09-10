@@ -1,42 +1,149 @@
-<!-- Modal Tarik Tunai-->
+<!-- Modal Setor Tunai-->
 <div class="modal fade" id="setorTunai" tabindex="-1" aria-labelledby="setorTunaiModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content shadow-sm border-0 rounded-4">
             <div class="modal-header flex-column align-items-start bg-primary text-white rounded-top-4 p-4">
-                <h5 class="modal-title fw-bold" id="setorTunaiModalLabel">Penarikan Tunai</h5>
-                <p class="small mb-0 opacity-75">Isi sesuai dengan detail yang tertera di slip dari bank</p>
+                <h5 class="modal-title fw-bold" id="setorTunaiModalLabel">Setor Tunai</h5>
+                <p class="small mb-0 opacity-75">Isi sesuai dengan detail setor tunai ke bank</p>
             </div>
             <div class="modal-body p-4">
-                <form>
+                <form id="formSetorTunai">
+                    @csrf
+                    <input type="hidden" name="penganggaran_id" value="{{ $penganggaran->id }}">
                     <div class="row g-4">
                         <div class="col-md-6">
-                            <label for="tanggalTarik1" class="form-label fw-semibold">Tanggal Setor Tunai</label>
+                            <label for="tanggal_setor" class="form-label fw-semibold">Tanggal Setor Tunai</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light text-primary">
                                     <i class="bi bi-calendar-event-fill"></i>
                                 </span>
-                                <input type="date" class="form-control" id="tanggalTarik1" placeholder="Pilih tanggal"
-                                    aria-describedby="tanggalTarik1Help" required>
+                                <input type="date" class="form-control" name="tanggal_setor" id="tanggal_setor"
+                                    placeholder="Pilih tanggal" required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label for="tanggalTarik2" class="form-label fw-semibold mb-0">Jumlah Setor</label>
-                                <small class="text-primary fw-bold">Saldo: Rp. 500.000</small>
+                                <label for="jumlah_setor" class="form-label fw-semibold mb-0">Jumlah Setor</label>
+                                <small class="text-primary fw-bold">Saldo Tunai: Rp {{ number_format($saldoTunai, 0,
+                                    ',', '.') }}</small>
                             </div>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light">Rp</span>
-                                <input type="number" class="form-control" id="tanggalTarik2" placeholder="0" min="0"
-                                    max="500000" aria-describedby="tanggalTarik2Help" required>
+                                <input type="text" class="form-control" name="jumlah_setor" id="jumlah_setor"
+                                    placeholder="0" required data-max="{{ $saldoTunai }}">
                             </div>
+                            <small class="text-muted">Maksimal: Rp {{ number_format($saldoTunai, 0, ',', '.') }}</small>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer border-0 p-4">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
-                <button type="submit" class="btn btn-primary rounded-pill px-4">Simpan</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4" id="btnSimpanSetor">Simpan</button>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    // Format input jumlah setor
+    const jumlahInput = document.getElementById('jumlah_setor');
+    const maxAmount = parseFloat(jumlahInput.dataset.max);
+    
+    jumlahInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/[^\d]/g, '');
+        if (value) {
+            value = parseInt(value);
+            e.target.value = new Intl.NumberFormat('id-ID').format(value);
+            
+            if (value > maxAmount) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan',
+                    text: 'Jumlah setor melebihi saldo tunai yang tersedia',
+                    confirmButtonColor: '#0d6efd',
+                });
+                e.target.value = new Intl.NumberFormat('id-ID').format(maxAmount);
+            }
+        }
+    });
+
+    // Handle simpan setor tunai
+    document.getElementById('btnSimpanSetor').addEventListener('click', function() {
+        const form = document.getElementById('formSetorTunai');
+        const formData = new FormData(form);
+        
+        // Validasi form
+        const tanggal = formData.get('tanggal_setor');
+        const jumlah = formData.get('jumlah_setor');
+        
+        if (!tanggal || !jumlah) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Perhatian',
+                text: 'Harap isi semua field yang wajib diisi',
+                confirmButtonColor: '#0d6efd',
+            });
+            return;
+        }
+        
+        // Convert formatted number back to raw number
+        const rawJumlah = jumlah.replace(/\./g, '');
+        formData.set('jumlah_setor', rawJumlah);
+        
+        // Show loading
+        Swal.fire({
+            title: 'Menyimpan...',
+            text: 'Sedang menyimpan data setor tunai',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        fetch('{{ route("bku.setor-tunai.store") }}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            Swal.close();
+            
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: data.message,
+                    confirmButtonColor: '#0d6efd',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        location.reload();
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: data.message,
+                    confirmButtonColor: '#0d6efd',
+                });
+            }
+        })
+        .catch(error => {
+            Swal.close();
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Terjadi kesalahan saat menyimpan data',
+                confirmButtonColor: '#0d6efd',
+            });
+        });
+    });
+});
+</script>

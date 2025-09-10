@@ -12,33 +12,44 @@ class BukuKasUmum extends Model
     protected $table = 'buku_kas_umums';
 
     protected $fillable = [
-        'penerimaan_dana_id',
+        'penganggaran_id',
         'kode_kegiatan_id',
         'kode_rekening_id',
-        'rkas_id',
-        'rkas_perubahan_id',
-        'id_transaksi',
+        'tanggal_transaksi',
         'jenis_transaksi',
+        'id_transaksi',
+        'nama_penyedia_barang_jasa',
+        'nama_penerima_pembayaran',
+        'alamat',
+        'nomor_telepon',
+        'npwp',
+        'uraian',
         'anggaran',
         'dibelanjakan',
+        'total_transaksi_kotor', // Tambahkan field ini
         'pajak',
         'persen_pajak',
+        'total_pajak',
+        'pajak_daerah',
+        'persen_pajak_daerah',
+        'total_pajak_daerah',
         'tanggal_lapor',
-        'ntpn',
-        'tanggal_transaksi',
-        'nama_penyedia_barang_jasa'
+        'ntpn'
     ];
 
     protected $casts = [
+        'tanggal_transaksi' => 'date',
         'anggaran' => 'decimal:2',
         'dibelanjakan' => 'decimal:2',
+        'total_transaksi_kotor' => 'decimal:2', // Tambahkan casting
+        'total_pajak' => 'decimal:2',
+        'total_pajak_daerah' => 'decimal:2',
         'tanggal_lapor' => 'date',
-        'tanggal_transaksi' => 'date',
     ];
 
-    public function penerimaanDana()
+    public function penganggaran()
     {
-        return $this->belongsTo(PenerimaanDana::class, 'penerimaan_dana_id');
+        return $this->belongsTo(Penganggaran::class);
     }
 
     public function kodeKegiatan()
@@ -51,13 +62,9 @@ class BukuKasUmum extends Model
         return $this->belongsTo(RekeningBelanja::class, 'kode_rekening_id');
     }
 
-    public function rkas()
+    // Method untuk menghitung pengaruh transaksi terhadap saldo
+    public function getPengaruhSaldoAttribute()
     {
-        return $this->belongsTo(Rkas::class, 'rkas_id');
-    }
-
-    public function rkasPerubahan()
-    {
-        return $this->belongsTo(RkasPerubahan::class, 'rkas_perubahan_id');
+        return $this->dibelanjakan;
     }
 }

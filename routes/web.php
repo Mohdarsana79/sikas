@@ -14,6 +14,8 @@ use App\Http\Controllers\RekamanPerubahanController;
 use App\Http\Controllers\PenatausahaanController;
 use App\Http\Controllers\BukuKasUmumController;
 use App\Http\Controllers\PenerimaanDanaController;
+use App\Http\Controllers\PenarikanTunaiController;
+use App\Http\Controllers\SetorTunaiController;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -174,4 +176,35 @@ Route::middleware(['auth'])->prefix('penatausahaan')->group(function () {
 
 Route::middleware(['auth'])->prefix('bku')->group(function () {
     Route::get('/{tahun}/{bulan}', [BukuKasUmumController::class, 'showByBulan'])->name('bku.showByBulan');
+    // route untuk API total dana tersedia
+    Route::get('/total-dana-tersedia/{penganggaran_id}', [BukuKasUmumController::class, 'getTotalDanaTersedia'])
+        ->name('bku.total-dana-tersedia');
+
+    // penarikan tunai
+    Route::post('/penarikan-tunai', [PenarikanTunaiController::class, 'store'])->name('bku.penarikan-tunai.store');
+    // setor tunai 
+    Route::post('/setor-tunai', [SetorTunaiController::class, 'store'])->name('bku.setor-tunai.store');
+
+    Route::get('/kegiatan-rekening/{tahun}/{bulan}', [BukuKasUmumController::class, 'getKegiatanDanRekening'])
+        ->name('bku.kegiatan-rekening');
+
+    Route::get('/uraian/{tahun}/{bulan}/{rekeningId}', [BukuKasUmumController::class, 'getUraianByRekening'])
+        ->name('bku.uraian');
+
+    Route::post('/store', [BukuKasUmumController::class, 'store'])->name('bku.store');
+
+    // API untuk mendapatkan total belanja
+    Route::get('/total-dibelanjakan/{penganggaran_id}/{bulan}', [BukuKasUmumController::class, 'getTotalDibelanjakan'])
+        ->name('bku.total-dibelanjakan');
+
+    Route::get('/total-dibelanjakan-sampai-bulan/{penganggaran_id}/{bulan}', [BukuKasUmumController::class, 'getTotalDibelanjakanSampaiBulan'])
+        ->name('bku.total-dibelanjakan-sampai-bulan');
+
+    Route::get('/bku/saldo/{penganggaran_id}', [BukuKasUmumController::class, 'getSaldoRealTime'])
+    ->name('bku.saldo-realtime');
+
+    Route::delete('/{id}', [BukuKasUmumController::class, 'destroy'])->name('bku.destroy');
+    // Route baru untuk menghapus semua data dalam bulan
+    Route::delete('/{tahun}/{bulan}/all', [BukuKasUmumController::class, 'destroyAllByBulan'])
+        ->name('bku.destroy-all-bulan');
 });

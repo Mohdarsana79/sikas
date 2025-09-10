@@ -90,4 +90,14 @@ class Penganggaran extends Model
     {
         return $this->hasMany(PenerimaanDana::class, 'penganggaran_id');
     }
+
+    public function penarikanTunai()
+    {
+        return $this->hasMany(PenarikanTunai::class, 'penganggaran_id');
+    }
+
+    public function setorTunai()
+    {
+        return $this->hasMany(SetorTunai::class, 'penganggaran_id');
+    }
 }

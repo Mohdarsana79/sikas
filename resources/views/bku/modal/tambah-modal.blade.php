@@ -148,17 +148,17 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Tanggal Transaksi</label>
                                 <div class="input-group input-group-sm mb-3">
-                                    <input type="date" class="form-control" aria-label="Sizing example input"
-                                        aria-describedby="inputGroup-sizing-sm">
+                                    <input type="date" class="form-control" name="tanggal_transaksi" id="tanggal_transaksi"
+                                        aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm">
                                 </div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Jenis Transaksi</label>
-                                <select name="" id="select" class="form-select form-select-sm"
+                                <select name="jenis_transaksi" id="jenis_transaksi" class="form-select form-select-sm"
                                     aria-label="Small select example">
                                     <option value="">Pilih Tunai/Nontunai</option>
                                     <option value="tunai">Tunai</option>
-                                    <option value="non tunai">Non Tunai</option>
+                                    <option value="non-tunai">Non Tunai</option>
                                 </select>
                             </div>
                         </div>
@@ -176,42 +176,50 @@
                                     <div class="mb-3">
                                         <label for="nama_toko" class="form-label">Nama Toko/Badan Usaha</label>
                                         <div class="input-group input-group-sm mb-3">
-                                            <span class="input-group-text" id="inputGroup-sizing-sm"><i class="bi bi-search"></i></span>
-                                            <input type="text" class="form-control" aria-label="Sizing example input"
+                                            <span class="input-group-text" id="inputGroup-sizing-sm"><i
+                                                    class="bi bi-search"></i></span>
+                                            <input type="text" class="form-control" name="nama_penyedia_barang_jasa"
+                                                aria-label="Sizing example input"
                                                 aria-describedby="inputGroup-sizing-sm" id="nama_toko">
                                         </div>
+                                        <!-- Tambahkan field hidden untuk nama_penerima ketika form toko aktif -->
+                                        <input type="hidden" name="nama_penerima_pembayaran" id="nama_penerima_hidden"
+                                            value="">
                                     </div>
                                 </div>
-                                
+
                                 <!-- Form Nama Penerima/Penyedia -->
                                 <div id="formPenerima" class="form-transition d-none">
                                     <div class="mb-3">
                                         <label for="nama_penerima" class="form-label">Nama Penerima / Penyedia</label>
                                         <div class="input-group input-group-sm mb-3">
-                                            <input type="text" class="form-control" aria-label="Sizing example input"
+                                            <input type="text" class="form-control" name="nama_penerima_pembayaran"
+                                                aria-label="Sizing example input"
                                                 aria-describedby="inputGroup-sizing-sm" id="nama_penerima">
                                         </div>
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="alamat_toko" class="form-label">Alamat Toko/Badan Usaha/Penerima</label>
+                                    <label for="alamat_toko" class="form-label">Alamat</label>
                                     <div class="input-group input-group-sm mb-3">
-                                        <input type="text" class="form-control" aria-label="Sizing example input"
-                                            aria-describedby="inputGroup-sizing-sm" id="alamat_toko">
+                                        <input type="text" class="form-control" name="alamat"
+                                            aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm"
+                                            id="alamat_toko">
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <label for="nomor_telepon" class="form-label">Nomor Telepon</label>
                                     <div class="input-group input-group-sm mb-3">
-                                        <input type="number" class="form-control" aria-label="Sizing example input"
-                                            aria-describedby="inputGroup-sizing-sm" id="nomor_telepon">
+                                        <input type="number" class="form-control" name="nomor_telepon"
+                                            aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm"
+                                            id="nomor_telepon">
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <label for="npwp" class="form-label">NPWP Toko</label>
                                     <div class="input-group input-group-sm mb-3">
                                         <input type="text" class="form-control" aria-label="Sizing example input"
-                                            aria-describedby="inputGroup-sizing-sm" id="npwp">
+                                            name="npwp" aria-describedby="inputGroup-sizing-sm" id="npwp">
                                     </div>
                                 </div>
                                 <div class="form-check mb-3">
@@ -230,8 +238,9 @@
                             <div class="col-md-6 mb-3">
                                 <label for="nomor_nota" class="form-label">Nomor Nota</label>
                                 <div class="input-group input-group-sm mb-3">
-                                    <input type="text" class="form-control" aria-label="Sizing example input"
-                                        aria-describedby="inputGroup-sizing-sm" id="nomor_nota">
+                                    <input type="text" class="form-control" name="id_transaksi"
+                                        aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm"
+                                        id="nomor_nota">
                                 </div>
                             </div>
                             <div class="col-md-6 mb-3">
@@ -241,95 +250,14 @@
                                         aria-describedby="inputGroup-sizing-sm" id="tanggal_nota">
                                 </div>
                             </div>
-                            <div class="col-md-12 mb-3">
-                                <div class="card">
-                                    <div class="card-header bg-info text-white">
-                                        <h5 class="card-title mb-0">Kegiatan 1</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="col-md-12 mb-3">
-                                            <label class="form-label">Kegiatan</label>
-                                            <select name="" id="select" class="form-select form-select-sm"
-                                                aria-label="Small select example">
-                                                <option value="">Pilih Jenis Kegiatan</option>
-                                                <option value="tunai">Pembayaran Listrik</option>
-                                                <option value="non tunai">Pembayaran Air</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-12 mb-3">
-                                            <label class="form-label">Rekening Belanja</label>
-                                            <select name="" id="select" class="form-select form-select-sm"
-                                                aria-label="Small select example">
-                                                <option value="">Pilih Rekening Belanja</option>
-                                                <option value="tunai">Belanja Listrik</option>
-                                                <option value="non tunai">Belanja Air</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-sm-12 justify-content-between align-content-between d-flex">
-                                            <div class="label">
-                                                <p>Uraian</p>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" value="" id="checkUraianAll">
-                                                <label class="form-check-label" for="checkUraianAll">
-                                                    <strong>Pilih</strong> semua uraian
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <hr>
-                                        <div class="row justify-content-center align-content-center">
-                                            <div class="col-md-4 mb-1">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" value="" id="checkUraian">
-                                                    <label class="form-check-label" for="checkUraian">
-                                                        Belanja Listrik
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4 mb-1">
-                                                <div class="input-group input-group-sm mb-3">
-                                                    <input type="text" class="form-control" aria-label="Sizing example input"
-                                                        aria-describedby="inputGroup-sizing-sm">
-                                                    <span class="input-group-text" id="inputGroup-sizing-sm">Max. 3</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4 mb-1">
-                                                <div class="input-group input-group-sm mb-3">
-                                                    <span class="input-group-text" id="inputGroup-sizing-sm">Rp. </span>
-                                                    <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row justify-content-center align-content-center">
-                                            <div class="col-md-4 mb-1">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" value="" id="checkUraian">
-                                                    <label class="form-check-label" for="checkUraian">
-                                                        Belanja Listrik
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4 mb-1">
-                                                <div class="input-group input-group-sm mb-3">
-                                                    <input type="text" class="form-control" aria-label="Sizing example input"
-                                                        aria-describedby="inputGroup-sizing-sm">
-                                                    <span class="input-group-text" id="inputGroup-sizing-sm">Max. 3</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4 mb-1">
-                                                <div class="input-group input-group-sm mb-3">
-                                                    <span class="input-group-text" id="inputGroup-sizing-sm">Rp. </span>
-                                                    <input type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="justify-content-end align-content-end">
-                                    <button class="btn btn-sm btn-primary mt-2">
-                                        <i class="bi bi-plus-circle me-1"></i>Tambah Kegiatan
-                                    </button>
-                                </div>
+                            <!-- Container untuk kegiatan -->
+                            <div class="col-md-12 mb-3" id="kegiatanContainer">
+                                <!-- Kegiatan akan dimuat secara dinamis -->
+                            </div>
+                            <div class="justify-content-end align-content-end">
+                                <button class="btn btn-sm btn-primary mt-2" id="tambahKegiatan">
+                                    <i class="bi bi-plus-circle me-1"></i>Tambah Kegiatan
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -377,10 +305,12 @@
                                         </div>
                                         <div class="row">
                                             <div class="col-md-4 mb-3">
-                                                <strong>Total Transaksi</strong>
+                                                <strong>Total Transaksi (Kotor)</strong>
                                             </div>
                                             <div class="col-md-8 mb-3">
-                                                <span>Rp.500.000</span>
+                                                <span id="totalTransaksiKotor">Rp. 0</span>
+                                                <!-- Input hidden untuk menyimpan total transaksi kotor -->
+                                                <input type="hidden" id="totalTransaksiKotorValue" value="0">
                                             </div>
 
                                             <!-- Form Pajak (Awalnya Disembunyikan) -->
@@ -391,7 +321,7 @@
                                                         <div class="pajak-form-col">
                                                             <label class="form-label">Pajak PPh/PPn</label>
                                                             <select name="" id="selectPajak"
-                                                                class="form-select form-select-sm"
+                                                                class="form-select form-select-sm" name="pajak"
                                                                 aria-label="Small select example">
                                                                 <option value="">Pilih Pajak PPh/PPn</option>
                                                                 <option value="pph 21">PPh 21</option>
@@ -406,7 +336,8 @@
                                                             <div class="input-group input-group-sm">
                                                                 <span class="input-group-text"
                                                                     id="inputGroup-sizing-sm">%</span>
-                                                                <input type="text" class="form-control" id="persenPajak"
+                                                                <input type="text" class="form-control"
+                                                                    name="persen_pajak" id="persenPajak"
                                                                     aria-label="Sizing example input"
                                                                     aria-describedby="inputGroup-sizing-sm">
                                                             </div>
@@ -416,7 +347,8 @@
                                                             <div class="input-group input-group-sm">
                                                                 <span class="input-group-text"
                                                                     id="inputGroup-sizing-sm">Rp</span>
-                                                                <input type="text" class="form-control" id="totalPajak"
+                                                                <input type="text" class="form-control"
+                                                                    name="total_pajak" id="totalPajak"
                                                                     aria-label="Sizing example input"
                                                                     aria-describedby="inputGroup-sizing-sm" disabled>
                                                             </div>
@@ -445,7 +377,7 @@
                                                         <div class="pajak-form-row">
                                                             <div class="pajak-form-col">
                                                                 <label class="form-label">Pajak PB 1</label>
-                                                                <select name="" id="selectPb1"
+                                                                <select name="pajak_daerah" id="selectPb1"
                                                                     class="form-select form-select-sm"
                                                                     aria-label="Small select example">
                                                                     <option value="pb 1">PB 1</option>
@@ -457,7 +389,8 @@
                                                                     <span class="input-group-text"
                                                                         id="inputGroup-sizing-sm">%</span>
                                                                     <input type="text" class="form-control"
-                                                                        id="persenPb1" aria-label="Sizing example input"
+                                                                        name="persen_pajak_daerah" id="persenPb1"
+                                                                        aria-label="Sizing example input"
                                                                         aria-describedby="inputGroup-sizing-sm">
                                                                 </div>
                                                             </div>
@@ -467,7 +400,8 @@
                                                                     <span class="input-group-text"
                                                                         id="inputGroup-sizing-sm">Rp</span>
                                                                     <input type="text" class="form-control"
-                                                                        id="totalPb1" aria-label="Sizing example input"
+                                                                        name="total_pajak_daerah" id="totalPb1"
+                                                                        aria-label="Sizing example input"
                                                                         aria-describedby="inputGroup-sizing-sm"
                                                                         disabled>
                                                                 </div>
@@ -478,10 +412,10 @@
                                             </div>
 
                                             <div class="col-md-4 mb-3">
-                                                <strong>Total Bersih</strong>
+                                                <strong>Total Bersih (Setelah Pajak)</strong>
                                             </div>
                                             <div class="col-md-8 mb-3">
-                                                <span id="totalBersih">Rp.500.000</span>
+                                                <span id="totalBersih">Rp. 0</span>
                                             </div>
                                         </div>
                                     </div>
@@ -514,17 +448,38 @@
     $(document).ready(function() {
         let currentStep = 1;
         const totalSteps = 3;
+        
+        // Variabel global untuk menyimpan total transaksi
+        window.currentTotalTransaksi = 0;
 
         // Initialize modal
         $('#transactionModal').on('show.bs.modal', function() {
             resetSteps();
+            loadKegiatanDanRekening();
+            window.currentTotalTransaksi = 0;
         });
 
         // Next button click
         $('#nextBtn').click(function() {
             if (currentStep < totalSteps) {
+                // Validasi sebelum pindah ke step berikutnya
+                if (currentStep === 1) {
+                    if (!validateStep1()) {
+                        return;
+                    }
+                } else if (currentStep === 2) {
+                    if (!validateStep2()) {
+                        return;
+                    }
+                }
+                
                 currentStep++;
                 updateSteps();
+                
+                // Jika pindah ke step 3, hitung total transaksi
+                if (currentStep === 3) {
+                    updateTotalTransaksiDisplay();
+                }
             }
         });
 
@@ -535,6 +490,87 @@
                 updateSteps();
             }
         });
+        
+        // Fungsi untuk validasi step 1
+        function validateStep1() {
+        const tanggalTransaksi = $('#tanggal_transaksi').val();
+        const jenisTransaksi = $('#jenis_transaksi').val();
+        const namaToko = $('#nama_toko').val();
+        const namaPenerima = $('#nama_penerima').val();
+        const alamat = $('#alamat_toko').val();
+        const isTokoChecked = $('#checkForm').is(':checked');
+        
+        // Validasi field yang wajib diisi
+        if (!tanggalTransaksi) {
+        showValidationError('Tanggal transaksi harus diisi');
+        $('#tanggal_transaksi').focus();
+        return false;
+        }
+        
+        if (!jenisTransaksi) {
+        showValidationError('Jenis transaksi harus dipilih');
+        $('#jenis_transaksi').focus();
+        return false;
+        }
+        
+        if (!isTokoChecked && !namaToko) {
+        showValidationError('Nama toko/badan usaha harus diisi');
+        $('#nama_toko').focus();
+        return false;
+        }
+        
+        if (isTokoChecked && !namaPenerima) {
+        showValidationError('Nama penerima/penyedia harus diisi');
+        $('#nama_penerima').focus();
+        return false;
+        }
+        
+        if (!alamat) {
+        showValidationError('Alamat harus diisi');
+        $('#alamat_toko').focus();
+        return false;
+        }
+        
+        return true;
+        }
+        
+        // Fungsi untuk validasi step 2
+        function validateStep2() {
+        const nomorNota = $('#nomor_nota').val();
+        const tanggalNota = $('#tanggal_nota').val();
+        
+        // Validasi field yang wajib diisi
+        if (!nomorNota) {
+        showValidationError('Nomor nota harus diisi');
+        $('#nomor_nota').focus();
+        return false;
+        }
+        
+        if (!tanggalNota) {
+        showValidationError('Tanggal belanja/nota harus diisi');
+        $('#tanggal_nota').focus();
+        return false;
+        }
+        
+        // Validasi tambahan: pastikan minimal satu uraian dipilih
+        const uraianDipilih = $('.uraian-checkbox:checked').length > 0;
+        if (!uraianDipilih) {
+        showValidationError('Minimal satu uraian harus dipilih');
+        return false;
+        }
+        
+        return true;
+        }
+        
+        // Fungsi untuk menampilkan pesan error validasi dengan SweetAlert
+        function showValidationError(message) {
+        Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: message,
+        confirmButtonColor: '#0d6efd',
+        });
+        }
 
         function updateSteps() {
             // Hide all panes
@@ -580,18 +616,6 @@
             $('#saveBtn').addClass('d-none');
         }
 
-        // Save button click
-        $('#saveBtn').click(function() {
-            // Simulate save process
-            const modal = $('#transactionModal');
-            modal.modal('hide');
-            
-            // Show success message (you can replace this with actual save logic)
-            setTimeout(function() {
-                alert('Transaksi berhasil disimpan!');
-            }, 500);
-        });
-
         // Toggle form pajak berdasarkan checkbox
         $('#checkPajak').change(function() {
             if ($(this).is(':checked')) {
@@ -635,9 +659,26 @@
             if ($(this).is(':checked')) {
                 $('#formToko').addClass('d-none');
                 $('#formPenerima').removeClass('d-none');
+                // Isi nilai hidden field dengan nilai dari form toko
+                $('#nama_penerima_hidden').val($('#nama_toko').val());
             } else {
                 $('#formToko').removeClass('d-none');
                 $('#formPenerima').addClass('d-none');
+                // Isi nilai hidden field dengan nilai dari form penerima
+                $('#nama_penerima_hidden').val($('#nama_penerima').val());
+            }
+        });
+
+        // Update hidden field ketika nilai berubah
+        $('#nama_toko').on('input', function() {
+            if (!$('#checkForm').is(':checked')) {
+                $('#nama_penerima_hidden').val($(this).val());
+            }
+        });
+
+        $('#nama_penerima').on('input', function() {
+            if ($('#checkForm').is(':checked')) {
+                $('#nama_penerima_hidden').val($(this).val());
             }
         });
 
@@ -650,8 +691,52 @@
             calculateTax('pb1');
         });
 
+        // Fungsi untuk menghitung total transaksi dari uraian yang dipilih
+        function calculateTotalTransaksi() {
+            let totalTransaksi = 0;
+            
+            // Hitung total dari semua uraian yang dipilih
+            $('.uraian-item').each(function() {
+                const checkbox = $(this).find('.uraian-checkbox');
+                if (checkbox.is(':checked')) {
+                    const jumlah = parseFloat($(this).find('.jumlah-input').val()) || 0;
+                    const hargaText = $(this).find('.harga-input').val();
+                    
+                    // Bersihkan format angka (hapus titik dan koma)
+                    const harga = parseFloat(hargaText.replace(/\./g, '').replace(',', '.')) || 0;
+                    
+                    totalTransaksi += jumlah * harga;
+                }
+            });
+            
+            return totalTransaksi;
+        }
+
+        // Fungsi untuk update tampilan total transaksi
+        function updateTotalTransaksiDisplay() {
+            const totalTransaksi = calculateTotalTransaksi();
+            
+            // Update tampilan
+            $('#totalTransaksiKotor').text('Rp ' + totalTransaksi.toLocaleString('id-ID'));
+            $('#totalTransaksiKotorValue').val(totalTransaksi);
+            
+            // Update total bersih (awalnya sama dengan total kotor)
+            $('#totalBersih').text('Rp ' + totalTransaksi.toLocaleString('id-ID'));
+            
+            // Simpan nilai total transaksi untuk perhitungan pajak
+            window.currentTotalTransaksi = totalTransaksi;
+            
+            // Hitung ulang pajak jika sudah ada nilai pajak
+            if ($('#checkPajak').is(':checked')) {
+                calculateTax('pajak');
+                if ($('#checkPajakPb1').is(':checked')) {
+                    calculateTax('pb1');
+                }
+            }
+        }
+
         function calculateTax(type) {
-            const totalTransaksi = 500000; // Ganti dengan nilai sebenarnya dari transaksi
+            const totalTransaksi = window.currentTotalTransaksi || 0;
             let persen, totalElement;
             
             if (type === 'pajak') {
@@ -670,15 +755,25 @@
         }
 
         function calculateTotalBersih() {
-            const totalTransaksi = 500000; // Ganti dengan nilai sebenarnya dari transaksi
+            const totalTransaksi = window.currentTotalTransaksi || 0;
             const totalPajak = parseFloat($('#totalPajak').val().replace(/\./g, '')) || 0;
             const totalPb1 = parseFloat($('#totalPb1').val().replace(/\./g, '')) || 0;
             
             const totalBersih = totalTransaksi - totalPajak - totalPb1;
             
             // Update tampilan total bersih
-            $('#totalBersih').text('Rp.' + totalBersih.toLocaleString('id-ID'));
+            $('#totalBersih').text('Rp ' + totalBersih.toLocaleString('id-ID'));
         }
+
+        // Event listener untuk perubahan checkbox uraian
+        $(document).on('change', '.uraian-checkbox, .check-all-uraian', function() {
+            updateTotalTransaksiDisplay();
+        });
+
+        // Event listener untuk perubahan jumlah
+        $(document).on('input', '.jumlah-input', function() {
+            updateTotalTransaksiDisplay();
+        });
 
         // Toggle disable form NPWP berdasarkan checkbox
         $('#checkNpwp').change(function() {
@@ -710,11 +805,6 @@
                 $(this).removeClass('is-invalid');
                 $('#npwpFeedback').hide();
             }
-        });
-
-        // Tombol info format NPWP
-        $('#btnFormatNpwp').click(function() {
-            alert('Format NPWP yang benar: XX.XXX.XXX.X-XXX.XXX\n\nContoh: 12.345.678.9-012.345');
         });
 
         // Format otomatis NPWP
@@ -769,10 +859,376 @@
             $('#formToko').removeClass('d-none');
             $('#formPenerima').addClass('d-none');
             
-            // Reset total bersih
-            $('#totalBersih').text('Rp.500.000');
+            // Reset total transaksi
+            $('#totalTransaksiKotor').text('Rp. 0');
+            $('#totalBersih').text('Rp. 0');
+            window.currentTotalTransaksi = 0;
+        });
+
+        // Fungsi untuk memuat kegiatan dan rekening belanja
+        function loadKegiatanDanRekening() {
+            const tahun = '{{ $tahun }}';
+            const bulan = '{{ $bulan }}';
+            
+            $.ajax({
+                url: '{{ route("bku.kegiatan-rekening", ["tahun" => ":tahun", "bulan" => ":bulan"]) }}'
+                    .replace(':tahun', tahun)
+                    .replace(':bulan', bulan),
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        renderKegiatanOptions(response.data);
+                    } else {
+                        alert('Gagal memuat data kegiatan: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Terjadi kesalahan saat memuat data kegiatan');
+                    console.error(xhr);
+                }
+            });
+        }
+
+        // Fungsi untuk merender opsi kegiatan
+        function renderKegiatanOptions(data) {
+            const container = $('#kegiatanContainer');
+            container.empty();
+            
+            if (data.length === 0) {
+                container.html('<div class="alert alert-info">Tidak ada data kegiatan untuk bulan ini</div>');
+                return;
+            }
+            
+            // Buat card untuk setiap kegiatan
+            data.forEach((kegiatanData, index) => {
+                const cardHtml = `
+                    <div class="card mb-3 kegiatan-card" data-kegiatan-id="${kegiatanData.kegiatan.id}">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="card-title mb-0">Kegiatan ${index + 1}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Kegiatan</label>
+                                    <select class="form-select form-select-sm kegiatan-select" name="kode_kegiatan_id" 
+                                            data-kegiatan-id="${kegiatanData.kegiatan.id}">
+                                        <option value="">Pilih Jenis Kegiatan</option>
+                                        <option value="${kegiatanData.kegiatan.id}" selected>
+                                            ${kegiatanData.kegiatan.kode} - ${kegiatanData.kegiatan.uraian}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Rekening Belanja</label>
+                                    <select class="form-select form-select-sm rekening-select" name="kode_rekening_id" 
+                                            data-kegiatan-id="${kegiatanData.kegiatan.id}">
+                                        <option value="">Pilih Rekening Belanja</option>
+                                        ${kegiatanData.rekening_belanja.map(rekening => `
+                                            <option value="${rekening.id}" data-anggaran="${rekening.anggaran}">
+                                                ${rekening.rekening.kode_rekening} - ${rekening.rekening.rincian_objek}
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Container untuk uraian -->
+                            <div class="uraian-container" id="uraianContainer-${kegiatanData.kegiatan.id}">
+                                <!-- Uraian akan dimuat ketika rekening dipilih -->
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.append(cardHtml);
+            });
+            
+            // Event listener untuk perubahan rekening belanja
+            $('.rekening-select').change(function() {
+                const rekeningId = $(this).val();
+                const kegiatanId = $(this).data('kegiatan-id');
+                const tahun = '{{ $tahun }}';
+                const bulan = '{{ $bulan }}';
+                
+                if (rekeningId) {
+                    loadUraianByRekening(tahun, bulan, rekeningId, kegiatanId);
+                } else {
+                    $(`#uraianContainer-${kegiatanId}`).empty();
+                }
+            });
+        }
+
+        // Fungsi untuk memuat uraian berdasarkan rekening
+        function loadUraianByRekening(tahun, bulan, rekeningId, kegiatanId) {
+            $.ajax({
+                url: '{{ route("bku.uraian", ["tahun" => ":tahun", "bulan" => ":bulan", "rekeningId" => ":rekeningId"]) }}'
+                    .replace(':tahun', tahun)
+                    .replace(':bulan', bulan)
+                    .replace(':rekeningId', rekeningId),
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        renderUraianOptions(response.data, kegiatanId);
+                    } else {
+                        alert('Gagal memuat data uraian: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Terjadi kesalahan saat memuat data uraian');
+                    console.error(xhr);
+                }
+            });
+        }
+
+        // Fungsi untuk merender opsi uraian
+        function renderUraianOptions(data, kegiatanId) {
+        const container = $(`#uraianContainer-${kegiatanId}`);
+        container.empty();
+        
+        if (data.length === 0) {
+        container.html('<div class="alert alert-info">Tidak ada data uraian untuk rekening ini</div>');
+        return;
+        }
+        
+        const uraianHtml = `
+        <div class="col-sm-12 justify-content-between align-content-between d-flex">
+            <div class="label">
+                <p>Uraian</p>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input check-all-uraian" type="checkbox" data-kegiatan-id="${kegiatanId}">
+                <label class="form-check-label">
+                    <strong>Pilih</strong> semua uraian
+                </label>
+            </div>
+        </div>
+        <hr>
+        ${data.map((uraian, index) => `
+        <div class="row justify-content-center align-content-center uraian-item" data-uraian-id="${uraian.id}">
+            <div class="col-md-4 mb-1">
+                <div class="form-check">
+                    <input class="form-check-input uraian-checkbox" type="checkbox" name="uraian" value="${uraian.id}"
+                        data-anggaran="${uraian.anggaran}">
+                    <label class="form-check-label">
+                        ${uraian.uraian}
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-4 mb-1">
+                <div class="input-group input-group-sm mb-3">
+                    <input type="text" class="form-control jumlah-input" value="${uraian.jumlah}" aria-label="Jumlah"
+                        maxlength="3">
+                    <span class="input-group-text">Max. 3</span>
+                </div>
+            </div>
+            <div class="col-md-4 mb-1">
+                <div class="input-group input-group-sm mb-3">
+                    <span class="input-group-text">Rp.</span>
+                    <input type="text" class="form-control harga-input"
+                        value="${parseFloat(uraian.harga_satuan).toLocaleString('id-ID')}" aria-label="Harga" readonly>
+                </div>
+            </div>
+        </div>
+        `).join('')}
+        `;
+        
+        container.html(uraianHtml);
+        
+        // Event listener untuk checkbox "pilih semua"
+        $(`.check-all-uraian[data-kegiatan-id="${kegiatanId}"]`).change(function() {
+        const isChecked = $(this).is(':checked');
+        $(this).closest('.uraian-container').find('.uraian-checkbox').prop('checked', isChecked);
+        updateTotalTransaksiDisplay();
+        });
+        
+        // Event listener untuk checkbox uraian individual
+        $(`.uraian-checkbox`).change(function() {
+        updateTotalTransaksiDisplay();
+        });
+        
+        // Event listener untuk input jumlah
+        $(`.jumlah-input`).on('input', function() {
+        updateTotalTransaksiDisplay();
+        });
+        }
+
+        // Fungsi untuk mengumpulkan data dari form
+        function collectFormData() {
+        const totalTransaksiKotor = window.currentTotalTransaksi || 0;
+        
+        const formData = {
+        penganggaran_id: '{{ $penganggaran->id }}',
+        kode_kegiatan_id: $('.kegiatan-select:first').val(),
+        kode_rekening_id: $('.rekening-select:first').val(),
+        tanggal_nota: $('#tanggal_nota').val(),
+        jenis_transaksi: $('#jenis_transaksi').val(),
+        nomor_nota: $('#nomor_nota').val(),
+        nama_penyedia: $('#checkForm').is(':checked') ? $('#nama_penerima').val() : $('#nama_toko').val(),
+        nama_penerima: $('#nama_penerima_hidden').val(),
+        alamat: $('#alamat_toko').val(),
+        nomor_telepon: $('#nomor_telepon').val(),
+        npwp: $('#checkNpwp').is(':checked') ? null : $('#npwp').val(),
+        uraian_items: [],
+        pajak_items: [],
+        bulan: '{{ $bulan }}',
+        total_transaksi_kotor: totalTransaksiKotor
+        };
+        
+        // Kumpulkan data uraian yang dipilih
+        $('.uraian-item').each(function() {
+        const checkbox = $(this).find('.uraian-checkbox');
+        if (checkbox.is(':checked')) {
+        const jumlah = parseFloat($(this).find('.jumlah-input').val()) || 0;
+        const hargaText = $(this).find('.harga-input').val();
+        
+        // Bersihkan format angka (hapus titik dan koma)
+        const harga = parseFloat(hargaText.replace(/\./g, '').replace(',', '.')) || 0;
+        
+        formData.uraian_items.push({
+        id: checkbox.val(),
+        jumlah_belanja: jumlah * harga
+        });
+        }
+        });
+
+        // Fungsi untuk memformat angka ke format Rupiah
+        function formatRupiah(angka) {
+        return angka.toLocaleString('id-ID');
+        }
+        
+        // Event listener untuk memformat harga input
+        $(document).on('blur', '.harga-input', function() {
+        const value = $(this).val();
+        if (value) {
+        const numericValue = parseFloat(value.replace(/\./g, '').replace(',', '.'));
+        if (!isNaN(numericValue)) {
+        $(this).val(formatRupiah(numericValue));
+        updateTotalTransaksiDisplay();
+        }
+        }
+        });
+        
+        // Event listener untuk input jumlah
+        $(document).on('input', '.jumlah-input', function() {
+        // Validasi hanya angka dan maksimal 3 digit
+        $(this).val($(this).val().replace(/[^0-9]/g, '').substring(0, 3));
+        updateTotalTransaksiDisplay();
+        });
+        
+        // Kumpulkan data pajak jika ada
+        if ($('#checkPajak').is(':checked')) {
+        const pajakData = {
+        jenis_pajak: $('#selectPajak').val(),
+        persen_pajak: parseFloat($('#persenPajak').val()) || 0,
+        total_pajak: parseFloat($('#totalPajak').val().replace(/\./g, '')) || 0
+        };
+        formData.pajak_items.push(pajakData);
+        
+        if ($('#checkPajakPb1').is(':checked')) {
+        const pb1Data = {
+        jenis_pajak: $('#selectPb1').val(),
+        persen_pajak: parseFloat($('#persenPb1').val()) || 0,
+        total_pajak: parseFloat($('#totalPb1').val().replace(/\./g, '')) || 0
+        };
+        formData.pajak_items.push(pb1Data);
+        }
+        }
+        
+        return formData;
+        }
+        
+        // Event listener untuk tombol simpan
+        // Event listener untuk tombol simpan
+        $('#saveBtn').click(function() {
+        const formData = collectFormData();
+        
+        console.log('Data yang akan dikirim:', formData);
+        
+        // Tampilkan loading SweetAlert
+        Swal.fire({
+        title: 'Menyimpan Data',
+        text: 'Sedang memproses data transaksi...',
+        icon: 'info',
+        allowOutsideClick: false,
+        didOpen: () => {
+        Swal.showLoading();
+        }
+        });
+        
+        // Kirim data ke server
+        $.ajax({
+        url: '{{ route("bku.store") }}',
+        method: 'POST',
+        data: JSON.stringify(formData),
+        contentType: 'application/json',
+        headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+        'Accept': 'application/json'
+        },
+        success: function(response) {
+        Swal.close();
+        
+        if (response.success) {
+        Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: response.message,
+        confirmButtonColor: '#0d6efd',
+        }).then((result) => {
+        // Trigger custom event untuk update saldo
+        $(document).trigger('bkuSaved', [response]);
+        
+        if (result.isConfirmed) {
+        $('#transactionModal').modal('hide');
+        location.reload(); // atau gunakan AJAX untuk update table
+        }
+        });
+        } else {
+        Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: response.message,
+        confirmButtonColor: '#0d6efd',
+        });
+        }
+        },
+        error: function(xhr) {
+        Swal.close();
+        console.error('Error response:', xhr.responseJSON);
+        
+        if (xhr.status === 422) {
+        // Validasi error
+        const errors = xhr.responseJSON.errors;
+        let errorMessage = 'Terjadi kesalahan validasi:\n';
+        
+        for (const field in errors) {
+        errorMessage += `- ${errors[field][0]}\n`;
+        }
+        
+        Swal.fire({
+        icon: 'error',
+        title: 'Validasi Gagal',
+        html: errorMessage.replace(/\n/g, '<br>'),
+        confirmButtonColor: '#0d6efd',
+        });
+        } else if (xhr.status === 500) {
+        Swal.fire({
+        icon: 'error',
+        title: 'Kesalahan Server',
+        text: 'Terjadi kesalahan server: ' + xhr.responseJSON.message,
+        confirmButtonColor: '#0d6efd',
+        });
+        } else {
+        Swal.fire({
+        icon: 'error',
+        title: 'Kesalahan',
+        text: 'Terjadi kesalahan saat menyimpan data',
+        confirmButtonColor: '#0d6efd',
+        });
+        }
+        }
+        });
         });
     });
 </script>
 @endpush
-

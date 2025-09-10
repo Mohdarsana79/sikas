@@ -23,4 +23,9 @@ class RekeningBelanja extends Model
     {
         return $this->hasMany(RkasPerubahan::class, 'kode_rekening_id');
     }
+
+    public function bukuKasUmum()
+    {
+        return $this->hasMany(BukuKasUmum::class, 'kode_rekening_id');
+    }
 }
