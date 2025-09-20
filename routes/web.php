@@ -16,6 +16,7 @@ use App\Http\Controllers\BukuKasUmumController;
 use App\Http\Controllers\PenerimaanDanaController;
 use App\Http\Controllers\PenarikanTunaiController;
 use App\Http\Controllers\SetorTunaiController;
+use App\Http\Controllers\DatabaseController;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -39,6 +40,29 @@ Route::middleware(['auth'])->prefix('sekolah')->group(function () {
     Route::get('/', [SekolahController::class, 'index'])->name('sekolah.index');
     Route::post('/', [SekolahController::class, 'store'])->name('sekolah.store');
     Route::put('/{sekolah}', [SekolahController::class, 'update'])->name('sekolah.update');
+});
+
+Route::middleware(['auth'])->prefix('backup')->group(function () {
+    // Halaman utama backup & restore
+    Route::get('/', [DatabaseController::class, 'index'])->name('backup.index');
+
+    // Backup database
+    Route::post('/create', [DatabaseController::class, 'backup'])->name('backup.create');
+
+    // Restore database
+    Route::post('/restore', [DatabaseController::class, 'restore'])->name('backup.restore');
+
+    // Get restore progress (AJAX endpoint)
+    Route::get('/restore/progress', [DatabaseController::class, 'getRestoreProgress'])->name('backup.restore.progress');
+
+    // Download file backup
+    Route::get('/download', [DatabaseController::class, 'download'])->name('backup.download');
+
+    // Hapus file backup
+    Route::delete('/delete', [DatabaseController::class, 'delete'])->name('backup.delete');
+
+    // Reset database - perbaikan route
+    Route::post('/reset', [DatabaseController::class, 'reset'])->name('database.reset');
 });
 
 Route::middleware(['auth'])->prefix('penganggaran')->group(function () {
@@ -201,10 +225,20 @@ Route::middleware(['auth'])->prefix('bku')->group(function () {
         ->name('bku.total-dibelanjakan-sampai-bulan');
 
     Route::get('/bku/saldo/{penganggaran_id}', [BukuKasUmumController::class, 'getSaldoRealTime'])
-    ->name('bku.saldo-realtime');
+        ->name('bku.saldo-realtime');
 
     Route::delete('/{id}', [BukuKasUmumController::class, 'destroy'])->name('bku.destroy');
     // Route baru untuk menghapus semua data dalam bulan
     Route::delete('/{tahun}/{bulan}/all', [BukuKasUmumController::class, 'destroyAllByBulan'])
         ->name('bku.destroy-all-bulan');
+
+    Route::get('/bku/kegiatan-rekening/{tahun}/{bulan}', [BukuKasUmumController::class, 'getKegiatanDanRekening'])
+        ->name('bku.kegiatan-rekening');
+
+    // Route untuk tutup/buka BKU
+    Route::post('/{tahun}/{bulan}/tutup', [BukuKasUmumController::class, 'tutupBku'])->name('bku.tutup');
+    Route::post('/{tahun}/{bulan}/buka', [BukuKasUmumController::class, 'bukaBku'])->name('bku.buka');
+
+    // Route untuk update bunga bank (tanpa modal)
+    Route::put('/{tahun}/{bulan}/update-bunga', [BukuKasUmumController::class, 'updateBungaBank'])->name('bku.update-bunga');
 });

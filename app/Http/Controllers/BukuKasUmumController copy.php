@@ -14,9 +14,6 @@ use App\Models\BukuKasUmumUraianDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Carbon\Carbon;
 
 
 class BukuKasUmumController extends Controller
@@ -94,47 +91,16 @@ class BukuKasUmumController extends Controller
         // Hitung anggaran yang belum dibelanjakan
         $anggaranBelumDibelanjakan = $this->hitungAnggaranBelumDibelanjakan($penganggaran->id, $bulan);
 
-        // Ambil data BKU untuk bulan tersebut (hanya transaksi reguler, bukan record bunga)
+        // Ambil data BKU untuk bulan tersebut
         $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
             ->whereMonth('tanggal_transaksi', $this->convertBulanToNumber($bulan))
-            ->where('is_bunga_record', false) // Hanya transaksi reguler
             ->with(['kodeKegiatan', 'rekeningBelanja', 'uraianDetails'])
-            ->get();
-
-        // Cek status BKU - apakah ada record yang status closed
-        $isClosed = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-            ->whereMonth('tanggal_transaksi', $this->convertBulanToNumber($bulan))
-            ->where('status', 'closed')
-            ->exists();
-
-        // Ambil data bunga bank dari record manapun yang closed di bulan tersebut
-        $bungaRecord = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-            ->whereMonth('tanggal_transaksi', $this->convertBulanToNumber($bulan))
-            ->where('status', 'closed')
-            ->first();
-
-        // Ambil data penerimaan dana
-        $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran->id)
-            ->orderBy('tanggal_terima', 'asc')
-            ->get();
-
-        // Ambil data penarikan tunai
-        $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
-            ->orderBy('tanggal_penarikan', 'asc')
-            ->get();
-
-        // Ambil data setor tunai
-        $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran->id)
-            ->orderBy('tanggal_setor', 'asc')
             ->get();
 
         $data = [
             'tahun' => $tahun,
             'bulan' => $bulan,
             'penganggaran' => $penganggaran,
-            'penerimaanDanas' => $penerimaanDanas,
-            'penarikanTunais' => $penarikanTunais,
-            'setorTunais' => $setorTunais,
             'totalDanaTersedia' => $totalDanaTersedia,
             'saldoTunai' => $saldo['tunai'],
             'saldoNonTunai' => $saldo['non_tunai'],
@@ -142,11 +108,7 @@ class BukuKasUmumController extends Controller
             'totalDibelanjakanBulanIni' => $totalDibelanjakanBulanIni,
             'totalDibelanjakanSampaiBulanIni' => $totalDibelanjakanSampaiBulanIni,
             'anggaranBelumDibelanjakan' => $anggaranBelumDibelanjakan,
-            'bkuData' => $bkuData,
-            'is_closed' => $isClosed,
-            'bunga_bank' => $bungaRecord ? $bungaRecord->bunga_bank : 0,
-            'pajak_bunga_bank' => $bungaRecord ? $bungaRecord->pajak_bunga_bank : 0,
-            'has_transactions' => $bkuData->count() > 0
+            'bkuData' => $bkuData
         ];
 
         return view('bku.bku', $data);
@@ -1097,197 +1059,6 @@ class BukuKasUmumController extends Controller
 
             // Redirect untuk request biasa
             return redirect()->back()->with('error', 'Gagal menghapus transaksi: ' . $e->getMessage());
-        }
-    }
-
-    // Tambahkan method untuk menutup BKU
-    public function tutupBku(Request $request, $tahun, $bulan)
-    {
-        try {
-            DB::beginTransaction();
-
-            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
-
-            if (!$penganggaran) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan'
-                ], 404);
-            }
-
-            $validated = $request->validate([
-                'bunga_bank' => 'required|numeric|min:0',
-                'pajak_bunga_bank' => 'required|numeric|min:0'
-            ]);
-
-            // Update semua data BKU untuk bulan tersebut menjadi status closed
-            $bulanAngka = $this->convertBulanToNumber($bulan);
-            $tanggalAkhirBulan = Carbon::create($tahun, $bulanAngka, 1)->endOfMonth();
-
-            // Cek apakah sudah ada data BKU untuk bulan ini
-            $existingBku = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-                ->whereMonth('tanggal_transaksi', $bulanAngka)
-                ->whereYear('tanggal_transaksi', $tahun)
-                ->first();
-
-            if ($existingBku) {
-                // Update semua data BKU untuk bulan tersebut menjadi status closed
-                $updated = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-                    ->whereMonth('tanggal_transaksi', $bulanAngka)
-                    ->whereYear('tanggal_transaksi', $tahun)
-                    ->update([
-                        'status' => 'closed',
-                        'bunga_bank' => $validated['bunga_bank'],
-                        'pajak_bunga_bank' => $validated['pajak_bunga_bank'],
-                        'updated_at' => now()
-                    ]);
-            } else {
-                // Buat record BKU khusus untuk menyimpan bunga bank (jika tidak ada transaksi)
-                $bku = BukuKasUmum::create([
-                    'penganggaran_id' => $penganggaran->id,
-                    'kode_kegiatan_id' => null,
-                    'kode_rekening_id' => null,
-                    'tanggal_transaksi' => $tanggalAkhirBulan,
-                    'jenis_transaksi' => 'non-tunai',
-                    'id_transaksi' => 'BUNGA-BANK-' . $bulan . '-' . $tahun,
-                    'nama_penyedia_barang_jasa' => 'Bank',
-                    'uraian' => 'Pencatatan bunga bank dan pajak bunga bank',
-                    'anggaran' => 0,
-                    'dibelanjakan' => 0,
-                    'bunga_bank' => $validated['bunga_bank'],
-                    'pajak_bunga_bank' => $validated['pajak_bunga_bank'],
-                    'status' => 'closed',
-                    'is_bunga_record' => true
-                ]);
-                
-                $updated = 1;
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'BKU berhasil ditutup',
-                'updated_count' => $updated
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error menutup BKU: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menutup BKU: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // Method bukaBku yang diperbarui
-    public function bukaBku($tahun, $bulan)
-    {
-        try {
-            DB::beginTransaction();
-
-            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
-
-            if (!$penganggaran) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan'
-                ], 404);
-            }
-
-            $bulanAngka = $this->convertBulanToNumber($bulan);
-
-            // Update status menjadi open untuk semua record di bulan tersebut
-            $updated = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-                ->whereMonth('tanggal_transaksi', $bulanAngka)
-                ->whereYear('tanggal_transaksi', $tahun)
-                ->update([
-                    'status' => 'open',
-                    'updated_at' => now()
-                ]);
-
-            // Hapus record bunga bank jika tidak ada transaksi lain
-            $regularTransactions = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-                ->whereMonth('tanggal_transaksi', $bulanAngka)
-                ->whereYear('tanggal_transaksi', $tahun)
-                ->where('is_bunga_record', false)
-                ->count();
-
-            if ($regularTransactions === 0) {
-                BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-                    ->whereMonth('tanggal_transaksi', $bulanAngka)
-                    ->whereYear('tanggal_transaksi', $tahun)
-                    ->where('is_bunga_record', true)
-                    ->delete();
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'BKU berhasil dibuka',
-                'updated_count' => $updated
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error membuka BKU: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal membuka BKU: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // Method updateBungaBank
-    public function updateBungaBank(Request $request, $tahun, $bulan)
-    {
-        try {
-            DB::beginTransaction();
-
-            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
-
-            if (!$penganggaran) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan'
-                ], 404);
-            }
-
-            $validated = $request->validate([
-                'bunga_bank' => 'required|numeric|min:0',
-                'pajak_bunga_bank' => 'required|numeric|min:0'
-            ]);
-
-            $bulanAngka = $this->convertBulanToNumber($bulan);
-
-            // Update bunga bank untuk semua record closed di bulan tersebut
-            $updated = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-                ->whereMonth('tanggal_transaksi', $bulanAngka)
-                ->whereYear('tanggal_transaksi', $tahun)
-                ->where('status', 'closed')
-                ->update([
-                    'bunga_bank' => $validated['bunga_bank'],
-                    'pajak_bunga_bank' => $validated['pajak_bunga_bank'],
-                    'updated_at' => now()
-                ]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Data bunga bank berhasil diperbarui',
-                'updated_count' => $updated
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error update bunga bank: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memperbarui data bunga bank: ' . $e->getMessage()
-            ], 500);
         }
     }
 };

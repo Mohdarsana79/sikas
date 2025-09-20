@@ -95,6 +95,13 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'dump' => [
+                'dump_binary_path' => 'C:/laragon/bin/postgresql/pgsql/bin/', // only the path, so without `mysqldump` or `pg_dump`
+                'use_single_transaction',
+                'timeout' => 60 * 5, // 5 minute timeout
+                //    'exclude_tables' => ['table1', 'table2'],
+                //    'add_extra_option' => '--optionname=optionvalue', // for example '--column-statistics=0'
+            ]
         ],
 
         'sqlsrv' => [
@@ -147,7 +154,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
+            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')) . '-database-'),
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 

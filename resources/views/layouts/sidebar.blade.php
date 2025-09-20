@@ -70,6 +70,14 @@
                 </ul>
             </li>
 
+            <!-- Backup dan Restore -->
+            <li class="nav-item">
+                <a href="{{ route('backup.index') }}" class="nav-link" data-page="backup">
+                    <i class="bi bi-database-fill nav-icon"></i>
+                    <span class="nav-text">Backup & Restore</span>
+                </a>
+            </li>
+
             <!-- Profile -->
             <li class="nav-item">
                 <a href="pages/profile.html" class="nav-link" data-page="profile">

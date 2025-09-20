@@ -1,3 +1,4 @@
+// File: resources/views/bku/bku.blade.php
 @extends('layouts.app')
 @include('layouts.navbar')
 @include('layouts.sidebar')
@@ -27,33 +28,53 @@
                     <div class="d-flex align-items-center small text-muted">
                         <span>BKSP REGULER {{$tahun}}</span>
                         <span class="mx-2">|</span>
-                        @if (count($bkuData) > 0)
-                            <a href="#" class="btn btn-danger" id="hapusSemuaBulan" data-bulan="{{ $bulan }}" data-tahun="{{ $tahun }}"
-                                style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;">Hapus
-                                BKU</a>
+                        @if($is_closed)
+                        <span class="badge bg-danger me-2">Terkunci</span>
+                        @if(!$has_transactions)
+                        <span class="badge bg-info">BKU Kosong - Terkunci</span>
+                        @endif
+                        @else
+                        <span class="badge bg-success me-2">Terbuka</span>
+                        @if(count($bkuData) > 0)
+                        <a href="#" class="btn btn-danger btn-sm ms-2" id="hapusSemuaBulan" data-bulan="{{ $bulan }}"
+                            data-tahun="{{ $tahun }}">
+                            Hapus BKU
+                        </a>
+                        @endif
                         @endif
                     </div>
                 </div>
 
                 <!-- Action Buttons -->
                 <div class="d-flex gap-2">
+                    @if(!$is_closed)
                     <button type="button" class="btn btn-outline-secondary btn-sm-custom" data-bs-toggle="modal"
-                        data-bs-target="#transactionModal">
+                        data-bs-target="#transactionModal" id="btnTambahTransaksi">
                         <i class="bi bi-plus me-1"></i>
                         Tambah Pembelanjaan
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm-custom">
+                    <button type="button" class="btn btn-outline-secondary btn-sm-custom" id="btnCari">
                         <i class="bi bi-search me-1"></i>
                         Cari
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm-custom">
+                    <button type="button" class="btn btn-outline-secondary btn-sm-custom" id="btnCetak">
                         <i class="bi bi-printer me-1"></i>
                         Cetak
                     </button>
                     <button type="button" class="btn btn-dark btn-sm-custom" data-bs-toggle="modal"
-                        data-bs-target="#tutupBku">
+                        data-bs-target="#tutupBku" id="btnTutupBku">
                         Tutup BKU
                     </button>
+                    @else
+                    <button type="button" class="btn btn-success btn-sm-custom" id="btnBukaBku">
+                        <i class="bi bi-unlock me-1"></i>
+                        Buka BKU
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm-custom" id="btnEditBunga">
+                        <i class="bi bi-pencil me-1"></i>
+                        Edit Bunga Bank
+                    </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -67,23 +88,24 @@
                     <div class="d-inline-flex mb-1 justify-content-between w-100 align-items-center">
                         <h5 class="small fw-bold text-muted me-3">TOTAL DANA TERSEDIA</h5>
                         <div class="btn small-group" role="group" aria-label="Basic example">
-                            <button class="btn btn-sm btn-dark me-2"
+                            <button class="btn btn-sm btn-dark me-2" id="btnTarikTunai"
                                 style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;"
                                 data-bs-toggle="modal" data-bs-target="#tarikTunai">Tarik Tunai</button>
-                            <button class="btn btn-sm btn-light"
+                            <button class="btn btn-sm btn-light" id="btnSetorTunai"
                                 style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;"
                                 data-bs-toggle="modal" data-bs-target="#setorTunai">Setor Tunai</button>
                         </div>
                     </div>
                     <div class="mb-2">
-                        <h4 class="fw-semibold text-dark">Rp {{ number_format($totalDanaTersedia - $totalDibelanjakanSampaiBulanIni, 0, ',', '.') }}</h4>
+                        <h4 class="fw-semibold text-dark">Rp {{ number_format($totalDanaTersedia -
+                            $totalDibelanjakanSampaiBulanIni, 0, ',', '.') }}</h4>
                     </div>
                     <div class="row">
                         <div class="col-6">
                             <span class="form-label">Non Tunai</span>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text" id="inputGroup-sizing-sm">Rp</span>
-                                <input type="text" class="form-control"
+                                <input type="text" class="form-control" id="saldoNonTunaiDisplay"
                                     value="{{ number_format($saldoNonTunai, 0, ',', '.') }}"
                                     aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm" disabled>
                             </div>
@@ -92,7 +114,7 @@
                             <span class="form-label">Tunai</span>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text" id="inputGroup-sizing-sm">Rp</span>
-                                <input type="text" class="form-control"
+                                <input type="text" class="form-control" id="saldoTunaiDisplay"
                                     value="{{ number_format($saldoTunai, 0, ',', '.') }}"
                                     aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm" disabled>
                             </div>
@@ -149,8 +171,10 @@
                                 </div>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text" id="inputGroup-sizing-sm">Rp</span>
-                                    <input type="text" class="form-control" value="0" aria-label="Sizing example input"
-                                        aria-describedby="inputGroup-sizing-sm" disabled>
+                                    <input type="text" class="form-control"
+                                        value="{{ number_format($anggaranBelumDibelanjakan, 0, ',', '.') }}"
+                                        aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm"
+                                        disabled>
                                 </div>
                             </div>
                         </div>
@@ -178,6 +202,159 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                <!-- Baris Penerimaan Dana (Hanya tampil di bulan yang sesuai) -->
+                                @if($penerimaanDanas && $penerimaanDanas->count() > 0)
+                                @foreach($penerimaanDanas as $penerimaan)
+                                @php
+                                $bulanPenerimaan = \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('F');
+                                $bulanPenerimaanIndo = [
+                                'January' => 'Januari',
+                                'February' => 'Februari',
+                                'March' => 'Maret',
+                                'April' => 'April',
+                                'May' => 'Mei',
+                                'June' => 'Juni',
+                                'July' => 'Juli',
+                                'August' => 'Agustus',
+                                'September' => 'September',
+                                'October' => 'Oktober',
+                                'November' => 'November',
+                                'December' => 'Desember'
+                                ][$bulanPenerimaan] ?? $bulanPenerimaan;
+                                @endphp
+
+                                @if($bulanPenerimaanIndo === $bulan)
+                                <tr class="bg-light">
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">{{
+                                        \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('d M Y') }}</td>
+                                    <td class="px-4 py-3 fw-semibold">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-arrow-left-circle text-success me-2"></i>
+                                            <span>Penerimaan dana {{ $penerimaan->sumber_dana }} Rp {{
+                                                number_format($penerimaan->jumlah_dana, 0, ',', '.') }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3 text-center">-</td>
+                                </tr>
+                                @if($penerimaan->sumber_dana === 'Bosp Reguler Tahap 1' && $penerimaan->saldo_awal)
+                                <tr class="bg-light">
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">{{
+                                        \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('d M Y') }}</td>
+                                    <td class="px-4 py-3 fw-semibold">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-arrow-left-circle text-success me-2"></i>
+                                            <span>Saldo Awal {{ $penerimaan->sumber_dana }} Rp {{
+                                                number_format($penerimaan->saldo_awal, 0, ',', '.') }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3 text-center">-</td>
+                                </tr>
+                                @endif
+                                @endif
+                                @endforeach
+                                @endif
+
+                                <!-- Baris Penarikan Tunai (Hanya tampil di bulan yang sesuai) -->
+                                @if($penarikanTunais && $penarikanTunais->count() > 0)
+                                @foreach($penarikanTunais as $penarikan)
+                                @php
+                                $bulanPenarikan = \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('F');
+                                $bulanPenarikanIndo = [
+                                'January' => 'Januari',
+                                'February' => 'Februari',
+                                'March' => 'Maret',
+                                'April' => 'April',
+                                'May' => 'Mei',
+                                'June' => 'Juni',
+                                'July' => 'Juli',
+                                'August' => 'Agustus',
+                                'September' => 'September',
+                                'October' => 'Oktober',
+                                'November' => 'November',
+                                'December' => 'Desember'
+                                ][$bulanPenarikan] ?? $bulanPenarikan;
+                                @endphp
+
+                                @if($bulanPenarikanIndo === $bulan)
+                                <tr class="bg-light">
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">{{
+                                        \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d M Y') }}</td>
+                                    <td class="px-4 py-3 fw-semibold">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-arrow-right-circle text-danger me-2"></i>
+                                            <span>Penarikan tunai Rp {{ number_format($penarikan->jumlah_penarikan, 0,
+                                                ',', '.') }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3 text-center">-</td>
+                                </tr>
+                                @endif
+                                @endforeach
+                                @endif
+
+                                <!-- Baris Setor Tunai (Hanya tampil di bulan yang sesuai) -->
+                                @if($setorTunais && $setorTunais->count() > 0)
+                                @foreach($setorTunais as $setor)
+                                @php
+                                $bulanSetor = \Carbon\Carbon::parse($setor->tanggal_setor)->format('F');
+                                $bulanSetorIndo = [
+                                'January' => 'Januari',
+                                'February' => 'Februari',
+                                'March' => 'Maret',
+                                'April' => 'April',
+                                'May' => 'Mei',
+                                'June' => 'Juni',
+                                'July' => 'Juli',
+                                'August' => 'Agustus',
+                                'September' => 'September',
+                                'October' => 'Oktober',
+                                'November' => 'November',
+                                'December' => 'Desember'
+                                ][$bulanSetor] ?? $bulanSetor;
+                                @endphp
+
+                                @if($bulanSetorIndo === $bulan)
+                                <tr class="bg-light">
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">{{ \Carbon\Carbon::parse($setor->tanggal_setor)->format('d M
+                                        Y') }}</td>
+                                    <td class="px-4 py-3 fw-semibold">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-arrow-left-circle text-success me-2"></i>
+                                            <span>Setor tunai Rp {{ number_format($setor->jumlah_setor, 0, ',', '.')
+                                                }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3">-</td>
+                                    <td class="px-4 py-3 text-center">-</td>
+                                </tr>
+                                @endif
+                                @endforeach
+                                @endif
+
+                                <!-- Data BKU yang sudah ada -->
                                 @forelse($bkuData as $bku)
                                 <tr>
                                     <td class="px-4 py-3">{{ $bku->id_transaksi }}</td>
@@ -191,7 +368,7 @@
                                         @if($bku->total_pajak)
                                         Rp {{ number_format($bku->total_pajak, 0, ',', '.') }}
                                         @else
-                                        -
+                                        Rp. 0
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-center">
@@ -215,7 +392,9 @@
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item text-danger btn-hapus-individual" href="{{ route('bku.destroy', $bku->id) }}" data-id="{{ $bku->id }}">
+                                                    <a class="dropdown-item text-danger btn-hapus-individual"
+                                                        href="{{ route('bku.destroy', $bku->id ) }}"
+                                                        data-id="{{ $bku->id }}">
                                                         <i class="bi bi-trash me-2"></i>Hapus
                                                     </a>
                                                 </li>
@@ -246,6 +425,38 @@
 @foreach ($bkuData as $bku)
 @include('bku.modal.detail-modal')
 @endforeach
+
+<!-- Modal untuk Edit Bunga Bank -->
+<div class="modal fade" id="editBungaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Bunga Bank</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formEditBunga">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_bunga_bank" class="form-label">Bunga Bank</label>
+                        <input type="number" class="form-control" id="edit_bunga_bank" name="bunga_bank"
+                            value="{{ $bunga_bank }}" step="0.01" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_pajak_bunga_bank" class="form-label">Pajak Bunga Bank</label>
+                        <input type="number" class="form-control" id="edit_pajak_bunga_bank" name="pajak_bunga_bank"
+                            value="{{ $pajak_bunga_bank }}" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <style>
     body {
         background-color: #f8f9fa;
@@ -337,7 +548,6 @@
         box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
         border: 1px solid #dee2e6;
         z-index: 1060;
-        /* Higher z-index to appear above table */
     }
 
     .dropdown-item {
@@ -360,7 +570,6 @@
     .table-responsive {
         position: relative;
         overflow: visible !important;
-        /* Changed from auto to visible */
     }
 
     /* Ensure dropdown is not clipped by table */
@@ -373,7 +582,6 @@
     td:last-child {
         position: relative;
         z-index: 2;
-        /* Ensure action column is above other cells */
     }
 
     /* Specific fix for dropdown in table */
@@ -392,243 +600,365 @@
     .table-responsive>.table>tbody>tr>td:last-child {
         overflow: visible;
     }
+
+    /* Style for disabled state */
+    .disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    .bg-light {
+        background-color: #f8f9fa !important;
+    }
+
+    /* Style khusus untuk baris penerimaan dana */
+    .table-hover .bg-light:hover {
+        background-color: #e9ecef !important;
+    }
+
+    /* Style untuk ikon panah */
+    .bi-arrow-left-circle {
+        color: #198754;
+        /* Hijau untuk penerimaan/setor */
+    }
+
+    .bi-arrow-right-circle {
+        color: #dc3545;
+        /* Merah untuk penarikan */
+    }
 </style>
 @push('scripts')
 <script>
     $(document).ready(function() {
-    // Event listener untuk tombol hapus semua
-    $(document).ready(function() {
-        console.log('Document ready - SweetAlert script loaded'); // Debug log
-    
-    // Event listener untuk tombol hapus semua
-        $(document).on('click', '#hapusSemuaBulan', function(e) {
-        e.preventDefault();
-        console.log('Hapus semua button clicked'); // Debug log
-    
-        const bulan = $(this).data('bulan');
-        const tahun = $(this).data('tahun');
-        const jumlahData = {{ count($bkuData) }};
-    
-        console.log('Bulan:', bulan, 'Tahun:', tahun, 'Jumlah Data:', jumlahData); // Debug log
-    
-        // Pastikan SweetAlert terload
-        if (typeof Swal === 'undefined') {
-        console.error('SweetAlert2 not loaded!');
-        alert('Error: SweetAlert2 tidak terload. Silakan refresh halaman.');
-        return;
-        }
-    
-        Swal.fire({
-        title: 'Apakah Anda yakin?',
-        html: `<div class="text-start">
-            <p>Anda akan menghapus <strong>SEMUA</strong> data BKU untuk:</p>
-            <ul>
-                <li>Bulan: <strong>${bulan}</strong></li>
-                <li>Tahun: <strong>${tahun}</strong></li>
-                <li>Jumlah data: <strong>${jumlahData} transaksi</strong></li>
-            </ul>
-            <p class="text-danger mt-3"><strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan!</p>
-        </div>`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Ya, Hapus Semua!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-        customClass: {
-            confirmButton: 'btn btn-danger me-2',
-            cancelButton: 'btn btn-secondary me-2'
-        },
-        buttonsStyling: false,
-        showLoaderOnConfirm: true,
-        preConfirm: () => {
-            return new Promise((resolve, reject) => {
-            console.log('Sending AJAX request...'); // Debug log
-        
-            $.ajax({
-                url: '{{ route("bku.destroy-all-bulan", ["tahun" => ":tahun", "bulan" => ":bulan"]) }}'
-                .replace(':tahun', tahun)
-                .replace(':bulan', bulan),
-                method: 'DELETE',
-                headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-                'Accept': 'application/json'
-            },
-            success: function(response) {
-                console.log('AJAX success:', response); // Debug log
-                resolve(response);
-            },
-            error: function(xhr, status, error) {
-                console.error('AJAX error:', xhr, status, error); // Debug log
-                let errorMessage = 'Terjadi kesalahan server';
-        
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-            errorMessage = xhr.responseJSON.message;
-            } else if (xhr.status === 404) {
-            errorMessage = 'Data tidak ditemukan';
-            } else if (xhr.status === 422) {
-            errorMessage = 'Terjadi kesalahan validasi';
-            } else if (xhr.status === 500) {
-            errorMessage = 'Error server internal';
-            }
-    
-                reject(new Error(errorMessage));
-                }
-            });
-        });
-    },
-    allowOutsideClick: () => !Swal.isLoading()
-    }).then((result) => {
-        if (result.isConfirmed) {
-        console.log('Delete confirmed, result:', result); // Debug log
-        Swal.fire({
-        title: 'Berhasil!',
-        html: `<div class="text-start">
-            <p>${result.value.message}</p>
-            <p class="text-success">Jumlah data yang dihapus: <strong>${result.value.deleted_count}</strong></p>
-        </div>`,
-        icon: 'success',
-        confirmButtonColor: '#198754',
-        confirmButtonText: 'OK',
-        customClass: {
-        confirmButton: 'btn btn-success'
-        },
-        buttonsStyling: false
-        }).then(() => {
-            console.log('Reloading page...'); // Debug log
-            location.reload();
-            });
-        } else {
-            console.log('Delete cancelled'); // Debug log
-        }
-    }).catch((error) => {
-        console.error('SweetAlert error:', error); // Debug log
-        Swal.fire({
-        title: 'Error!',
-        text: error.message,
-        icon: 'error',
-        confirmButtonColor: '#d33',
-        confirmButtonText: 'OK',
-        customClass: {
-        confirmButton: 'btn btn-danger'
-        },
-            buttonsStyling: false
-            });
-        });
-    });
-    
-        // Debug: Test SweetAlert manually
-        window.testSweetAlert = function() {
-            if (typeof Swal !== 'undefined') {
-            Swal.fire('Test', 'SweetAlert2 is working!', 'info');
+        console.log('Document ready - SweetAlert script loaded');
+
+        // Function untuk disable/enable elements
+        function toggleBkuStatus(isClosed, hasTransactions) {
+            $('#btnTambahTransaksi, #btnCari, #btnCetak, #btnTutupBku, #btnTarikTunai, #btnSetorTunai').prop('disabled', isClosed);
+            
+            // Hanya non-aktifkan hapus jika ada data dan terkunci
+            if (isClosed && hasTransactions) {
+                $('.btn-hapus-individual').addClass('disabled');
+                $('#hapusSemuaBulan').hide();
             } else {
-            alert('SweetAlert2 not loaded');
+                $('.btn-hapus-individual').removeClass('disabled');
+                if (hasTransactions) {
+                    $('#hapusSemuaBulan').show();
+                } else {
+                    $('#hapusSemuaBulan').hide();
+                }
             }
         }
-    });
-    
-        // SweetAlert untuk hapus data individual (jika menggunakan tag <a>)
-            $('a.btn-hapus-individual').on('click', function(e) {
+
+        // Initialize status
+        toggleBkuStatus({{ $is_closed ? 'true' : 'false' }}, {{ $has_transactions ? 'true' : 'false' }});
+
+        // Event listener untuk tombol hapus semua
+        $(document).on('click', '#hapusSemuaBulan', function(e) {
+            e.preventDefault();
+            console.log('Hapus semua button clicked');
+
+            const bulan = $(this).data('bulan');
+            const tahun = $(this).data('tahun');
+            const jumlahData = {{ count($bkuData) }};
+
+            console.log('Bulan:', bulan, 'Tahun:', tahun, 'Jumlah Data:', jumlahData);
+
+            if (typeof Swal === 'undefined') {
+                console.error('SweetAlert2 not loaded!');
+                alert('Error: SweetAlert2 tidak terload. Silakan refresh halaman.');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                html: `<div class="text-start">
+                    <p>Anda akan menghapus <strong>SEMUA</strong> data BKU untuk:</p>
+                    <ul>
+                        <li>Bulan: <strong>${bulan}</strong></li>
+                        <li>Tahun: <strong>${tahun}</strong></li>
+                        <li>Jumlah data: <strong>${jumlahData} transaksi</strong></li>
+                    </ul>
+                    <p class="text-danger mt-3"><strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan!</p>
+                </div>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus Semua!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                customClass: {
+                    confirmButton: 'btn btn-danger me-2',
+                    cancelButton: 'btn btn-secondary me-2'
+                },
+                buttonsStyling: false,
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return new Promise((resolve, reject) => {
+                        console.log('Sending AJAX request...');
+                    
+                        $.ajax({
+                            url: '{{ route("bku.destroy-all-bulan", ["tahun" => ":tahun", "bulan" => ":bulan"]) }}'
+                                .replace(':tahun', tahun)
+                                .replace(':bulan', bulan),
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                                'Accept': 'application/json'
+                            },
+                            success: function(response) {
+                                console.log('AJAX success:', response);
+                                resolve(response);
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('AJAX error:', xhr, status, error);
+                                let errorMessage = 'Terjadi kesalahan server';
+                        
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errorMessage = xhr.responseJSON.message;
+                                } else if (xhr.status === 404) {
+                                    errorMessage = 'Data tidak ditemukan';
+                                } else if (xhr.status === 422) {
+                                    errorMessage = 'Terjadi kesalahan validasi';
+                                } else if (xhr.status === 500) {
+                                    errorMessage = 'Error server internal';
+                                }
+
+                                reject(new Error(errorMessage));
+                            }
+                        });
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    console.log('Delete confirmed, result:', result);
+                    Swal.fire({
+                        title: 'Berhasil!',
+                        html: `<div class="text-start">
+                            <p>${result.value.message}</p>
+                            <p class="text-success">Jumlah data yang dihapus: <strong>${result.value.deleted_count}</strong></p>
+                        </div>`,
+                        icon: 'success',
+                        confirmButtonColor: '#198754',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            confirmButton: 'btn btn-success'
+                        },
+                        buttonsStyling: false
+                    }).then(() => {
+                        console.log('Reloading page...');
+                        location.reload();
+                    });
+                } else {
+                    console.log('Delete cancelled');
+                }
+            }).catch((error) => {
+                console.error('SweetAlert error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#d33',
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        confirmButton: 'btn btn-danger'
+                    },
+                    buttonsStyling: false
+                });
+            });
+        });
+
+        // SweetAlert untuk hapus data individual
+        $('a.btn-hapus-individual').on('click', function(e) {
             e.preventDefault();
             const url = $(this).attr('href');
             const id = $(this).data('id');
-    
-            Swal.fire({
-            title: 'Hapus Transaksi?',
-            text: "Apakah Anda yakin ingin menghapus transaksi ini?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal',
-            reverseButtons: true,
-            customClass: {
-            confirmButton: 'btn btn-danger me-2',
-            cancelButton: 'btn btn-secondary me-2'
-            },
-            buttonsStyling: false
-            }).then((result) => {
-            if (result.isConfirmed) {
-            // Buat form untuk submit
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = url;
-    
-            // Tambahkan CSRF token
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = '_token';
-            csrfToken.value = $('meta[name="csrf-token"]').attr('content');
-            form.appendChild(csrfToken);
-    
-            // Tambahkan method spoofing
-            const method = document.createElement('input');
-            method.type = 'hidden';
-            method.name = '_method';
-            method.value = 'DELETE';
-            form.appendChild(method);
-    
-            // Submit form
-            document.body.appendChild(form);
-            form.submit();
-            }
-            });
-            });
-            });
 
-    // Fix dropdown positioning
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize all dropdowns
+            Swal.fire({
+                title: 'Hapus Transaksi?',
+                text: "Apakah Anda yakin ingin menghapus transaksi ini?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                customClass: {
+                    confirmButton: 'btn btn-danger me-2',
+                    cancelButton: 'btn btn-secondary me-2'
+                },
+                buttonsStyling: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Buat form untuk submit
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = url;
+
+                    // Tambahkan CSRF token
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = $('meta[name="csrf-token"]').attr('content');
+                    form.appendChild(csrfToken);
+
+                    // Tambahkan method spoofing
+                    const method = document.createElement('input');
+                    method.type = 'hidden';
+                    method.name = '_method';
+                    method.value = 'DELETE';
+                    form.appendChild(method);
+
+                    // Submit form
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+
+        // Form tutup BKU
+        $('#formTutupBku').on('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                bunga_bank: $('#bunga_bank').val().replace(/[^\d]/g, ''),
+                pajak_bunga_bank: $('#pajak_bunga_bank').val().replace(/[^\d]/g, ''),
+                _token: $('meta[name="csrf-token"]').attr('content')
+            };
+
+            Swal.fire({
+                title: 'Tutup BKU?',
+                text: 'Apakah Anda yakin ingin menutup BKU untuk bulan ini?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Tutup BKU',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '{{ route("bku.tutup", ["tahun" => $tahun, "bulan" => $bulan]) }}',
+                        method: 'POST',
+                        data: formData,
+                        success: function(response) {
+                            Swal.fire('Berhasil!', 'BKU berhasil ditutup', 'success').then(() => {
+                                location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error!', xhr.responseJSON?.message || 'Terjadi kesalahan', 'error');
+                        }
+                    });
+                }
+            });
+        });
+
+        // Buka BKU
+        $('#btnBukaBku').on('click', function() {
+            Swal.fire({
+                title: 'Buka BKU?',
+                text: 'Apakah Anda yakin ingin membuka BKU untuk bulan ini?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Buka BKU',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '{{ route("bku.buka", ["tahun" => $tahun, "bulan" => $bulan]) }}',
+                        method: 'POST',
+                        data: {
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+                            Swal.fire('Berhasil!', 'BKU berhasil dibuka', 'success').then(() => {
+                                location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error!', xhr.responseJSON?.message || 'Terjadi kesalahan', 'error');
+                        }
+                    });
+                }
+            });
+        });
+
+        // Edit bunga bank
+        $('#btnEditBunga').on('click', function() {
+            $('#editBungaModal').modal('show');
+        });
+
+        $('#formEditBunga').on('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                bunga_bank: $('#edit_bunga_bank').val(),
+                pajak_bunga_bank: $('#edit_pajak_bunga_bank').val(),
+                _token: $('meta[name="csrf-token"]').attr('content')
+            };
+
+            $.ajax({
+                url: '{{ route("bku.update-bunga", ["tahun" => $tahun, "bulan" => $bulan]) }}',
+                method: 'PUT',
+                data: formData,
+                success: function(response) {
+                    Swal.fire('Berhasil!', 'Data bunga bank berhasil diperbarui', 'success').then(() => {
+                        $('#editBungaModal').modal('hide');
+                        location.reload();
+                    });
+                },
+                error: function(xhr) {
+                    Swal.fire('Error!', xhr.responseJSON?.message || 'Terjadi kesalahan', 'error');
+                }
+            });
+        });
+
+        // Fix dropdown positioning
         var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'))
         var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
             return new bootstrap.Dropdown(dropdownToggleEl)
         });
 
-        // Fix dropdown position in table
         document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
             menu.style.zIndex = '1060';
         });
     });
-</script>
 
-<script>
-// Function untuk update display saldo
-function updateSaldoDisplay(saldoData) {
-    if (saldoData) {
-        $('#totalDanaTersediaDisplay').text('Rp ' + formatRupiah(saldoData.total_dana_tersedia));
-        $('#saldoNonTunaiDisplay').val('Rp ' + formatRupiah(saldoData.non_tunai));
-        $('#saldoTunaiDisplay').val('Rp ' + formatRupiah(saldoData.tunai));
-    }
-}
-
-// Function format rupiah
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID').format(angka);
-}
-
-// Event listener untuk success simpan transaksi
-document.addEventListener('DOMContentLoaded', function() {
-    // Listen untuk event custom dari modal success
-    $(document).on('bkuSaved', function(e, data) {
-        if (data.saldo_update) {
-            updateSaldoDisplay(data.saldo_update);
-            
-            // Update juga max value untuk penarikan/setor tunai
-            $('input[data-max]').each(function() {
-                const field = $(this);
-                if (field.attr('id') === 'jumlah_penarikan') {
-                    field.attr('data-max', data.saldo_update.non_tunai);
-                    field.next('small').text('Maksimal: Rp ' + formatRupiah(data.saldo_update.non_tunai));
-                } else if (field.attr('id') === 'jumlah_setor') {
-                    field.attr('data-max', data.saldo_update.tunai);
-                    field.next('small').text('Maksimal: Rp ' + formatRupiah(data.saldo_update.tunai));
-                }
-            });
+    // Function untuk update display saldo
+    function updateSaldoDisplay(saldoData) {
+        if (saldoData) {
+            $('#totalDanaTersediaDisplay').text('Rp ' + formatRupiah(saldoData.total_dana_tersedia));
+            $('#saldoNonTunaiDisplay').val('Rp ' + formatRupiah(saldoData.non_tunai));
+            $('#saldoTunaiDisplay').val('Rp ' + formatRupiah(saldoData.tunai));
         }
+    }
+
+    // Function format rupiah
+    function formatRupiah(angka) {
+        return new Intl.NumberFormat('id-ID').format(angka);
+    }
+
+    // Event listener untuk success simpan transaksi
+    document.addEventListener('DOMContentLoaded', function() {
+        $(document).on('bkuSaved', function(e, data) {
+            if (data.saldo_update) {
+                updateSaldoDisplay(data.saldo_update);
+                
+                $('input[data-max]').each(function() {
+                    const field = $(this);
+                    if (field.attr('id') === 'jumlah_penarikan') {
+                        field.attr('data-max', data.saldo_update.non_tunai);
+                        field.next('small').text('Maksimal: Rp ' + formatRupiah(data.saldo_update.non_tunai));
+                    } else if (field.attr('id') === 'jumlah_setor') {
+                        field.attr('data-max', data.saldo_update.tunai);
+                        field.next('small').text('Maksimal: Rp ' + formatRupiah(data.saldo_update.tunai));
+                    }
+                });
+            }
+        });
     });
-});
 </script>
 @endpush
 @endsection

@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('buku_kas_umums', function (Blueprint $table) {
             $table->id();
             $table->foreignId('penganggaran_id')->constrained('penganggarans')->onDelete('cascade');
-            $table->foreignId('kode_kegiatan_id')->constrained('kode_kegiatans')->onDelete('cascade');
-            $table->foreignId('kode_rekening_id')->constrained('rekening_belanjas')->onDelete('cascade');
+            $table->foreignId('kode_kegiatan_id')->nullable()->constrained('kode_kegiatans')->onDelete('cascade');
+            $table->foreignId('kode_rekening_id')->nullable()->constrained('rekening_belanjas')->onDelete('cascade');
             $table->date('tanggal_transaksi');
-            $table->enum('jenis_transaksi', ['tunai', 'non-tunai']);
+            $table->enum('jenis_transaksi', ['tunai', 'non-tunai'])->default('non-tunai');
             $table->string('id_transaksi'); // Nomor Nota
             $table->string('nama_penyedia_barang_jasa')->nullable();
             $table->string('nama_penerima_pembayaran')->nullable();
@@ -25,9 +25,9 @@ return new class extends Migration
             $table->string('nomor_telepon')->nullable();
             $table->string('npwp')->nullable();
             $table->text('uraian'); // Lunas Bayar Belanja {uraian}
-            $table->decimal('anggaran', 15, 2); // Total anggaran
-            $table->decimal('dibelanjakan', 15, 2);
-            $table->decimal('total_transaksi_kotor', 15, 2)->nullable(); // Tambahkan field ini
+            $table->decimal('anggaran', 15, 2)->default(0);
+            $table->decimal('dibelanjakan', 15, 2)->default(0);
+            $table->decimal('total_transaksi_kotor', 15, 2)->nullable();
             $table->string('pajak')->nullable();
             $table->integer('persen_pajak')->nullable();
             $table->decimal('total_pajak', 15, 2)->nullable();
@@ -36,7 +36,12 @@ return new class extends Migration
             $table->decimal('total_pajak_daerah', 15, 2)->nullable();
             $table->date('tanggal_lapor')->nullable();
             $table->string('ntpn')->nullable();
+            $table->decimal('bunga_bank', 15, 2)->nullable()->default(0);
+            $table->decimal('pajak_bunga_bank', 15, 2)->nullable()->default(0);
+            $table->enum('status', ['open', 'closed'])->default('open');
+            $table->boolean('is_bunga_record')->default(false); // Flag untuk menandai record bunga bank
             $table->timestamps();
+            $table->index(['penganggaran_id']);
         });
     }
 
