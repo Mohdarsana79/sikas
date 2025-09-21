@@ -1,4 +1,3 @@
-// File: resources/views/bku/bku.blade.php
 @extends('layouts.app')
 @include('layouts.navbar')
 @include('layouts.sidebar')

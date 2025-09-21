@@ -885,7 +885,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                         populateKegiatanSelect();
                     } else {
                         console.error('Error loading kegiatan dan rekening:', response.message);
-                        showValidationError('Gagal memuat data kegiatan dan rekening');
+                        showValidationError('Gagal memuat data kegiatan dan rekening' + bulan);
                     }
                 },
                 error: function(xhr) {
@@ -1001,7 +1001,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             }
         });
 
-        // PERBAIKAN: Fungsi untuk merender opsi uraian
+        // Fungsi untuk merender opsi uraian
         function renderUraianOptions(data, kegiatanIndex, container) {
             container.empty();
             
@@ -1011,55 +1011,89 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             }
             
             const uraianHtml = `
-                <div class="col-sm-12 justify-content-between align-content-between d-flex mb-3">
-                    <div class="label">
-                        <p class="mb-0 fw-bold">Uraian</p>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input check-all-uraian" type="checkbox" data-kegiatan-index="${kegiatanIndex}">
-                        <label class="form-check-label">
-                            <strong>Pilih</strong> semua uraian
-                        </label>
-                    </div>
+            <div class="col-sm-12 justify-content-between align-content-between d-flex mb-3">
+                <div class="label">
+                    <p class="mb-0 fw-bold">Uraian</p>
                 </div>
-                <hr class="mt-2 mb-3">
-                ${data.map((uraian, index) => `
+                <div class="form-check">
+                    <input class="form-check-input check-all-uraian" type="checkbox" data-kegiatan-index="${kegiatanIndex}">
+                    <label class="form-check-label">
+                        <strong>Pilih</strong> semua uraian
+                    </label>
+                </div>
+            </div>
+            <hr class="mt-2 mb-3">
+            ${data.map((uraian, index) => {
+                let warningHtml = '';
+                let infoHtml = '';
+                
+                if (uraian.melebihi_maksimal) {
+                    warningHtml = `
+                    <div class="alert alert-danger mt-2 p-2">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Peringatan:</strong> Volume melebihi data yang tersedia!
+                    </div>
+                    `;
+                } else if (uraian.from_previous_months) {
+                    infoHtml = `
+                    <div class="alert alert-info mt-2 p-2">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Informasi:</strong> Termasuk volume dari bulan sebelumnya yang ditutup tanpa belanja
+                        ${uraian.bulan_tertutup_list && uraian.bulan_tertutup_list.length > 0 ? 
+                            `(Bulan: ${uraian.bulan_tertutup_list.join(', ')})` : ''}
+                    </div>
+                    `;
+                }
+                
+                return `
                 <div class="card mb-3 uraian-item" data-uraian-id="${uraian.id}">
                     <div class="card-body">
+                        ${warningHtml}
+                        ${infoHtml}
                         <div class="form-check mb-3">
                             <input class="form-check-input uraian-checkbox" type="checkbox" name="uraian" value="${uraian.id}"
-                                data-anggaran="${uraian.anggaran}">
-                            <label class="form-check-label fw-bold">
+                                data-anggaran="${uraian.anggaran}" ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'disabled' : '' }>
+                            <label class="form-check-label fw-bold ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'text-danger' : ''}">
                                 ${uraian.uraian}
                             </label>
                             <input type="hidden" class="uraian-text-input" value="${uraian.uraian}">
                             <span class="satuan-text d-none">${uraian.satuan || ''}</span>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-4 mb-2">
                                 <label class="form-label">Jumlah</label>
                                 <div class="input-group input-group-sm">
                                     <input type="number" class="form-control jumlah-input" value="1" min="1" 
-                                        max="${uraian.sisa_volume}" aria-label="Jumlah">
-                                    <span class="input-group-text">Maks. ${uraian.sisa_volume}</span>
+                                        max="${uraian.volume_maksimal}" aria-label="Jumlah" 
+                                        ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'disabled' : '' }
+                                        oninput="validateVolumeInput(this, ${uraian.volume_maksimal})">
+                                    <span class="input-group-text">Maks. ${uraian.volume_maksimal}</span>
                                 </div>
-                                <small class="text-muted">Sisa volume: ${uraian.sisa_volume} ${uraian.satuan}</small>
+                                <small class="text-muted">Sisa volume total: ${uraian.sisa_volume} ${uraian.satuan}</small>
+                                ${uraian.volume_bulan_tertutup > 0 ?
+                                `<small class="text-info d-block">+ ${uraian.volume_bulan_tertutup} dari bulan sebelumnya (${uraian.bulan_tertutup_list.join(', ')})</small>` : ''}
+                                ${uraian.volume_bulan_ini > 0 ?
+                                `<small class="text-success d-block">+ ${uraian.volume_bulan_ini} dari bulan ${bulan}</small>` : ''}
+                                <div class="text-danger volume-error" style="display: none;">
+                                    <small><i class="bi bi-exclamation-circle"></i> Maaf, jumlah volume melebihi jumlah maksimal</small>
+                                </div>
                             </div>
-                            
+
                             <div class="col-md-8 mb-2">
                                 <label class="form-label">Harga Satuan</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">Rp</span>
-                                    <input type="text" class="form-control harga-input" 
-                                        value="${formatRupiah(uraian.harga_satuan)}" aria-label="Harga" readonly>
+                                    <input type="text" class="form-control harga-input" value="${formatRupiah(uraian.harga_satuan)}"
+                                        aria-label="Harga" readonly>
                                     <span class="input-group-text">Maks. Rp ${formatRupiah(uraian.harga_satuan)}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                `).join('')}
+                `;
+            }).join('')}
             `;
             
             container.html(uraianHtml);
@@ -1067,7 +1101,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             // Event listener untuk checkbox "pilih semua"
             $(`.check-all-uraian[data-kegiatan-index="${kegiatanIndex}"]`).change(function() {
                 const isChecked = $(this).is(':checked');
-                container.find('.uraian-checkbox').prop('checked', isChecked);
+                container.find('.uraian-checkbox:not(:disabled)').prop('checked', isChecked);
                 container.find('.uraian-item').each(function() {
                     updateUraianSubtotal($(this));
                 });
@@ -1082,9 +1116,25 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             
             // Event listener untuk input jumlah
             container.find('.jumlah-input').on('input', function() {
+                const maxVolume = parseFloat($(this).attr('max')) || 0;
+                validateVolumeInput(this, maxVolume);
                 updateUraianSubtotal($(this).closest('.uraian-item'));
                 updateTotalTransaksiDisplay();
             });
+        }
+
+        // Fungsi untuk validasi input volume
+        function validateVolumeInput(inputElement, maxVolume) {
+            const value = parseInt(inputElement.value) || 0;
+            const errorElement = $(inputElement).closest('.mb-2').find('.volume-error');
+            
+            if (value > maxVolume) {
+                errorElement.show();
+                inputElement.setCustomValidity('Jumlah volume melebihi maksimal');
+            } else {
+                errorElement.hide();
+                inputElement.setCustomValidity('');
+            }
         }
 
         // Fungsi untuk memperbarui subtotal uraian
@@ -1092,17 +1142,25 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             const checkbox = uraianItem.find('.uraian-checkbox');
             const jumlahInput = uraianItem.find('.jumlah-input');
             const hargaInput = uraianItem.find('.harga-input');
-            const subtotalInput = uraianItem.find('.subtotal-input');
+            const errorElement = uraianItem.find('.volume-error');
 
             if (checkbox.is(':checked')) {
                 const jumlah = parseFloat(jumlahInput.val()) || 0;
+                const maxVolume = parseFloat(jumlahInput.attr('max')) || 0;
                 const hargaText = hargaInput.val().replace(/[^\d]/g, '');
                 const harga = parseFloat(hargaText) || 0;
-                const subtotal = jumlah * harga;
-
-                subtotalInput.val(formatRupiah(subtotal));
+                
+                // Validasi volume
+                if (jumlah > maxVolume) {
+                    errorElement.show();
+                    jumlahInput[0].setCustomValidity('Jumlah volume melebihi maksimal');
+                } else {
+                    errorElement.hide();
+                    jumlahInput[0].setCustomValidity('');
+                }
             } else {
-                subtotalInput.val('0');
+                errorElement.hide();
+                jumlahInput[0].setCustomValidity('');
             }
         }
 

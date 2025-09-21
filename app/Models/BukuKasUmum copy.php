@@ -39,8 +39,7 @@ class BukuKasUmum extends Model
         'bunga_bank',
         'pajak_bunga_bank',
         'status',
-        'is_bunga_record',
-        'closed_without_spending'
+        'is_bunga_record'
     ];
 
     protected $casts = [
@@ -54,8 +53,7 @@ class BukuKasUmum extends Model
         'bunga_bank' => 'decimal:2',
         'pajak_bunga_bank' => 'decimal:2',
         'status' => 'string',
-        'is_bunga_record' => 'boolean',
-        'closed_without_spending' => 'boolean'
+        'is_bunga_record' => 'boolean'
     ];
 
     // Accessor untuk bulan
@@ -203,61 +201,5 @@ class BukuKasUmum extends Model
         }
 
         return $query->sum('volume');
-    }
-
-    // Method untuk mendapatkan volume dari bulan tertutup tanpa belanja
-    public static function getVolumeFromClosedMonths($penganggaran_id, $kegiatan_id, $rekening_id, $uraian, $sampaiBulan)
-    {
-        $bulanAngkaList = [
-            'Januari' => 1,
-            'Februari' => 2,
-            'Maret' => 3,
-            'April' => 4,
-            'Mei' => 5,
-            'Juni' => 6,
-            'Juli' => 7,
-            'Agustus' => 8,
-            'September' => 9,
-            'Oktober' => 10,
-            'November' => 11,
-            'Desember' => 12
-        ];
-
-        $sampaiBulanNumber = $bulanAngkaList[$sampaiBulan] ?? 1;
-        $totalVolume = 0;
-        $bulanList = [];
-
-        for ($i = 1; $i < $sampaiBulanNumber; $i++) {
-            $bulanNama = array_search($i, $bulanAngkaList);
-
-            // Cek apakah bulan ini ditutup tanpa belanja
-            $isClosedWithoutSpending = self::where('penganggaran_id', $penganggaran_id)
-                ->whereMonth('tanggal_transaksi', $i)
-                ->where('status', 'closed')
-                ->where('closed_without_spending', true)
-                ->exists();
-
-            if ($isClosedWithoutSpending) {
-                // Tentukan model yang akan digunakan berdasarkan bulan
-                $isTahap1 = in_array($bulanNama, ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']);
-                $model = $isTahap1 ? Rkas::class : RkasPerubahan::class;
-
-                // Hitung volume untuk bulan ini dari RKAS
-                $volumeBulan = $model::where('penganggaran_id', $penganggaran_id)
-                    ->where('bulan', $bulanNama)
-                    ->where('kode_rekening_id', $rekening_id)
-                    ->where('kode_id', $kegiatan_id)
-                    ->where('uraian', 'LIKE', '%' . $uraian . '%')
-                    ->sum('jumlah');
-
-                $totalVolume += $volumeBulan;
-                $bulanList[] = $bulanNama;
-            }
-        }
-
-        return [
-            'total_volume' => $totalVolume,
-            'bulan_list' => $bulanList
-        ];
     }
 }

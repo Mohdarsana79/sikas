@@ -22,13 +22,13 @@ class BukuKasUmumUraianDetail extends Model
         'satuan',
         'harga_satuan',
         'volume',
-        'subtotal',
+        'subtotal'
     ];
 
     protected $casts = [
         'harga_satuan' => 'decimal:2',
         'volume' => 'decimal:2',
-        'subtotal' => 'decimal:2',
+        'subtotal' => 'decimal:2'
     ];
 
     public function bukuKasUmum()
@@ -63,16 +63,16 @@ class BukuKasUmumUraianDetail extends Model
 
     public function getHargaSatuanFormattedAttribute()
     {
-        return 'Rp '.number_format($this->harga_satuan, 0, ',', '.');
+        return 'Rp ' . number_format($this->harga_satuan, 0, ',', '.');
     }
 
     public function getSubtotalFormattedAttribute()
     {
-        return 'Rp '.number_format($this->subtotal, 0, ',', '.');
+        return 'Rp ' . number_format($this->subtotal, 0, ',', '.');
     }
 
     public function getVolumeFormattedAttribute()
     {
-        return number_format($this->volume, 0).' '.($this->satuan ?? '');
+        return number_format($this->volume, 0) . ' ' . ($this->satuan ?? '');
     }
 }
