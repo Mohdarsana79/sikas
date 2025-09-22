@@ -492,7 +492,7 @@ class BukuKasUmumController extends Controller
             Log::info('Jumlah uraian ditemukan: ' . $uraian->count());
 
             // Kelompokkan uraian by nama uraian untuk menggabungkan yang sama
-            $uraianGrouped = $uraian->groupBy('uraian')->map(function ($uraianItems) use ($penganggaran, $bulan, $kegiatanId, $rekeningId, $bulanTargetNumber, $bulanAngkaList, $model) {
+            $uraianGrouped = $uraian->groupBy('uraian')->map(function ($uraianItems) use ($penganggaran, $bulan, $kegiatanId, $rekeningId, $bulanTargetNumber, $bulanAngkaList, $model, $isTahap1) {
                 $firstItem = $uraianItems->first();
 
                 // Hitung total volume (jumlah) dari bulan target
@@ -512,7 +512,7 @@ class BukuKasUmumController extends Controller
                 ]);
 
                 try {
-                    // Hitung total volume yang sudah dibelanjakan untuk uraian ini di SEMUA bulan
+                    // PERBAIKAN: Hitung total volume yang sudah dibelanjakan untuk uraian ini di SEMUA bulan
                     $sudahDibelanjakanVolume = BukuKasUmumUraianDetail::whereHas('bukuKasUmum', function ($query) use ($penganggaran) {
                         $query->where('penganggaran_id', $penganggaran->id);
                     })
@@ -521,7 +521,8 @@ class BukuKasUmumController extends Controller
                         ->where('uraian', 'LIKE', '%' . $firstItem->uraian . '%')
                         ->sum('volume');
 
-                    // Hitung volume dari bulan-bulan sebelumnya yang ditutup tanpa belanja
+                    // PERBAIKAN: Hitung volume dari bulan-bulan sebelumnya yang DITUTUP TANPA BELANJA
+                    // dan BELUM dibelanjakan di bulan-bulan berikutnya
                     $volumeBulanTertutup = 0;
                     $bulanTertutupList = [];
 
@@ -537,25 +538,63 @@ class BukuKasUmumController extends Controller
 
                         if ($isClosedWithoutSpending) {
                             // Hitung volume untuk bulan ini dari RKAS
-                            $volumeBulan = $model::where('penganggaran_id', $penganggaran->id)
-                                ->where('bulan', $bulanNama)
-                                ->where('kode_rekening_id', $rekeningId)
-                                ->where('kode_id', $kegiatanId)
-                                ->where('uraian', $firstItem->uraian)
-                                ->sum('jumlah');
+                            $volumeBulan = BukuKasUmum::getVolumeRkasPerBulan(
+                                $penganggaran->id,
+                                $kegiatanId,
+                                $rekeningId,
+                                $firstItem->uraian,
+                                $bulanNama,
+                                $isTahap1
+                            );
 
-                            $volumeBulanTertutup += $volumeBulan;
-                            $bulanTertutupList[] = $bulanNama;
+                            // PERBAIKAN: Hitung volume yang sudah dibelanjakan untuk bulan ini
+                            $volumeSudahDibelanjakanBulanIni = BukuKasUmum::getVolumeSudahDibelanjakanPerBulan(
+                                $penganggaran->id,
+                                $kegiatanId,
+                                $rekeningId,
+                                $firstItem->uraian,
+                                $i
+                            );
+
+                            // PERBAIKAN PENTING: Hanya tambahkan volume jika belum dibelanjakan di bulan tersebut
+                            // DAN belum dibelanjakan di bulan-bulan berikutnya
+                            if ($volumeSudahDibelanjakanBulanIni < $volumeBulan) {
+                                // Hitung volume yang sudah dibelanjakan untuk bulan ini di SEMUA bulan berikutnya
+                                $volumeSudahDibelanjakanSetelahnya = BukuKasUmumUraianDetail::whereHas('bukuKasUmum', function ($query) use ($penganggaran, $i) {
+                                    $query->where('penganggaran_id', $penganggaran->id)
+                                        ->whereMonth('tanggal_transaksi', '>', $i);
+                                })
+                                    ->where('kode_rekening_id', $rekeningId)
+                                    ->where('kode_kegiatan_id', $kegiatanId)
+                                    ->where('uraian', 'LIKE', '%' . $firstItem->uraian . '%')
+                                    ->sum('volume');
+
+                                // Volume sisa yang benar-benar belum dibelanjakan
+                                $volumeSisaBulan = max(0, $volumeBulan - $volumeSudahDibelanjakanBulanIni - $volumeSudahDibelanjakanSetelahnya);
+
+                                if ($volumeSisaBulan > 0) {
+                                    $volumeBulanTertutup += $volumeSisaBulan;
+                                    $bulanTertutupList[] = $bulanNama . ' (Sisa: ' . $volumeSisaBulan . ')';
+                                }
+                            }
                         }
                     }
 
                     // Hitung sisa volume yang benar-benar tersedia
                     $sisaVolumeTotal = max(0, $totalVolumeAllMonths - $sudahDibelanjakanVolume);
 
-                    // PERBAIKAN: Volume maksimal adalah volume bulan ini + volume dari bulan tertutup
+                    // PERBAIKAN: Volume maksimal adalah volume bulan ini + volume sisa dari bulan tertutup
                     // Tapi pastikan tidak melebihi sisa volume total
                     $volumeMaksimal = $volumeBulanIni + $volumeBulanTertutup;
                     $volumeMaksimal = min($volumeMaksimal, $sisaVolumeTotal);
+
+                    // Jika volume_maksimal adalah 0, set ke volume_bulan_ini saja
+                    if ($volumeMaksimal <= 0 && $volumeBulanIni > 0) {
+                        $volumeMaksimal = $volumeBulanIni;
+                    }
+
+                    // Pastikan volume_maksimal tidak negatif
+                    $volumeMaksimal = max(0, $volumeMaksimal);
 
                     // Cek apakah sudah mencapai maksimal di SEMUA bulan
                     $sudahMaksimal = $sudahDibelanjakanVolume >= $totalVolumeAllMonths;
@@ -563,7 +602,7 @@ class BukuKasUmumController extends Controller
                     // Cek apakah volume melebihi yang tersedia
                     $melebihiMaksimal = $volumeMaksimal < 0;
 
-                    Log::info('Uraian calculation dengan bulan tertutup', [
+                    Log::info('Uraian calculation dengan bulan tertutup - PERBAIKAN', [
                         'uraian' => $firstItem->uraian,
                         'total_volume_all_months' => $totalVolumeAllMonths,
                         'volume_bulan_ini' => $volumeBulanIni,
@@ -582,14 +621,14 @@ class BukuKasUmumController extends Controller
                         'total_volume' => $totalVolumeAllMonths,
                         'volume_bulan_ini' => $volumeBulanIni,
                         'volume_bulan_tertutup' => $volumeBulanTertutup,
-                        'volume_maksimal' => $volumeMaksimal, // Ini yang akan digunakan sebagai max value
+                        'volume_maksimal' => $volumeMaksimal,
                         'harga_satuan' => $firstItem->harga_satuan,
                         'satuan' => $firstItem->satuan,
                         'total_anggaran' => $firstItem->harga_satuan * $totalVolumeAllMonths,
                         'sudah_dibelanjakan' => $sudahDibelanjakanVolume * $firstItem->harga_satuan,
                         'sisa_anggaran' => max(0, ($totalVolumeAllMonths - $sudahDibelanjakanVolume) * $firstItem->harga_satuan),
                         'volume_sudah_dibelanjakan' => $sudahDibelanjakanVolume,
-                        'sisa_volume' => $sisaVolumeTotal, // Sisa volume total (untuk informasi)
+                        'sisa_volume' => $sisaVolumeTotal,
                         'sudah_maksimal' => $sudahMaksimal,
                         'melebihi_maksimal' => $melebihiMaksimal,
                         'dapat_digunakan' => !$sudahMaksimal && $volumeMaksimal > 0 && !$melebihiMaksimal,

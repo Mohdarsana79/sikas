@@ -1080,6 +1080,9 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                     `;
                 }
                 
+                // Escape single quotes dalam uraian untuk JavaScript
+                const escapedUraian = uraian.uraian.replace(/'/g, "\\'");
+                
                 return `
                 <div class="card mb-3 uraian-item" data-uraian-id="${uraian.id}">
                     <div class="card-body">
@@ -1102,7 +1105,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                     <input type="number" class="form-control jumlah-input" value="1" min="1" 
                                         max="${uraian.volume_maksimal}" aria-label="Jumlah" 
                                         ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'disabled' : '' }
-                                        oninput="validateVolumeInput(this, ${uraian.volume_maksimal}, '${uraian.uraian}')">
+                                        oninput="validateVolumeInput(this, ${uraian.volume_maksimal}, '${escapedUraian}')">
                                     <span class="input-group-text">Maks. ${uraian.volume_maksimal}</span>
                                 </div>
                                 <small class="text-muted">Sisa volume total: ${uraian.sisa_volume} ${uraian.satuan}</small>
@@ -1110,6 +1113,8 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                 `<small class="text-info d-block">+ ${uraian.volume_bulan_tertutup} dari bulan sebelumnya (${uraian.bulan_tertutup_list.join(', ')})</small>` : ''}
                                 ${uraian.volume_bulan_ini > 0 ?
                                 `<small class="text-success d-block">+ ${uraian.volume_bulan_ini} dari bulan ${bulan}</small>` : ''}
+                                ${uraian.volume_sudah_dibelanjakan > 0 ?
+                                `<small class="text-warning d-block">- ${uraian.volume_sudah_dibelanjakan} sudah dibelanjakan</small>` : ''}
                                 <div class="text-danger volume-error" style="display: none;">
                                     <small><i class="bi bi-exclamation-circle"></i> Maaf, jumlah volume melebihi jumlah maksimal</small>
                                 </div>
@@ -1182,7 +1187,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         // Fungsi untuk validasi semua volume sebelum pindah step
         function validateAllVolumes() {
             let volumeMelebihiMaksimal = false;
-            let uraianMelebihi = '';
             let uraianDetails = [];
             
             $('.jumlah-input').each(function() {

@@ -260,4 +260,43 @@ class BukuKasUmum extends Model
             'bulan_list' => $bulanList
         ];
     }
+
+    // Method untuk mendapatkan volume yang sudah dibelanjakan per bulan
+    public static function getVolumeSudahDibelanjakanPerBulan($penganggaran_id, $kegiatan_id, $rekening_id, $uraian, $bulanAngka)
+    {
+        return BukuKasUmumUraianDetail::whereHas('bukuKasUmum', function ($query) use ($penganggaran_id, $bulanAngka) {
+            $query->where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_transaksi', $bulanAngka);
+        })
+            ->where('kode_rekening_id', $rekening_id)
+            ->where('kode_kegiatan_id', $kegiatan_id)
+            ->where('uraian', 'LIKE', '%' . $uraian . '%')
+            ->sum('volume');
+    }
+
+    // Method untuk mendapatkan volume RKAS per bulan
+    public static function getVolumeRkasPerBulan($penganggaran_id, $kegiatan_id, $rekening_id, $uraian, $bulanNama, $isTahap1)
+    {
+        $model = $isTahap1 ? Rkas::class : RkasPerubahan::class;
+
+        return $model::where('penganggaran_id', $penganggaran_id)
+            ->where('bulan', $bulanNama)
+            ->where('kode_rekening_id', $rekening_id)
+            ->where('kode_id', $kegiatan_id)
+            ->where('uraian', $uraian)
+            ->sum('jumlah');
+    }
+
+    // Method untuk mendapatkan volume yang sudah dibelanjakan untuk bulan tertentu di SEMUA bulan berikutnya
+    public static function getVolumeSudahDibelanjakanSetelahBulan($penganggaran_id, $kegiatan_id, $rekening_id, $uraian, $bulanAngka)
+    {
+        return BukuKasUmumUraianDetail::whereHas('bukuKasUmum', function ($query) use ($penganggaran_id, $bulanAngka) {
+            $query->where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_transaksi', '>', $bulanAngka);
+        })
+            ->where('kode_rekening_id', $rekening_id)
+            ->where('kode_kegiatan_id', $kegiatan_id)
+            ->where('uraian', 'LIKE', '%' . $uraian . '%')
+            ->sum('volume');
+    }
 }
