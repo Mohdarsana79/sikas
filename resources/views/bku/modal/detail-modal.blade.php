@@ -19,8 +19,8 @@
                             {{ $bku->id_transaksi }}
                         </div>
                         <div class="mb-2">
-                            <strong>Jenis Transaksi:</strong><br>
-                            {{ ucfirst($bku->jenis_transaksi) }}
+                            <strong>Tanggal Lapor Pajak:</strong><br>
+                            {{ ucfirst($bku->tanggal_lapor) }}
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -31,6 +31,10 @@
                         <div class="mb-2">
                             <strong>NPWP:</strong><br>
                             {{ $bku->npwp ?? '-' }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>NTPN :</strong><br>
+                            {{ $bku->ntpn ?? '-' }}
                         </div>
                     </div>
                 </div>
@@ -43,7 +47,7 @@
                                 <strong>Kegiatan</strong>
                             </div>
                             <div class="card-body">
-                                {{ $bku->kodeKegiatan->uraian }}
+                                {{ $bku->kodeKegiatan->kode }} - {{ $bku->kodeKegiatan->uraian }}
                             </div>
                         </div>
                     </div>
@@ -53,7 +57,7 @@
                                 <strong>Rekening Belanja</strong>
                             </div>
                             <div class="card-body">
-                                {{ $bku->rekeningBelanja->rincian_objek }}
+                                {{ $bku->rekeningBelanja->kode_rekening }} - {{ $bku->rekeningBelanja->rincian_objek }}
                             </div>
                         </div>
                     </div>

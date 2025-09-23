@@ -100,4 +100,63 @@ class Penganggaran extends Model
     {
         return $this->hasMany(SetorTunai::class, 'penganggaran_id');
     }
+
+    // fungsi untuk menandai status card bulan jadi belum diisi, draft, dan selesai
+    public function getBulanStatus()
+    {
+        $statusBulan = [];
+        $bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        
+        // Cek apakah penerimaan dana tahap 1 sudah ada
+        $penerimaanTahap1 = PenerimaanDana::where('penganggaran_id', $this->id)
+            ->where('sumber_dana', 'Bosp Reguler Tahap 1')
+            ->first();
+        
+        if (!$penerimaanTahap1) {
+            foreach ($bulanList as $bulan) {
+                $statusBulan[$bulan] = 'disabled';
+            }
+            return $statusBulan;
+        }
+        
+        $bulanTertutupSebelumnya = true;
+        
+        foreach ($bulanList as $index => $bulan) {
+            $bulanAngka = $index + 1;
+            
+            // Dapatkan status dari database
+            $status = BukuKasUmum::getStatusBulan($this->id, $bulan);
+            
+            // Cek apakah BKU closed
+            $isClosed = BukuKasUmum::where('penganggaran_id', $this->id)
+                ->whereMonth('tanggal_transaksi', $bulanAngka)
+                ->where('status', 'closed')
+                ->exists();
+            
+            if ($isClosed) {
+                $statusBulan[$bulan] = 'selesai';
+                $bulanTertutupSebelumnya = true;
+                continue;
+            }
+            
+            if (!$bulanTertutupSebelumnya && $index > 0) {
+                $statusBulan[$bulan] = 'disabled';
+                continue;
+            }
+            
+            if ($status === 'draft') {
+                $statusBulan[$bulan] = 'draft';
+                $bulanTertutupSebelumnya = false;
+            } else {
+                if ($index === 0 || $statusBulan[$bulanList[$index - 1]] === 'selesai') {
+                    $statusBulan[$bulan] = 'belum_diisi';
+                    $bulanTertutupSebelumnya = false;
+                } else {
+                    $statusBulan[$bulan] = 'disabled';
+                }
+            }
+        }
+        
+        return $statusBulan;
+    }
 }

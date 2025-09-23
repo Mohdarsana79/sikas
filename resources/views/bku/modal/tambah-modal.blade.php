@@ -307,6 +307,10 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                         aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm"
                                         id="nomor_nota">
                                 </div>
+                                <small class="text-muted" id="lastNotaInfo">
+                                    <i class="bi bi-info-circle"></i>
+                                    Memuat informasi nomor nota terakhir...
+                                </small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="tanggal_nota" class="form-label">Tanggal Belanja/Nota</label>
@@ -585,6 +589,9 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             disableOutOfRangeDates();
             const dateRange = getDateRangeForMonth(bulan, tahun);
             $('#tanggal_transaksi, #tanggal_nota').val(dateRange.min);
+
+            // Memuat nomor nota terakhir
+            loadLastNotaNumber();
 
             // Inisialisasi Select2 setelah modal terbuka
             setTimeout(() => {
@@ -1102,7 +1109,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                             <div class="col-md-4 mb-2">
                                 <label class="form-label">Jumlah</label>
                                 <div class="input-group input-group-sm">
-                                    <input type="number" class="form-control jumlah-input" value="1" min="1" 
+                                    <input type="number" class="form-control jumlah-input" value="${uraian.volume_maksimal}" min="1" 
                                         max="${uraian.volume_maksimal}" aria-label="Jumlah" 
                                         ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'disabled' : '' }
                                         oninput="validateVolumeInput(this, ${uraian.volume_maksimal}, '${escapedUraian}')">
@@ -1576,6 +1583,122 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             }
         });
         
+        // Fungsi untuk memuat nomor nota terakhir
+        function loadLastNotaNumber() {
+            const tahun = '{{ $tahun }}';
+            const bulan = '{{ $bulan }}';
+            
+            $.ajax({
+                url: '/bku/last-nota-number/' + tahun + '/' + bulan,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const lastNota = response.last_nota_number;
+                        const suggestedNext = response.suggested_next_number;
+                        
+                        let infoText = '';
+                        if (lastNota) {
+                            infoText = `Nomor nota terakhir: <strong>${lastNota}</strong>`;
+                            if (suggestedNext) {
+                                infoText += ` | Saran berikutnya: <strong>${suggestedNext}</strong>`;
+                            }
+                        } else {
+                            infoText = 'Belum ada nomor nota untuk bulan ini';
+                        }
+                        
+                        $('#lastNotaInfo').html(`<i class="bi bi-info-circle"></i> ${infoText}`);
+                        
+                        // Auto-fill dengan saran nomor berikutnya jika field kosong
+                        if (suggestedNext && $('#nomor_nota').val() === '') {
+                            $('#nomor_nota').val(suggestedNext);
+                        }
+                    } else {
+                        $('#lastNotaInfo').html('<i class="bi bi-exclamation-triangle"></i> Gagal memuat informasi');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error loading last nota number:', xhr);
+                    $('#lastNotaInfo').html('<i class="bi bi-exclamation-triangle"></i> Error memuat informasi');
+                }
+            });
+        }
+
+        // Fungsi untuk mendapatkan nomor berikutnya (versi improved)
+        function getNextNotaNumber(lastNota) {
+            if (!lastNota) {
+                return '001';
+            }
+            
+            // Coba ekstrak angka dari nomor nota
+            const numericMatches = lastNota.match(/\d+/g);
+            
+            if (numericMatches && numericMatches.length > 0) {
+                // Ambil angka terakhir yang ditemukan
+                const lastNum = parseInt(numericMatches[numericMatches.length - 1]);
+                
+                if (!isNaN(lastNum)) {
+                    const nextNum = lastNum + 1;
+                    
+                    // Pertahankan format asli (prefix dan suffix)
+                    const prefix = lastNota.replace(/\d+.*$/, ''); // Bagian sebelum angka
+                    const suffix = lastNota.replace(/^.*?(\d+)/, '').replace(/\d+$/, ''); // Bagian setelah angka
+                    
+                    // Format angka menjadi 3 digit
+                    const formattedNum = String(nextNum).padStart(3, '0');
+                    
+                    return prefix + formattedNum + suffix;
+                }
+            }
+            
+            // Jika tidak ada angka, tambahkan -001
+            return lastNota + '-001';
+        }
+
+        // Fungsi untuk validasi format nomor nota (versi lebih fleksibel)
+        function validateNotaFormat(notaNumber) {
+            if (!notaNumber.trim()) {
+                return false;
+            }
+            
+            // Format yang diizinkan: boleh mengandung huruf, angka, dan karakter khusus
+            // Minimal harus ada angka
+            const hasNumber = /\d/.test(notaNumber);
+            
+            return hasNumber;
+        }
+
+        // Event handler untuk input nomor nota (versi improved)
+        $('#nomor_nota').on('blur', function() {
+            const notaValue = $(this).val().trim();
+            
+            if (notaValue && !validateNotaFormat(notaValue)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Format Nomor Nota',
+                    text: 'Nomor nota harus mengandung angka. Contoh: 001, BP001, NOTA-001, dll.',
+                    confirmButtonColor: '#0d6efd',
+                });
+                
+                // Fokus kembali ke field
+                $(this).focus();
+                return;
+            }
+            
+            // Jika hanya angka, format ke 3 digit
+            if (/^\d+$/.test(notaValue)) {
+                const number = parseInt(notaValue) || 1;
+                $(this).val(String(number).padStart(3, '0'));
+            }
+        });
+
+        // Event handler untuk memberikan contoh format
+        $('#nomor_nota').on('focus', function() {
+            const currentValue = $(this).val();
+            if (!currentValue) {
+                // Tampilkan placeholder dengan contoh format
+                $(this).attr('placeholder', 'Contoh: 001, BP001, NOTA-001, INV-2024-001');
+            }
+        });
     });
 </script>
 @endpush

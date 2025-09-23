@@ -41,6 +41,7 @@ return new class extends Migration
             $table->enum('status', ['open', 'closed'])->default('open');
             $table->boolean('is_bunga_record')->default(false); // Flag untuk menandai record bunga bank
             $table->boolean('closed_without_spending')->default(false);
+            $table->string('status_bulan')->nullable();
             $table->timestamps();
             $table->index(['penganggaran_id']);
             

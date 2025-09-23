@@ -18,18 +18,24 @@ class PenatausahaanController extends Controller
 
         // Ambil bulan yang sudah memiliki RKAS
         $bulanWithRkas = [];
+        $statusBulan = [];
+
         if ($penganggaran) {
             $bulanWithRkas = Rkas::where('penganggaran_id', $penganggaran->id)
                 ->distinct()
                 ->pluck('bulan')
                 ->toArray();
+
+            // Dapatkan status untuk setiap bulan
+            $statusBulan = $penganggaran->getBulanStatus();
         }
 
         return view('penatausahaan.penatausahaan', [
             'tahun' => $tahun,
             'tahunList' => $tahunList,
             'penganggaran' => $penganggaran,
-            'bulanWithRkas' => $bulanWithRkas
+            'bulanWithRkas' => $bulanWithRkas,
+            'statusBulan' => $statusBulan
         ]);
     }
 }

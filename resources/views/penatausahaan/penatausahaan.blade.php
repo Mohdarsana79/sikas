@@ -2,6 +2,26 @@
 @include('layouts.sidebar')
 @include('layouts.navbar')
 @section('content')
+<style>
+    .card {
+        transition: all 0.3s ease;
+        border: 1px solid #dee2e6;
+    }
+
+    .card:not(.bg-light):hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-color: #0d6efd;
+    }
+
+    .bi {
+        transition: all 0.3s ease;
+    }
+
+    .card:not(.bg-light):hover .bi {
+        color: #0d6efd !important;
+    }
+</style>
 <div class="content-area" id="contentArea">
     <!-- Dashboard Content -->
     <div class="fade-in">
@@ -102,34 +122,66 @@
                                     <!-- Data akan diisi melalui JavaScript -->
                                 </div>
                                 <div class="row">
-                                    <!-- Month Cards -->
                                     @php
-                                    $bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                                    $bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober',
+                                    'November', 'Desember'];
                                     @endphp
-
+                                
                                     @foreach($bulanList as $bulan)
+                                    @php
+                                    $status = $statusBulan[$bulan] ?? 'disabled';
+                                    $isDisabled = $status === 'disabled';
+                                    $cardClass = $isDisabled ? 'bg-light text-muted' : 'bg-white';
+                                    $textClass = $isDisabled ? 'text-muted' : 'text-dark';
+                                
+                                    // Tentukan icon dan badge
+                                    $icon = '';
+                                    $badgeClass = '';
+                                    $badgeText = '';
+                                
+                                    switch($status) {
+                                    case 'belum_diisi':
+                                    $icon = 'bi-circle';
+                                    $badgeClass = 'bg-secondary';
+                                    $badgeText = 'Belum Diisi';
+                                    break;
+                                    case 'draft':
+                                    $icon = 'bi-pencil';
+                                    $badgeClass = 'bg-warning text-dark';
+                                    $badgeText = 'Draft';
+                                    break;
+                                    case 'selesai':
+                                    $icon = 'bi-check-circle';
+                                    $badgeClass = 'bg-success';
+                                    $badgeText = 'Selesai';
+                                    break;
+                                    default:
+                                    $icon = 'bi-lock';
+                                    $badgeClass = 'bg-light text-muted';
+                                    $badgeText = 'Terkunci';
+                                    }
+                                
+                                    // Tentukan link berdasarkan status
+                                    $link = $isDisabled ? '#' : route('bku.showByBulan', ['tahun' => $tahun, 'bulan' => $bulan]);
+                                    @endphp
+                                
                                     <div class="col-md-3 mb-3">
-                                        <a href="{{ route('bku.showByBulan', ['tahun' => $tahun, 'bulan' => $bulan]) }}" class="text-decoration-none">
-                                            <div class="card h-100">
-                                                <div class="card-body text-center">
-                                                    <h6 class="card-title">{{ $bulan }}</h6>
-                                                    @if(in_array($bulan, $bulanWithRkas))
-                                                    <span class="badge bg-success">Sudah Selesai</span>
-                                                    @else
-                                                    <span class="badge bg-secondary">Belum Dibuat</span>
-                                                    @endif
+                                        <div class="card {{ $cardClass }} h-100" @if(!$isDisabled) onclick="window.location='{{ $link }}'"
+                                            style="cursor: pointer;" @endif>
+                                            <div class="card-body text-center">
+                                                <div class="mb-2">
+                                                    <i class="bi {{ $icon }} {{ $textClass }}" style="font-size: 2rem;"></i>
                                                 </div>
+                                                <h5 class="card-title {{ $textClass }}">{{ $bulan }}</h5>
+                                                <span class="badge {{ $badgeClass }}">{{ $badgeText }}</span>
+                                
+                                                @if($status === 'disabled' && !$penganggaran)
+                                                <small class="d-block mt-2 text-muted">Data penganggaran tidak ditemukan</small>
+                                                @endif
                                             </div>
-                                        </a>
+                                        </div>
                                     </div>
                                     @endforeach
-                                </div>
-
-                                <div class="text-center mt-4">
-                                    <button class="btn btn-primary">
-                                        <i class="bi bi-arrow-repeat me-2"></i>Perbarui Data BKU {{ $tahun }}
-                                    </button>
                                 </div>
                                 @else
                                 <div class="text-center py-5">

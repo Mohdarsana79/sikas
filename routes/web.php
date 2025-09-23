@@ -200,6 +200,10 @@ Route::middleware(['auth'])->prefix('penatausahaan')->group(function () {
 
 Route::middleware(['auth'])->prefix('bku')->group(function () {
     Route::get('/{tahun}/{bulan}', [BukuKasUmumController::class, 'showByBulan'])->name('bku.showByBulan');
+
+    // route status bulan: belum diisi, draft, selesai
+    Route::get('/status/{tahun}/{bulan}', [BukuKasUmumController::class, 'getStatusBulan'])
+    ->name('bku.status');
     // route untuk API total dana tersedia
     Route::get('/total-dana-tersedia/{penganggaran_id}', [BukuKasUmumController::class, 'getTotalDanaTersedia'])
         ->name('bku.total-dana-tersedia');
@@ -216,6 +220,14 @@ Route::middleware(['auth'])->prefix('bku')->group(function () {
         ->name('bku.uraian');
 
     Route::post('/store', [BukuKasUmumController::class, 'store'])->name('bku.store');
+
+    // Route untuk lapor pajak
+    Route::post('/{id}/lapor-pajak', [BukuKasUmumController::class, 'laporPajak'])->name('bku.lapor-pajak');
+    Route::get('/{id}/get-pajak', [BukuKasUmumController::class, 'getDataPajak'])->name('bku.get-pajak');
+
+    // Route untuk mendapatkan nomor nota terakhir
+    Route::get('/last-nota-number/{tahun}/{bulan}', [BukuKasUmumController::class, 'getLastNotaNumber'])
+        ->name('bku.last-nota-number');
 
     // API untuk mendapatkan total belanja
     Route::get('/total-dibelanjakan/{penganggaran_id}/{bulan}', [BukuKasUmumController::class, 'getTotalDibelanjakan'])

@@ -39,6 +39,7 @@ class BukuKasUmum extends Model
         'bunga_bank',
         'pajak_bunga_bank',
         'status',
+        'status_bulan',
         'is_bunga_record',
         'closed_without_spending'
     ];
@@ -298,5 +299,42 @@ class BukuKasUmum extends Model
             ->where('kode_kegiatan_id', $kegiatan_id)
             ->where('uraian', 'LIKE', '%' . $uraian . '%')
             ->sum('volume');
+    }
+
+    // Method untuk update status bulan agar card bulan status draft
+    public static function updateStatusBulan($penganggaran_id, $bulan, $status)
+    {
+        // Update semua record BKU di bulan tersebut
+        $bulanAngka = self::convertBulanToNumber($bulan);
+
+        return self::where('penganggaran_id', $penganggaran_id)
+            ->whereMonth('tanggal_transaksi', $bulanAngka)
+            ->update(['status_bulan' => $status]);
+    }
+
+    // Method untuk mendapatkan status bulan draft
+    public static function getStatusBulan($penganggaran_id, $bulan)
+    {
+        $bulanAngka = self::convertBulanToNumber($bulan);
+
+        $bku = self::where('penganggaran_id', $penganggaran_id)
+            ->whereMonth('tanggal_transaksi', $bulanAngka)
+            ->first();
+
+        if ($bku) {
+            return $bku->status_bulan;
+        }
+
+        return null;
+    }
+
+    /**
+     * The "booted" method of the model default ordering.
+     */
+    protected static function booted()
+    {
+        static::addGlobalScope('orderByIdTransaksi', function ($builder) {
+            $builder->orderBy('id_transaksi', 'asc');
+        });
     }
 }
