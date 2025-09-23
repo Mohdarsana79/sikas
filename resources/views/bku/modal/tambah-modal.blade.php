@@ -374,7 +374,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                             <!-- Cards kegiatan akan dirender di sini -->
                         </div>
                         <div class="row">
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-12 me-2 ms-2 mb-3 card bg-success bg-opacity-10 p-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" value="" id="checkPajak">
                                     <label class="form-check-label" for="checkPajak">
