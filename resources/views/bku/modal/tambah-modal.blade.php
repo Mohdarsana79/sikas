@@ -121,8 +121,7 @@
         opacity: 0.8;
     }
 
-    /* Perbaikan z-index untuk Select2 di dalam modal */
-    .select2-container--bootstrap-5 {
+    .select2-container {
         z-index: 1060 !important;
     }
 
@@ -130,7 +129,6 @@
         z-index: 1061 !important;
     }
 
-    /* Memastikan Select2 terlihat di dalam modal */
     .modal .select2-container {
         z-index: 1060;
     }
@@ -139,7 +137,6 @@
         z-index: 1061;
     }
 
-    /* Style untuk Select2 yang lebih compact */
     .select2-selection--single {
         height: 38px !important;
         padding: 4px 12px !important;
@@ -153,7 +150,46 @@
     .select2-selection__arrow {
         height: 36px !important;
     }
+
+    /* Style untuk select yang disabled */
+    select:disabled {
+        background-color: #e9ecef;
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .select2-container--disabled .select2-selection {
+        background-color: #e9ecef;
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* PERBAIKAN: Style untuk select yang disabled */
+    select:disabled {
+        background-color: #e9ecef;
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .select2-container--disabled .select2-selection {
+        background-color: #e9ecef;
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Loading indicator */
+    .loading-text {
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    /* Error state */
+    .error-text {
+        color: #dc3545;
+        font-style: italic;
+    }
 </style>
+
 @php
 $tahun = $tahun ?? date('Y');
 $bulan = $bulan ?? 'Januari';
@@ -174,6 +210,7 @@ $bulanList = [
 $bulanAngka = $bulanList[$bulan] ?? 1;
 $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
 @endphp
+
 <!-- Modal -->
 <div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -247,7 +284,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                                 aria-label="Sizing example input"
                                                 aria-describedby="inputGroup-sizing-sm" id="nama_toko">
                                         </div>
-                                        <!-- Tambahkan field hidden untuk nama_penerima ketika form toko aktif -->
                                         <input type="hidden" name="nama_penerima_pembayaran" id="nama_penerima_hidden"
                                             value="">
                                     </div>
@@ -339,16 +375,14 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                                 <label class="form-label">Kegiatan</label>
                                                 <select class="form-select form-select-sm kegiatan-select"
                                                     name="kode_kegiatan_id[]" required>
-                                                    <option value="">Pilih Jenis Kegiatan</option>
-                                                    <!-- Options akan diisi oleh JavaScript -->
+                                                    <option value="">Memuat data kegiatan...</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-12 mb-3">
                                                 <label class="form-label">Rekening Belanja</label>
                                                 <select class="form-select form-select-sm rekening-select"
-                                                    name="kode_rekening_id[]" required>
-                                                    <option value="">Pilih Rekening Belanja</option>
-                                                    <!-- Options akan diisi oleh JavaScript -->
+                                                    name="kode_rekening_id[]" required disabled>
+                                                    <option value="">Pilih kegiatan terlebih dahulu</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -498,15 +532,61 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
 @push('scripts')
 <script>
     $(document).ready(function() {
+        // Debug info
+        console.log('=== TRANSACTION MODAL SCRIPT LOADED ===');
+        console.log('jQuery version:', $.fn.jquery);
+        console.log('Select2 available:', typeof $.fn.select2 !== 'undefined');
+
         let currentStep = 1;
         const totalSteps = 3;
         const tahun = '{{ $tahun }}';
         const bulan = '{{ $bulan }}';
         
-        // Variabel global untuk menyimpan data dan total transaksi
+        // Variabel global untuk menyimpan data
         window.currentTotalTransaksi = 0;
         window.kegiatanData = [];
         window.rekeningData = [];
+
+        // PERBAIKAN: Fungsi inisialisasi Select2 yang lebih robust
+        function initializeSelect2() {
+            try {
+                console.log('Initializing Select2...');
+                
+                // Destroy existing Select2 instances
+                $('.kegiatan-select').each(function() {
+                    if ($(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2('destroy');
+                        console.log('Destroyed existing Select2 on kegiatan-select');
+                    }
+                });
+                
+                $('.rekening-select').each(function() {
+                    if ($(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2('destroy');
+                        console.log('Destroyed existing Select2 on rekening-select');
+                    }
+                });
+                
+                // Initialize Select2 dengan konfigurasi yang sederhana
+                $('.kegiatan-select').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    dropdownParent: $('#transactionModal'),
+                    minimumResultsForSearch: 1
+                });
+                
+                $('.rekening-select').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    dropdownParent: $('#transactionModal'),
+                    minimumResultsForSearch: 1
+                });
+                
+                console.log('Select2 initialized successfully');
+            } catch (error) {
+                console.error('Error initializing Select2:', error);
+            }
+        }
 
         // Fungsi untuk scroll ke atas
         function scrollToTop() {
@@ -515,16 +595,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             }, 300);
         }
 
-        // Inisialisasi Select2 untuk semua select
-        function initializeSelect2() {
-            $('.kegiatan-select, .rekening-select').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                dropdownParent: $('#transactionModal')
-            });
-        }
-
-        // Fungsi untuk mendapatkan range tanggal berdasarkan bulan dan tahun
+        // Fungsi untuk mendapatkan range tanggal
         function getDateRangeForMonth(bulan, tahun) {
             const bulanAngka = {
                 'Januari': 1, 'Februari': 2, 'Maret': 3, 'April': 4,
@@ -532,7 +603,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12
             }[bulan] || 1;
             
-            // Hitung hari terakhir dalam bulan
             const lastDay = new Date(tahun, bulanAngka, 0).getDate();
             
             return {
@@ -554,9 +624,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             const maxDate = new Date(dateRange.max);
 
             if (inputElement.value && (selectedDate < minDate || selectedDate > maxDate)) {
-                // Reset ke tanggal yang valid
                 inputElement.value = dateRange.min;
-                
                 Swal.fire({
                     icon: 'warning',
                     title: 'Tanggal Tidak Valid',
@@ -571,33 +639,284 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         // Fungsi untuk menonaktifkan tanggal di luar range
         function disableOutOfRangeDates() {
             const dateRange = getDateRangeForMonth(bulan, tahun);
-            
-            // Set min dan max attributes
             $('#tanggal_transaksi, #tanggal_nota').attr({
                 'min': dateRange.min,
                 'max': dateRange.max
             });
         }
 
-        // Initialize modal
+        // PERBAIKAN: Initialize modal dengan approach yang benar
         $('#transactionModal').on('show.bs.modal', function() {
+            console.log('=== MODAL SHOW EVENT TRIGGERED ===');
+            
             resetSteps();
-            loadKegiatanDanRekening();
+            
+            // Reset data
+            window.kegiatanData = [];
+            window.rekeningData = [];
             window.currentTotalTransaksi = 0;
 
-            // Set tanggal range dan default values
+            // Set tanggal range
             disableOutOfRangeDates();
             const dateRange = getDateRangeForMonth(bulan, tahun);
             $('#tanggal_transaksi, #tanggal_nota').val(dateRange.min);
 
+            // PERBAIKAN: Set state awal untuk select elements
+            $('.kegiatan-select').html('<option value="">Memuat data kegiatan...</option>').prop('disabled', true);
+            $('.rekening-select').html('<option value="">Pilih kegiatan terlebih dahulu</option>').prop('disabled', true);
+
+            // Load data terlebih dahulu
+            loadKegiatanDanRekening();
+
             // Memuat nomor nota terakhir
             loadLastNotaNumber();
+        });
 
-            // Inisialisasi Select2 setelah modal terbuka
+        // PERBAIKAN: Fungsi untuk memuat data kegiatan dan rekening
+        function loadKegiatanDanRekening() {
+            console.log('Loading kegiatan dan rekening untuk:', tahun, bulan);
+            
+            // Tampilkan loading state
+            $('.kegiatan-select').html('<option value="">Memuat data...</option>').prop('disabled', true);
+            
+            $.ajax({
+                url: '/bku/kegiatan-rekening/' + tahun + '/' + bulan,
+                method: 'GET',
+                success: function(response) {
+                    console.log('API Response received:', response);
+                    
+                    if (response.success) {
+                        window.kegiatanData = response.kegiatan_list || [];
+                        window.rekeningData = response.rekening_list || [];
+                        
+                        console.log('Data loaded successfully:', {
+                            kegiatan: window.kegiatanData.length,
+                            rekening: window.rekeningData.length
+                        });
+
+                        // Populate select kegiatan
+                        populateKegiatanSelect();
+                        
+                    } else {
+                        console.error('Error in API response:', response.message);
+                        showError('Gagal memuat data: ' + (response.message || 'Unknown error'));
+                        setErrorState();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', {
+                        status: status,
+                        error: error,
+                        responseText: xhr.responseText
+                    });
+                    
+                    showError('Gagal terhubung ke server. Silakan coba lagi.');
+                    setErrorState();
+                }
+            });
+        }
+
+        // PERBAIKAN: Fungsi untuk mengisi select kegiatan
+        function populateKegiatanSelect() {
+            const kegiatanSelects = $('.kegiatan-select');
+            
+            kegiatanSelects.each(function() {
+                const $select = $(this);
+                $select.empty();
+                
+                if (window.kegiatanData && window.kegiatanData.length > 0) {
+                    $select.append('<option value="">Pilih Jenis Kegiatan</option>');
+                    
+                    window.kegiatanData.forEach(function(kegiatan) {
+                        $select.append(
+                            `<option value="${kegiatan.id}">${kegiatan.kode} - ${kegiatan.uraian}</option>`
+                        );
+                    });
+                    
+                    $select.prop('disabled', false);
+                    console.log('Kegiatan select populated with', window.kegiatanData.length, 'items');
+                    
+                } else {
+                    $select.append('<option value="" disabled>Tidak ada kegiatan tersedia untuk bulan ini</option>');
+                    $select.prop('disabled', true);
+                    console.warn('No kegiatan data available for selection');
+                }
+            });
+
+            // PERBAIKAN: Initialize Select2 setelah data dimuat
+            setTimeout(() => {
+                try {
+                    initializeSelect2();
+                    console.log('Select2 initialized after data load');
+                } catch (error) {
+                    console.error('Error initializing Select2 after data load:', error);
+                }
+            }, 200);
+
+            // Update tombol next
+            if (window.kegiatanData.length === 0) {
+                $('#nextBtn').prop('disabled', true);
+                console.log('Next button disabled - no kegiatan data');
+            } else {
+                $('#nextBtn').prop('disabled', false);
+                console.log('Next button enabled - kegiatan data available');
+            }
+        }
+
+        // Fungsi untuk reload data ketika bulan berubah
+        function reloadKegiatanDanRekening() {
+            console.log('Reloading data untuk bulan:', bulan);
+            
+            // Reset data
+            window.kegiatanData = [];
+            window.rekeningData = [];
+            
+            // Tampilkan loading state
+            $('.kegiatan-select').html('<option value="">Memuat data...</option>').prop('disabled', true);
+            $('.rekening-select').html('<option value="">Pilih kegiatan terlebih dahulu</option>').prop('disabled', true);
+            
+            // Load data baru
+            loadKegiatanDanRekening();
+        }
+
+        // Event handler untuk perubahan bulan (jika ada selector bulan di modal)
+        $('#selectBulan').change(function() {
+            bulan = $(this).val();
+            reloadKegiatanDanRekening();
+        });
+
+        // PERBAIKAN: Event handler untuk perubahan pilihan kegiatan
+        $(document).on('change', '.kegiatan-select', function() {
+            const kegiatanId = $(this).val();
+            const card = $(this).closest('.kegiatan-card');
+            const rekeningSelect = card.find('.rekening-select');
+            const uraianContainer = card.find('.uraian-container');
+
+            console.log('Kegiatan changed:', kegiatanId);
+
+            // Reset rekening dan uraian
+            rekeningSelect.empty();
+            uraianContainer.empty();
+
+            if (kegiatanId) {
+                // Filter rekening berdasarkan kegiatan yang dipilih
+                const rekeningForKegiatan = window.rekeningData.filter(function(rekening) {
+                    return rekening.kegiatan_id == kegiatanId;
+                });
+
+                console.log('Rekening for kegiatan', kegiatanId, ':', rekeningForKegiatan.length);
+
+                if (rekeningForKegiatan.length === 0) {
+                    rekeningSelect.append('<option value="" disabled>Tidak ada rekening tersedia untuk kegiatan ini</option>');
+                    rekeningSelect.prop('disabled', true);
+                    
+                    uraianContainer.html('<div class="alert alert-warning mt-2">Tidak ada rekening belanja yang tersedia untuk kegiatan ini.</div>');
+                } else {
+                    rekeningSelect.append('<option value="">Pilih Rekening Belanja</option>');
+                    rekeningSelect.prop('disabled', false);
+                    
+                    rekeningForKegiatan.forEach(function(rekening) {
+                        rekeningSelect.append(
+                            `<option value="${rekening.id}">${rekening.kode_rekening} - ${rekening.rincian_objek}</option>`
+                        );
+                    });
+                }
+
+                // PERBAIKAN: Reinitialize Select2 untuk rekening
+                setTimeout(() => {
+                    rekeningSelect.select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        dropdownParent: $('#transactionModal'),
+                        minimumResultsForSearch: 10
+                    });
+                }, 100);
+
+            } else {
+                rekeningSelect.append('<option value="">Pilih kegiatan terlebih dahulu</option>');
+                rekeningSelect.prop('disabled', true);
+                
+                setTimeout(() => {
+                    rekeningSelect.select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        dropdownParent: $('#transactionModal'),
+                        minimumResultsForSearch: 10
+                    });
+                }, 100);
+            }
+        });
+
+        // Event handler untuk perubahan pilihan rekening
+        $(document).on('change', '.rekening-select', function() {
+            const rekeningId = $(this).val();
+            const card = $(this).closest('.kegiatan-card');
+            const kegiatanSelect = card.find('.kegiatan-select');
+            const kegiatanId = kegiatanSelect.val();
+            const uraianContainer = card.find('.uraian-container');
+            const kegiatanIndex = card.data('kegiatan-index');
+
+            console.log('Rekening changed:', rekeningId, 'for kegiatan:', kegiatanId);
+
+            if (rekeningId && kegiatanId) {
+                uraianContainer.html(
+                    '<div class="text-center py-3"> <div class="spinner-border spinner-border-sm" role="status"></div> Memuat uraian... </div>'
+                );
+
+                $.ajax({
+                    url: '/bku/uraian/' + tahun + '/' + bulan + '/' + rekeningId + '?kegiatan_id=' + kegiatanId,
+                    method: 'GET',
+                    success: function(response) {
+                        uraianContainer.empty();
+
+                        if (response.success) {
+                            if (response.data && response.data.length > 0) {
+                                renderUraianOptions(response.data, kegiatanIndex, uraianContainer);
+                            } else {
+                                uraianContainer.html(
+                                    '<p class="text-muted">Tidak ada uraian untuk kombinasi kegiatan dan rekening ini.</p>'
+                                );
+                            }
+                        } else {
+                            uraianContainer.html(
+                                '<p class="text-danger">Error: ' + (response.message || 'Gagal memuat uraian') + '</p>'
+                            );
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error loading uraian:', xhr);
+                        uraianContainer.html(
+                            '<p class="text-danger">Error loading uraian. Silakan coba lagi.</p>'
+                        );
+                    }
+                });
+            } else {
+                uraianContainer.empty();
+                if (!kegiatanId) {
+                    uraianContainer.html('<p class="text-warning">Pilih kegiatan terlebih dahulu</p>');
+                }
+            }
+        });
+
+        // Fungsi untuk menampilkan error
+        function showError(message) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: message,
+                confirmButtonColor: '#0d6efd',
+            });
+        }
+
+        // Fungsi untuk set error state
+        function setErrorState() {
+            $('.kegiatan-select').html('<option value="" disabled>Gagal memuat data</option>').prop('disabled', true);
+            $('.rekening-select').html('<option value="" disabled>Pilih kegiatan terlebih dahulu</option>').prop('disabled', true);
+            
             setTimeout(() => {
                 initializeSelect2();
             }, 100);
-        });
+        }
 
         // Validasi tanggal saat input berubah
         $('#tanggal_transaksi, #tanggal_nota').on('change', function() {
@@ -608,7 +927,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         $('#nextBtn').click(function() {
             console.log('Next button clicked, current step:', currentStep);
             if (currentStep < totalSteps) {
-                // Validasi sebelum pindah ke step berikutnya
                 if (currentStep === 1) {
                     if (!validateStep1()) {
                         console.log('Step 1 validation failed');
@@ -620,7 +938,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                         return;
                     }
                     
-                    // PERBAIKAN: Validasi volume tambahan sebelum pindah ke step 3
                     if (!validateAllVolumes()) {
                         console.log('Volume validation failed');
                         return;
@@ -630,11 +947,8 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 currentStep++;
                 console.log('Moving to step:', currentStep);
                 updateSteps();
-                
-                // Scroll ke atas setelah pindah step
                 scrollToTop();
 
-                // Jika pindah ke step 3, hitung total transaksi
                 if (currentStep === 3) {
                     updateTotalTransaksiDisplay();
                 }
@@ -646,10 +960,8 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             if (currentStep > 1) {
                 currentStep--;
                 updateSteps();
+                scrollToTop();
             }
-            
-            // Scroll ke atas setelah pindah step
-            scrollToTop();
         });
         
         // Fungsi untuk validasi step 1
@@ -661,14 +973,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             const alamat = $('#alamat_toko').val();
             const isTokoChecked = $('#checkForm').is(':checked');
             
-            // Validasi field yang wajib diisi
             if (!tanggalTransaksi) {
                 showValidationError('Tanggal transaksi harus diisi');
                 $('#tanggal_transaksi').focus();
                 return false;
             }
 
-            // Validasi tanggal sesuai range
             if (!validateDate(document.getElementById('tanggal_transaksi'), bulan, tahun)) {
                 return false;
             }
@@ -707,7 +1017,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
 
             console.log('Validating step 2:', { nomorNota, tanggalNota });
             
-            // Validasi field yang wajib diisi
+            // Validasi jika tidak ada kegiatan yang tersedia
+            if (window.kegiatanData && window.kegiatanData.length === 0) {
+                showValidationError('Tidak ada kegiatan yang tersedia untuk bulan ' + bulan + '. Silakan pilih bulan lain.');
+                return false;
+            }
+            
             if (!nomorNota) {
                 showValidationError('Nomor nota harus diisi');
                 $('#nomor_nota').focus();
@@ -715,38 +1030,30 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             }
             
             if (!tanggalNota) {
-                console.log('Validation failed: tanggal nota required');
                 showValidationError('Tanggal belanja/nota harus diisi');
                 $('#tanggal_nota').focus();
                 return false;
             }
 
-            // Validasi tanggal sesuai range
             if (!validateDate(document.getElementById('tanggal_nota'), bulan, tahun)) {
-                console.log('Validation failed: date out of range');
                 return false;
             }
             
-            // Validasi tambahan: pastikan minimal satu kegiatan dipilih
             const kegiatanDipilih = $('.kegiatan-select').filter(function() {
                 return $(this).val() !== '';
             }).length > 0;
 
             if (!kegiatanDipilih) {
-                console.log('Validation failed: no kegiatan selected');
                 showValidationError('Minimal satu kegiatan harus dipilih');
                 return false;
             }
 
-            // Validasi: pastikan minimal satu uraian dipilih
             const uraianDipilih = $('.uraian-checkbox:checked').length > 0;
             if (!uraianDipilih) {
-                console.log('Validation failed: no uraian selected');
                 showValidationError('Minimal satu uraian harus dipilih');
                 return false;
             }
 
-            // PERBAIKAN: Validasi volume tidak melebihi maksimal
             let volumeMelebihiMaksimal = false;
             let uraianMelebihi = '';
             
@@ -760,12 +1067,11 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 if (volume > maxVolume) {
                     volumeMelebihiMaksimal = true;
                     uraianMelebihi = uraianText;
-                    return false; // break loop
+                    return false;
                 }
             });
             
             if (volumeMelebihiMaksimal) {
-                console.log('Validation failed: volume exceeds maximum');
                 Swal.fire({
                     icon: 'error',
                     title: 'Volume Melebihi Maksimal',
@@ -779,7 +1085,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             return true;
         }
         
-        // Fungsi untuk menampilkan pesan error validasi dengan SweetAlert
+        // Fungsi untuk menampilkan pesan error validasi
         function showValidationError(message) {
             Swal.fire({
                 icon: 'error',
@@ -790,15 +1096,10 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         }
 
         function updateSteps() {
-            // Hide all panes
             $('.step-pane').addClass('d-none');
-            
-            // Show current pane
             $(`#step${currentStep}`).removeClass('d-none');
             
-            // Update progress indicators
             $('.step-item').removeClass('active completed');
-            
             $('.step-item').each(function() {
                 const step = parseInt($(this).data('step'));
                 if (step < currentStep) {
@@ -808,13 +1109,10 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 }
             });
             
-            // Jika pindah ke step 3, render card kegiatan
             if (currentStep === 3) {
-                console.log('Moving to step 3');
                 renderKegiatanCardsStep3();
             }
             
-            // Update buttons
             $('#prevBtn').prop('disabled', currentStep === 1);
             
             if (currentStep === totalSteps) {
@@ -830,10 +1128,8 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             currentStep = 1;
             $('.step-item').removeClass('active completed');
             $('.step-item:first').addClass('active');
-            
             $('.step-pane').addClass('d-none');
             $('#step1').removeClass('d-none');
-            
             $('#prevBtn').prop('disabled', true);
             $('#nextBtn').removeClass('d-none');
             $('#saveBtn').addClass('d-none');
@@ -848,16 +1144,13 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 $('#pajakForm').addClass('d-none');
                 $('#pb1Section').addClass('d-none');
                 $('#pb1Form').addClass('d-none');
-                // Reset nilai form pajak
                 $('#selectPajak').val('');
                 $('#persenPajak').val('');
                 $('#totalPajak').val('');
-                // Reset nilai form PB1
                 $('#checkPajakPb1').prop('checked', false);
                 $('#selectPb1').val('pb 1');
                 $('#persenPb1').val('');
                 $('#totalPb1').val('');
-                // Hitung ulang total bersih
                 calculateTotalBersih();
             }
         });
@@ -868,11 +1161,9 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 $('#pb1Form').removeClass('d-none');
             } else {
                 $('#pb1Form').addClass('d-none');
-                // Reset nilai form PB1
                 $('#selectPb1').val('pb 1');
                 $('#persenPb1').val('');
                 $('#totalPb1').val('');
-                // Hitung ulang total bersih
                 calculateTotalBersih();
             }
         });
@@ -888,14 +1179,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             let totalPajak = 0;
             let totalPb1 = 0;
 
-            // Hitung pajak utama
             if ($('#checkPajak').is(':checked') && $('#selectPajak').val()) {
                 const persenPajak = parseFloat($('#persenPajak').val()) || 0;
                 totalPajak = (totalTransaksi * persenPajak) / 100;
                 $('#totalPajak').val(formatRupiah(totalPajak));
             }
 
-            // Hitung pajak daerah (PB1)
             if ($('#checkPajakPb1').is(':checked')) {
                 const persenPb1 = parseFloat($('#persenPb1').val()) || 0;
                 totalPb1 = (totalTransaksi * persenPb1) / 100;
@@ -906,142 +1195,49 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             $('#totalBersih').text(`Rp ${formatRupiah(totalBersih)}`);
         }
 
-        // PERBAIKAN: Fungsi untuk memuat data kegiatan dan rekening
-        function loadKegiatanDanRekening() {
-            // Load kegiatan dan rekening dari API
-            $.ajax({
-                url: '/bku/kegiatan-rekening/' + tahun + '/' + bulan,
-                method: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        // Simpan data ke variabel global
-                        window.kegiatanData = response.kegiatan_list || [];
-                        window.rekeningData = response.rekening_list || [];
-                        
-                        console.log('Data loaded:', {
-                            kegiatan: window.kegiatanData.length,
-                            rekening: window.rekeningData.length
-                        });
-
-                        // Populate select kegiatan
-                        populateKegiatanSelect();
-                    } else {
-                        console.error('Error loading kegiatan dan rekening:', response.message);
-                        showValidationError('Gagal memuat data kegiatan dan rekening' + bulan);
-                    }
-                },
-                error: function(xhr) {
-                    console.error('Error loading kegiatan dan rekening:', xhr);
-                    showValidationError('Gagal memuat data kegiatan dan rekening');
-                }
-            });
-        }
-
-        // PERBAIKAN: Fungsi untuk mengisi select kegiatan
-        function populateKegiatanSelect() {
-            const kegiatanSelects = $('.kegiatan-select');
+        // Fungsi untuk validasi semua volume
+        function validateAllVolumes() {
+            let volumeMelebihiMaksimal = false;
+            let uraianDetails = [];
             
-            kegiatanSelects.each(function() {
-                const $select = $(this);
-                $select.empty();
-                $select.append('<option value="">Pilih Jenis Kegiatan</option>');
-
-                window.kegiatanData.forEach(function(kegiatan) {
-                    $select.append(
-                        `<option value="${kegiatan.id}">${kegiatan.kode} - ${kegiatan.uraian}</option>`
-                    );
-                });
-            });
-
-            // Reinitialize Select2 setelah data dimuat
-            initializeSelect2();
-        }
-
-        // PERBAIKAN: Event handler untuk perubahan pilihan kegiatan
-        $(document).on('change', '.kegiatan-select', function() {
-            const kegiatanId = $(this).val();
-            const card = $(this).closest('.kegiatan-card');
-            const rekeningSelect = card.find('.rekening-select');
-            const uraianContainer = card.find('.uraian-container');
-
-            // Reset rekening select dan uraian container
-            rekeningSelect.empty().append('<option value="">Pilih Rekening Belanja</option>');
-            uraianContainer.empty();
-
-            if (kegiatanId) {
-                // Filter rekening berdasarkan kegiatan yang dipilih
-                const rekeningForKegiatan = window.rekeningData.filter(function(rekening) {
-                    return rekening.kegiatan_id == kegiatanId;
-                });
-
-                console.log('Rekening for kegiatan', kegiatanId, ':', rekeningForKegiatan);
-
-                // Populate rekening select
-                rekeningForKegiatan.forEach(function(rekening) {
-                    rekeningSelect.append(
-                        `<option value="${rekening.id}">${rekening.kode_rekening} - ${rekening.rincian_objek}</option>`
-                    );
-                });
-
-                // Reinitialize Select2 untuk rekening select
-                rekeningSelect.select2({
-                    theme: 'bootstrap-5',
-                    width: '100%',
-                    dropdownParent: $('#transactionModal')
-                });
-            }
-        });
-
-        // PERBAIKAN: Event handler untuk perubahan pilihan rekening
-        $(document).on('change', '.rekening-select', function() {
-            const rekeningId = $(this).val();
-            const card = $(this).closest('.kegiatan-card');
-            const kegiatanSelect = card.find('.kegiatan-select');
-            const kegiatanId = kegiatanSelect.val();
-            const uraianContainer = card.find('.uraian-container');
-            const kegiatanIndex = card.data('kegiatan-index');
-
-            if (rekeningId && kegiatanId) {
-                // Tampilkan loading
-                uraianContainer.html(
-                    '<div class="text-center py-3"> <div class="spinner-border spinner-border-sm" role="status"></div> Memuat uraian... </div>'
-                );
-
-                // Load uraian berdasarkan rekening DAN kegiatan
-                $.ajax({
-                    url: '/bku/uraian/' + tahun + '/' + bulan + '/' + rekeningId + '?kegiatan_id=' + kegiatanId,
-                    method: 'GET',
-                    success: function(response) {
-                        uraianContainer.empty();
-
-                        if (response.success) {
-                            if (response.data && response.data.length > 0) {
-                                renderUraianOptions(response.data, kegiatanIndex, uraianContainer);
-                            } else {
-                                uraianContainer.html(
-                                    '<p class="text-muted">Tidak ada uraian untuk kombinasi kegiatan dan rekening ini.</p>'
-                                );
-                            }
-                        } else {
-                            uraianContainer.html(
-                                '<p class="text-danger">Error: ' + (response.message || 'Gagal memuat uraian') + '</p>'
-                            );
-                        }
-                    },
-                    error: function(xhr) {
-                        console.error('Error loading uraian:', xhr);
-                        uraianContainer.html(
-                            '<p class="text-danger">Error loading uraian. Silakan coba lagi.</p>'
-                        );
-                    }
-                });
-            } else {
-                uraianContainer.empty();
-                if (!kegiatanId) {
-                    uraianContainer.html('<p class="text-warning">Pilih kegiatan terlebih dahulu</p>');
+            $('.jumlah-input').each(function() {
+                const value = parseInt($(this).val()) || 0;
+                const maxVolume = parseFloat($(this).attr('max')) || 0;
+                const uraianText = $(this).data('uraian-text') || $(this).closest('.card-body').find('.form-check-label').text();
+                const isChecked = $(this).closest('.uraian-item').find('.uraian-checkbox').is(':checked');
+                
+                if (isChecked && value > maxVolume) {
+                    volumeMelebihiMaksimal = true;
+                    uraianDetails.push({
+                        uraian: uraianText,
+                        volume: value,
+                        max_volume: maxVolume
+                    });
                 }
+            });
+            
+            if (volumeMelebihiMaksimal) {
+                let errorMessage = 'Maaf, jumlah volume melebihi jumlah maksimal untuk uraian berikut:<br><br>';
+                
+                uraianDetails.forEach((detail, index) => {
+                    errorMessage += `<strong>${index + 1}. ${detail.uraian}</strong><br>`;
+                    errorMessage += `Volume: ${detail.volume} (Maks: ${detail.max_volume})<br><br>`;
+                });
+                
+                errorMessage += 'Silakan perbaiki volume sebelum melanjutkan.';
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Volume Melebihi Maksimal',
+                    html: errorMessage,
+                    confirmButtonColor: '#0d6efd',
+                });
+                
+                return false;
             }
-        });
+            
+            return true;
+        }
 
         // Fungsi untuk merender opsi uraian
         function renderUraianOptions(data, kegiatanIndex, container) {
@@ -1087,7 +1283,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                     `;
                 }
                 
-                // Escape single quotes dalam uraian untuk JavaScript
                 const escapedUraian = uraian.uraian.replace(/'/g, "\\'");
                 
                 return `
@@ -1145,7 +1340,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             
             container.html(uraianHtml);
             
-            // Event listener untuk checkbox "pilih semua"
             $(`.check-all-uraian[data-kegiatan-index="${kegiatanIndex}"]`).change(function() {
                 const isChecked = $(this).is(':checked');
                 container.find('.uraian-checkbox:not(:disabled)').prop('checked', isChecked);
@@ -1155,13 +1349,11 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 updateTotalTransaksiDisplay();
             });
             
-            // Event listener untuk checkbox uraian individual
             container.find('.uraian-checkbox').change(function() {
                 updateUraianSubtotal($(this).closest('.uraian-item'));
                 updateTotalTransaksiDisplay();
             });
             
-            // Event listener untuk input jumlah
             container.find('.jumlah-input').on('input', function() {
                 const maxVolume = parseFloat($(this).attr('max')) || 0;
                 const uraianText = $(this).closest('.card-body').find('.form-check-label').text();
@@ -1179,8 +1371,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             if (value > maxVolume) {
                 errorElement.show();
                 inputElement.setCustomValidity('Jumlah volume melebihi maksimal');
-                
-                // Simpan informasi uraian yang melebihi untuk validasi step
                 $(inputElement).data('exceeds-limit', true);
                 $(inputElement).data('uraian-text', uraianText);
             } else {
@@ -1189,51 +1379,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 $(inputElement).data('exceeds-limit', false);
                 $(inputElement).removeData('uraian-text');
             }
-        }
-
-        // Fungsi untuk validasi semua volume sebelum pindah step
-        function validateAllVolumes() {
-            let volumeMelebihiMaksimal = false;
-            let uraianDetails = [];
-            
-            $('.jumlah-input').each(function() {
-                const value = parseInt($(this).val()) || 0;
-                const maxVolume = parseFloat($(this).attr('max')) || 0;
-                const uraianText = $(this).data('uraian-text') || $(this).closest('.card-body').find('.form-check-label').text();
-                const isChecked = $(this).closest('.uraian-item').find('.uraian-checkbox').is(':checked');
-                
-                if (isChecked && value > maxVolume) {
-                    volumeMelebihiMaksimal = true;
-                    uraianDetails.push({
-                        uraian: uraianText,
-                        volume: value,
-                        max_volume: maxVolume
-                    });
-                }
-            });
-            
-            if (volumeMelebihiMaksimal) {
-                // Format pesan error dengan detail
-                let errorMessage = 'Maaf, jumlah volume melebihi jumlah maksimal untuk uraian berikut:<br><br>';
-                
-                uraianDetails.forEach((detail, index) => {
-                    errorMessage += `<strong>${index + 1}. ${detail.uraian}</strong><br>`;
-                    errorMessage += `Volume: ${detail.volume} (Maks: ${detail.max_volume})<br><br>`;
-                });
-                
-                errorMessage += 'Silakan perbaiki volume sebelum melanjutkan.';
-                
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Volume Melebihi Maksimal',
-                    html: errorMessage,
-                    confirmButtonColor: '#0d6efd',
-                });
-                
-                return false;
-            }
-            
-            return true;
         }
 
         // Fungsi untuk memperbarui subtotal uraian
@@ -1249,7 +1394,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 const hargaText = hargaInput.val().replace(/[^\d]/g, '');
                 const harga = parseFloat(hargaText) || 0;
                 
-                // Validasi volume
                 if (jumlah > maxVolume) {
                     errorElement.show();
                     jumlahInput[0].setCustomValidity('Jumlah volume melebihi maksimal');
@@ -1271,13 +1415,11 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             if (cardCount > 1) {
                 card.remove();
 
-                // Update nomor kegiatan
                 $('.kegiatan-card').each(function(index) {
                     $(this).find('.card-title').text(`Kegiatan ${index + 1}`);
                     $(this).attr('data-kegiatan-index', index + 1);
                 });
 
-                // Sembunyikan tombol hapus jika hanya tersisa satu card
                 if ($('.kegiatan-card').length === 1) {
                     $('.remove-kegiatan').addClass('d-none');
                 }
@@ -1286,79 +1428,73 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
 
         // Fungsi untuk merender card kegiatan di step 3
         function renderKegiatanCardsStep3() {
-            try{
-            console.log('Rendering kegiatan cards for step 3');
-            const kegiatanCardsStep3 = $('#kegiatanCardsStep3');
-            kegiatanCardsStep3.empty();
-            
-            const kegiatanCards = $('.kegiatan-card');
-            console.log('Found', kegiatanCards.length, 'kegiatan cards'); // DEBUG
+            try {
+                console.log('Rendering kegiatan cards for step 3');
+                const kegiatanCardsStep3 = $('#kegiatanCardsStep3');
+                kegiatanCardsStep3.empty();
+                
+                const kegiatanCards = $('.kegiatan-card');
+                console.log('Found', kegiatanCards.length, 'kegiatan cards');
 
-            if (kegiatanCards.length === 0) {
-                console.log('No kegiatan cards found'); // DEBUG
-                kegiatanCardsStep3.html('<div class="col-12"><p class="text-muted">Tidak ada data kegiatan</p></div>');
-                return;
-            }
-
-            $('.kegiatan-card').each(function(index) {
-                const kegiatanIndex = $(this).data('kegiatan-index');
-                const kegiatanSelect = $(this).find('.kegiatan-select');
-                const rekeningSelect = $(this).find('.rekening-select');
-                const kegiatanText = kegiatanSelect.find('option:selected').text() || 'Belum dipilih';
-                const rekeningText = rekeningSelect.find('option:selected').text() || 'Belum dipilih';
-
-                console.log('Processing card', index, ':', kegiatanText);
-
-                let uraianList = '';
-                const uraianItems = $(this).find('.uraian-item');
-                console.log('Found', uraianItems.length, 'uraian items');
-
-                $(this).find('.uraian-item').each(function() {
-                    const checkbox = $(this).find('.uraian-checkbox');
-                    if (checkbox.is(':checked')) {
-                        const uraianLabel = $(this).find('.form-check-label').text();
-                        const jumlah = $(this).find('.jumlah-input').val() || 0;
-                        const hargaText = $(this).find('.harga-input').val().replace(/[^\d]/g, '');
-                        const harga = parseFloat(hargaText) || 0;
-                        const subtotal = jumlah * harga;
-
-                        uraianList += `
-                        <div class="mb-2">
-                            <div class="fw-bold">${uraianLabel}</div>
-                            <div class="small">Jumlah: ${jumlah} | Harga: Rp ${formatRupiah(harga)} | Subtotal: Rp ${formatRupiah(subtotal)}</div>
-                        </div>
-                    `;
-                    }
-                });
-
-                if (!uraianList) {
-                    uraianList = '<div class="text-muted">Tidak ada uraian yang dipilih</div>';
+                if (kegiatanCards.length === 0) {
+                    kegiatanCardsStep3.html('<div class="col-12"><p class="text-muted">Tidak ada data kegiatan</p></div>');
+                    return;
                 }
 
-                kegiatanCardsStep3.append(`
-                <div class="col-md-12 mb-3">
-                    <div class="card h-100">
-                        <div class="card-header bg-info-subtle">
-                            <strong>Kegiatan ${kegiatanIndex}</strong>
-                        </div>
-                        <div class="card-body">
+                $('.kegiatan-card').each(function(index) {
+                    const kegiatanIndex = $(this).data('kegiatan-index');
+                    const kegiatanSelect = $(this).find('.kegiatan-select');
+                    const rekeningSelect = $(this).find('.rekening-select');
+                    const kegiatanText = kegiatanSelect.find('option:selected').text() || 'Belum dipilih';
+                    const rekeningText = rekeningSelect.find('option:selected').text() || 'Belum dipilih';
+
+                    let uraianList = '';
+                    $(this).find('.uraian-item').each(function() {
+                        const checkbox = $(this).find('.uraian-checkbox');
+                        if (checkbox.is(':checked')) {
+                            const uraianLabel = $(this).find('.form-check-label').text();
+                            const jumlah = $(this).find('.jumlah-input').val() || 0;
+                            const hargaText = $(this).find('.harga-input').val().replace(/[^\d]/g, '');
+                            const harga = parseFloat(hargaText) || 0;
+                            const subtotal = jumlah * harga;
+
+                            uraianList += `
                             <div class="mb-2">
-                                <strong>Kegiatan:</strong> ${kegiatanText}
+                                <div class="fw-bold">${uraianLabel}</div>
+                                <div class="small">Jumlah: ${jumlah} | Harga: Rp ${formatRupiah(harga)} | Subtotal: Rp ${formatRupiah(subtotal)}</div>
                             </div>
-                            <div class="mb-2">
-                                <strong>Rekening:</strong> ${rekeningText}
+                        `;
+                        }
+                    });
+
+                    if (!uraianList) {
+                        uraianList = '<div class="text-muted">Tidak ada uraian yang dipilih</div>';
+                    }
+
+                    kegiatanCardsStep3.append(`
+                    <div class="col-md-12 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-info-subtle">
+                                <strong>Kegiatan ${kegiatanIndex}</strong>
                             </div>
-                            <div class="mt-3">
-                                <strong>Uraian yang dipilih:</strong>
-                                ${uraianList}
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <strong>Kegiatan:</strong> ${kegiatanText}
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Rekening:</strong> ${rekeningText}
+                                </div>
+                                <div class="mt-3">
+                                    <strong>Uraian yang dipilih:</strong>
+                                    ${uraianList}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            `);
-            });
+                `);
+                });
 
-            console.log('Kegiatan cards rendered successfully');
+                console.log('Kegiatan cards rendered successfully');
 
             } catch (error) {
                 console.error('Error rendering kegiatan cards:', error);
@@ -1386,7 +1522,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
 
         // Event handler untuk tombol simpan
         $('#saveBtn').click(function() {
-            // Validasi step 3
             if ($('#checkPajak').is(':checked')) {
                 const selectPajak = $('#selectPajak').val();
                 const persenPajak = $('#persenPajak').val();
@@ -1411,17 +1546,13 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 }
             }
 
-            // Kumpulkan data form
             const formData = collectFormData();
-
-            // Kirim data ke server
             submitFormData(formData);
         });
 
         // Fungsi untuk mengumpulkan data form
         function collectFormData() {
             const formData = {
-                // Data dari step 1
                 penganggaran_id: '{{ $penganggaran->id }}',
                 tanggal_transaksi: $('#tanggal_transaksi').val(),
                 jenis_transaksi: $('#jenis_transaksi').val(),
@@ -1430,23 +1561,16 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 alamat: $('#alamat_toko').val(),
                 nomor_telepon: $('#nomor_telepon').val(),
                 npwp: $('#checkNpwp').is(':checked') ? null : $('#npwp').val(),
-
-                // Data dari step 2
                 nomor_nota: $('#nomor_nota').val(),
                 tanggal_nota: $('#tanggal_nota').val(),
                 bulan: bulan,
-
-                // Data kegiatan dan rekening
                 kode_kegiatan_id: [],
                 kode_rekening_id: [],
                 uraian_items: [],
-
-                // Data pajak dari step 3
                 pajak_items: [],
                 total_transaksi_kotor: window.currentTotalTransaksi
             };
 
-            // Kumpulkan data kegiatan dan uraian
             $('.kegiatan-card').each(function() {
                 const kegiatanId = $(this).find('.kegiatan-select').val();
                 const rekeningId = $(this).find('.rekening-select').val();
@@ -1455,15 +1579,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                     formData.kode_kegiatan_id.push(kegiatanId);
                     formData.kode_rekening_id.push(rekeningId);
 
-                    // Kumpulkan uraian yang dipilih
                     $(this).find('.uraian-item').each(function() {
                         const checkbox = $(this).find('.uraian-checkbox');
                         if (checkbox.is(':checked')) {
                             const jumlah = parseFloat($(this).find('.jumlah-input').val()) || 0;
                             const hargaText = $(this).find('.harga-input').val().replace(/[^\d]/g, '');
                             const harga = parseFloat(hargaText) || 0;
-                            
-                            // PERBAIKAN: Ambil uraian_text dari input hidden
                             const uraianText = $(this).find('.uraian-text-input').val();
 
                             formData.uraian_items.push({
@@ -1481,7 +1602,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 }
             });
 
-            // Kumpulkan data pajak
             if ($('#checkPajak').is(':checked') && $('#selectPajak').val()) {
                 formData.pajak_items.push({
                     jenis_pajak: $('#selectPajak').val(),
@@ -1498,13 +1618,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 });
             }
 
-            console.log('Form data collected:', formData); // DEBUG
+            console.log('Form data collected:', formData);
             return formData;
         }
 
         // Fungsi untuk mengirim data ke server
         function submitFormData(formData) {
-            // Tampilkan loading
             Swal.fire({
                 title: 'Menyimpan Data...',
                 text: 'Mohon tunggu sebentar',
@@ -1531,7 +1650,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                             text: response.message,
                             confirmButtonColor: '#0d6efd',
                         }).then(() => {
-                            // Tutup modal dan refresh halaman
                             $('#transactionModal').modal('hide');
                             location.reload();
                         });
@@ -1608,7 +1726,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                         
                         $('#lastNotaInfo').html(`<i class="bi bi-info-circle"></i> ${infoText}`);
                         
-                        // Auto-fill dengan saran nomor berikutnya jika field kosong
                         if (suggestedNext && $('#nomor_nota').val() === '') {
                             $('#nomor_nota').val(suggestedNext);
                         }
@@ -1623,51 +1740,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             });
         }
 
-        // Fungsi untuk mendapatkan nomor berikutnya (versi improved)
-        function getNextNotaNumber(lastNota) {
-            if (!lastNota) {
-                return '001';
-            }
-            
-            // Coba ekstrak angka dari nomor nota
-            const numericMatches = lastNota.match(/\d+/g);
-            
-            if (numericMatches && numericMatches.length > 0) {
-                // Ambil angka terakhir yang ditemukan
-                const lastNum = parseInt(numericMatches[numericMatches.length - 1]);
-                
-                if (!isNaN(lastNum)) {
-                    const nextNum = lastNum + 1;
-                    
-                    // Pertahankan format asli (prefix dan suffix)
-                    const prefix = lastNota.replace(/\d+.*$/, ''); // Bagian sebelum angka
-                    const suffix = lastNota.replace(/^.*?(\d+)/, '').replace(/\d+$/, ''); // Bagian setelah angka
-                    
-                    // Format angka menjadi 3 digit
-                    const formattedNum = String(nextNum).padStart(3, '0');
-                    
-                    return prefix + formattedNum + suffix;
-                }
-            }
-            
-            // Jika tidak ada angka, tambahkan -001
-            return lastNota + '-001';
-        }
-
-        // Fungsi untuk validasi format nomor nota (versi lebih fleksibel)
-        function validateNotaFormat(notaNumber) {
-            if (!notaNumber.trim()) {
-                return false;
-            }
-            
-            // Format yang diizinkan: boleh mengandung huruf, angka, dan karakter khusus
-            // Minimal harus ada angka
-            const hasNumber = /\d/.test(notaNumber);
-            
-            return hasNumber;
-        }
-
-        // Event handler untuk input nomor nota (versi improved)
+        // Event handler untuk input nomor nota
         $('#nomor_nota').on('blur', function() {
             const notaValue = $(this).val().trim();
             
@@ -1679,12 +1752,10 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                     confirmButtonColor: '#0d6efd',
                 });
                 
-                // Fokus kembali ke field
                 $(this).focus();
                 return;
             }
             
-            // Jika hanya angka, format ke 3 digit
             if (/^\d+$/.test(notaValue)) {
                 const number = parseInt(notaValue) || 1;
                 $(this).val(String(number).padStart(3, '0'));
@@ -1695,10 +1766,72 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         $('#nomor_nota').on('focus', function() {
             const currentValue = $(this).val();
             if (!currentValue) {
-                // Tampilkan placeholder dengan contoh format
                 $(this).attr('placeholder', 'Contoh: 001, BP001, NOTA-001, INV-2024-001');
             }
         });
+
+        // Fungsi untuk validasi format nomor nota
+        function validateNotaFormat(notaNumber) {
+            if (!notaNumber.trim()) {
+                return false;
+            }
+            
+            const hasNumber = /\d/.test(notaNumber);
+            return hasNumber;
+        }
+
+        // Event handler untuk tombol tambah kegiatan
+        $('#tambahKegiatan').click(function() {
+            const kegiatanContainer = $('#kegiatanContainer');
+            const kegiatanCount = $('.kegiatan-card').length;
+            const newIndex = kegiatanCount + 1;
+
+            const newKegiatanCard = `
+            <div class="card mb-3 kegiatan-card" data-kegiatan-index="${newIndex}">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Kegiatan ${newIndex}</h5>
+                    <button type="button" class="btn btn-sm btn-danger remove-kegiatan">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Kegiatan</label>
+                            <select class="form-select form-select-sm kegiatan-select" name="kode_kegiatan_id[]" required>
+                                ${window.kegiatanData && window.kegiatanData.length > 0 ? 
+                                    '<option value="">Pilih Jenis Kegiatan</option>' + 
+                                    window.kegiatanData.map(k => `<option value="${k.id}">${k.kode} - ${k.uraian}</option>`).join('') 
+                                    : '<option value="">Memuat data kegiatan...</option>'
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Rekening Belanja</label>
+                            <select class="form-select form-select-sm rekening-select" name="kode_rekening_id[]" required disabled>
+                                <option value="">Pilih kegiatan terlebih dahulu</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="uraian-container" id="uraianContainer-${newIndex}"></div>
+                </div>
+            </div>
+            `;
+
+            kegiatanContainer.append(newKegiatanCard);
+
+            // Show remove buttons if there's more than one card
+            if ($('.kegiatan-card').length > 1) {
+                $('.remove-kegiatan').removeClass('d-none');
+            }
+
+            // Initialize Select2 for the new selects
+            setTimeout(() => {
+                initializeSelect2();
+            }, 100);
+        });
+
+        console.log('=== TRANSACTION MODAL SCRIPT READY ===');
     });
 </script>
 @endpush

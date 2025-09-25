@@ -1,22 +1,22 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\auth\LoginController;
-use App\Http\Controllers\auth\RegisterController;
-use App\Http\Controllers\PenganggaranController;
-use App\Http\Controllers\RkasController;
-use App\Http\Controllers\RekeningBelanjaController;
 use App\Http\Controllers\auth\LogoutController;
-use App\Http\Controllers\KodeKegiatanController;
-use App\Http\Controllers\SekolahController;
-use App\Http\Controllers\RkasPerubahanController;
-use App\Http\Controllers\RekamanPerubahanController;
-use App\Http\Controllers\PenatausahaanController;
+use App\Http\Controllers\auth\RegisterController;
 use App\Http\Controllers\BukuKasUmumController;
-use App\Http\Controllers\PenerimaanDanaController;
-use App\Http\Controllers\PenarikanTunaiController;
-use App\Http\Controllers\SetorTunaiController;
 use App\Http\Controllers\DatabaseController;
+use App\Http\Controllers\KodeKegiatanController;
+use App\Http\Controllers\PenarikanTunaiController;
+use App\Http\Controllers\PenatausahaanController;
+use App\Http\Controllers\PenerimaanDanaController;
+use App\Http\Controllers\PenganggaranController;
+use App\Http\Controllers\RekamanPerubahanController;
+use App\Http\Controllers\RekeningBelanjaController;
+use App\Http\Controllers\RkasController;
+use App\Http\Controllers\RkasPerubahanController;
+use App\Http\Controllers\SekolahController;
+use App\Http\Controllers\SetorTunaiController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -30,7 +30,6 @@ Route::get('/register', [RegisterController::class, 'create'])->name('register')
 Route::post('/register', [RegisterController::class, 'store'])->name('register.post');
 
 Route::post('/logout', [LogoutController::class, 'store'])->name('logout');
-
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -161,7 +160,6 @@ Route::middleware(['auth'])->prefix('rkas')->group(function () {
         ->name('rkas.rka-bulanan-pdf')->middleware('noCache');
 });
 
-
 // Referensi
 Route::middleware(['auth'])->prefix('referensi')->group(function () {
 
@@ -190,27 +188,42 @@ Route::middleware(['auth'])->prefix('referensi')->group(function () {
         ->name('penganggaran.rkas.generate-pdf');
 });
 
-
-
 Route::middleware(['auth'])->prefix('penatausahaan')->group(function () {
     Route::get('/penatausahaan', [PenatausahaanController::class, 'index'])->name('penatausahaan.penatausahaan');
     Route::post('/', [PenerimaanDanaController::class, 'store'])->name('penerimaan-dana.store');
     Route::get('penerimaan-dana/{penganggaran_id}', [PenerimaanDanaController::class, 'getByPenganggaran'])->name('penerimaan-dana.getByPenganggaran');
 });
 
+// ROUTE BKU AUDIT (BARU - DIPISAHKAN)
+Route::middleware(['auth'])->prefix('bku-audit')->group(function () {
+    // Halaman audit detail
+    Route::get('/{penganggaran_id}', [BukuKasUmumController::class, 'auditPage'])
+        ->name('bku.audit.page');
+
+    // API untuk get data audit
+    Route::get('/data/{penganggaran_id}', [BukuKasUmumController::class, 'getAuditData'])
+        ->name('bku.audit.data');
+
+    // API untuk fix data
+    Route::post('/fix/{penganggaran_id}', [BukuKasUmumController::class, 'fixData'])
+        ->name('bku.fix.data');
+});
+
+
 Route::middleware(['auth'])->prefix('bku')->group(function () {
+
     Route::get('/{tahun}/{bulan}', [BukuKasUmumController::class, 'showByBulan'])->name('bku.showByBulan');
 
     // route status bulan: belum diisi, draft, selesai
     Route::get('/status/{tahun}/{bulan}', [BukuKasUmumController::class, 'getStatusBulan'])
-    ->name('bku.status');
+        ->name('bku.status');
     // route untuk API total dana tersedia
     Route::get('/total-dana-tersedia/{penganggaran_id}', [BukuKasUmumController::class, 'getTotalDanaTersedia'])
         ->name('bku.total-dana-tersedia');
 
     // penarikan tunai
     Route::post('/penarikan-tunai', [PenarikanTunaiController::class, 'store'])->name('bku.penarikan-tunai.store');
-    // setor tunai 
+    // setor tunai
     Route::post('/setor-tunai', [SetorTunaiController::class, 'store'])->name('bku.setor-tunai.store');
 
     Route::get('/kegiatan-rekening/{tahun}/{bulan}', [BukuKasUmumController::class, 'getKegiatanDanRekening'])

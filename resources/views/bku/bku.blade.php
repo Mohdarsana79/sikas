@@ -35,8 +35,9 @@
                         @else
                         <span class="badge bg-success me-2">Terbuka</span>
                         @if(count($bkuData) > 0)
-                        <button href="#" class="btn btn-danger btn-sm ms-2" id="hapusSemuaBulan" data-bulan="{{ $bulan }}"
-                            data-tahun="{{ $tahun }}" style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;">
+                        <button href="#" class="btn btn-danger btn-sm ms-2" id="hapusSemuaBulan"
+                            data-bulan="{{ $bulan }}" data-tahun="{{ $tahun }}"
+                            style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .55rem;">
                             Hapus BKU
                         </button>
                         @endif
@@ -45,6 +46,7 @@
                 </div>
 
                 <!-- Action Buttons -->
+                <!-- Action Buttons -->
                 <div class="d-flex gap-2">
                     @if(!$is_closed)
                     <button type="button" class="btn btn-outline-secondary btn-sm-custom" data-bs-toggle="modal"
@@ -52,16 +54,17 @@
                         <i class="bi bi-plus me-1"></i>
                         Tambah Pembelanjaan
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm-custom" id="btnCari">
+                    {{-- TOMBOL AUDIT --}}
+                    <button type="button" class="btn btn-outline-info btn-sm-custom" id="btnAudit">
                         <i class="bi bi-search me-1"></i>
-                        Cari
+                        Audit Data
                     </button>
                     <button type="button" class="btn btn-outline-secondary btn-sm-custom" id="btnCetak">
                         <i class="bi bi-printer me-1"></i>
                         Cetak
                     </button>
-                    <button type="button" class="btn btn-dark btn-sm-custom" data-bs-toggle="modal"
-                        data-bs-target="#tutupBku" id="btnTutupBku">
+                    <button type="button" class="btn btn-dark btn-sm-custom" data-bs-toggle="modal" data-bs-target="#tutupBku"
+                        id="btnTutupBku">
                         Tutup BKU
                     </button>
                     @else
@@ -73,7 +76,13 @@
                         <i class="bi bi-pencil me-1"></i>
                         Edit Bunga Bank
                     </button>
+                    {{-- TOMBOL AUDIT UNTUK BKU TERTUTUP --}}
+                    <button type="button" class="btn btn-outline-info btn-sm-custom" id="btnAudit">
+                        <i class="bi bi-search me-1"></i>
+                        Audit Data
+                    </button>
                     @endif
+            
                 </div>
             </div>
         </div>
@@ -181,6 +190,7 @@
                 </div>
             </div>
         </div>
+
         <div class="row col">
             <!-- Table Card -->
             <div class="card mt-4">
@@ -362,16 +372,19 @@
                                     <td class="px-4 py-3">{{ $bku->rekeningBelanja->rincian_objek }}</td>
                                     <td class="px-4 py-3">{{ ucfirst($bku->jenis_transaksi) }}</td>
                                     <td class="px-4 py-3">Rp {{ number_format($bku->anggaran, 0, ',', '.') }}</td>
-                                    <td class="px-4 py-3">Rp {{ number_format($bku->dibelanjakan, 0, ',', '.') }}</td>
+                                    <td class="px-4 py-3">Rp {{ number_format($bku->total_transaksi_kotor, 0, ',', '.')
+                                        }}</td>
                                     <td class="px-4 py-3">
                                         @if($bku->total_pajak > 0)
                                         @if($bku->ntpn)
-                                        <span class="text-dark">Rp {{ number_format($bku->total_pajak, 0, ',', '.') }}</span>
+                                        <span class="text-dark">Rp {{ number_format($bku->total_pajak, 0, ',', '.')
+                                            }}</span>
                                         <small class="text-success d-block" title="NTPN: {{ $bku->ntpn }}">
                                             <i class="bi bi-check-circle-fill"></i> Sudah dilaporkan
                                         </small>
                                         @else
-                                        <span class="text-danger fw-bold">Rp {{ number_format($bku->total_pajak, 0, ',', '.') }}</span>
+                                        <span class="text-danger fw-bold">Rp {{ number_format($bku->total_pajak, 0, ',',
+                                            '.') }}</span>
                                         <small class="text-warning d-block">
                                             <i class="bi bi-exclamation-triangle-fill"></i> Belum dilaporkan
                                         </small>
@@ -395,12 +408,16 @@
                                                         <i class="bi bi-eye me-2"></i>Lihat Detail
                                                     </a>
                                                 </li>
-                                                {{-- Hanya tampilkan Lapor Pajak jika ada pajak yang harus dilaporkan --}}
+                                                {{-- Hanya tampilkan Lapor Pajak jika ada pajak yang harus dilaporkan
+                                                --}}
                                                 @if($bku->total_pajak > 0)
                                                 <li>
-                                                    <a href="#" class="dropdown-item btn-lapor-pajak" data-bs-toggle="modal" data-bs-target="#laporPajakModal"
-                                                        data-id="{{ $bku->id }}" data-pajak="{{ $bku->total_pajak }}" data-ntpn="{{ $bku->ntpn }}">
-                                                        <i class="bi bi-{{ $bku->ntpn ? 'check-circle' : 'info-circle' }} me-2"></i>
+                                                    <a href="#" class="dropdown-item btn-lapor-pajak"
+                                                        data-bs-toggle="modal" data-bs-target="#laporPajakModal"
+                                                        data-id="{{ $bku->id }}" data-pajak="{{ $bku->total_pajak }}"
+                                                        data-ntpn="{{ $bku->ntpn }}">
+                                                        <i
+                                                            class="bi bi-{{ $bku->ntpn ? 'check-circle' : 'info-circle' }} me-2"></i>
                                                         {{ $bku->ntpn ? 'Edit Lapor Pajak' : 'Lapor Pajak' }}
                                                     </a>
                                                 </li>
@@ -431,11 +448,16 @@
         </div>
     </div>
 </div>
+
 @include('bku.modal.tambah-modal')
 @include('bku.modal.tarik-tunai-modal')
 @include('bku.modal.setor-tunai-modal')
 @include('bku.modal.tutup-bku-modal')
 @include('bku.modal.lapor-pajak-modal')
+
+@if(isset($penganggaran) && $penganggaran->id)
+@include('bku-audit.audit-modal', ['penganggaran' => $penganggaran])
+@endif
 
 @foreach ($bkuData as $bku)
 @include('bku.modal.detail-modal')
@@ -641,35 +663,56 @@
         color: #dc3545;
         /* Merah untuk penarikan */
     }
+
     /* Style untuk status pajak */
     .text-pajak-belum-lapor {
-    color: #dc3545 !important;
-    font-weight: 600;
+        color: #dc3545 !important;
+        font-weight: 600;
     }
-    
+
     .text-pajak-sudah-lapor {
-    color: #212529 !important;
-    font-weight: 500;
+        color: #212529 !important;
+        font-weight: 500;
     }
-    
+
     .status-pajak-badge {
-    font-size: 0.7rem;
-    padding: 0.1rem 0.3rem;
-    border-radius: 0.25rem;
+        font-size: 0.7rem;
+        padding: 0.1rem 0.3rem;
+        border-radius: 0.25rem;
     }
-    
+
     .badge-belum-lapor {
-    background-color: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffeaa7;
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
     }
-    
+
     .badge-sudah-lapor {
-    background-color: #d1edff;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
+        background-color: #d1edff;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    /* Debug section styles */
+    .debug-table {
+        font-size: 12px;
+    }
+
+    .debug-table th {
+        background-color: #fff3cd;
+    }
+
+    .debug-positive {
+        color: #198754;
+        font-weight: bold;
+    }
+
+    .debug-negative {
+        color: #dc3545;
+        font-weight: bold;
     }
 </style>
+
 @push('scripts')
 <script>
     $(document).ready(function() {
@@ -967,6 +1010,11 @@
         document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
             menu.style.zIndex = '1060';
         });
+
+        // Debug button handler
+        $('#btnDebug').on('click', function() {
+            runDebugCalculation();
+        });
     });
 
     // Function untuk update display saldo
@@ -1002,21 +1050,7 @@
             }
         });
 
-        // Function untuk format currency
-        function formatCurrency(input) {
-            let value = input.value.replace(/[^\d]/g, '');
-            if (value) {
-                value = parseInt(value).toLocaleString('id-ID');
-            }
-            input.value = value;
-        }
-
-        // Function untuk parse currency ke angka
-        function parseCurrency(currencyString) {
-            return parseInt(currencyString.replace(/[^\d]/g, '')) || 0;
-        }
-
-        // Event listener untuk modal lapor pajak - DIPERBAIKI
+        // Event listener untuk modal lapor pajak
         $(document).on('click', '.btn-lapor-pajak', function(e) {
             e.preventDefault();
             const bkuId = $(this).data('id');
@@ -1027,9 +1061,7 @@
             
             console.log('BKU ID:', bkuId, 'Pajak:', totalPajak, 'NTPN:', existingNtpn);
             
-            // Hanya proses jika ada pajak
             if (totalPajak > 0) {
-                // Load data pajak
                 const url = '/bku/' + bkuId + '/get-pajak';
                 
                 $.ajax({
@@ -1040,25 +1072,13 @@
                             $('#tanggal_lapor').val(response.data.tanggal_lapor);
                             $('#ntpn').val(response.data.ntpn);
                             
-                            // Update judul modal berdasarkan status
                             if (response.data.ntpn) {
-                                $('#laporPajakModalLabel').html(`
-                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                    Edit Lapor Pajak
-                                `);
+                                $('#laporPajakModalLabel').html(`<i class="bi bi-check-circle-fill text-success me-2"></i>Edit Lapor Pajak`);
                                 $('.modal-header').removeClass('bg-warning').addClass('bg-success');
                             } else {
-                                $('#laporPajakModalLabel').html(`
-                                    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
-                                    Lapor Pajak
-                                `);
+                                $('#laporPajakModalLabel').html(`<i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Lapor Pajak`);
                                 $('.modal-header').removeClass('bg-success').addClass('bg-warning');
                             }
-                            
-                            // Tambahkan info total pajak di modal
-                            $('.modal-header p').html(`
-                                Total Pajak: <strong>Rp ${response.data.total_pajak ? response.data.total_pajak.toLocaleString('id-ID') : '0'}</strong>
-                            `);
                         }
                     },
                     error: function(xhr) {
@@ -1071,7 +1091,7 @@
             }
         });
 
-        // Event listener untuk simpan lapor pajak - DIPERBAIKI
+        // Event listener untuk simpan lapor pajak
         $('#btnSimpanLapor').on('click', function() {
             const bkuId = $('#bku_id').val();
             
@@ -1086,7 +1106,6 @@
                 _token: $('meta[name="csrf-token"]').attr('content')
             };
             
-            // Validasi
             let isValid = true;
             $('#tanggal_lapor_error, #ntpn_error').text('');
             
@@ -1107,7 +1126,6 @@
             
             const url = '/bku/' + bkuId + '/lapor-pajak';
             
-            // Kirim data
             $.ajax({
                 url: url,
                 method: 'POST',
@@ -1119,15 +1137,13 @@
                     if (response.success) {
                         Swal.fire({
                             title: 'Berhasil!',
-                            html: `
-                                <div class="text-start">
-                                    <p>${response.message}</p>
-                                    <div class="mt-2 p-2 bg-light rounded">
-                                        <small class="text-muted">NTPN: <strong>${formData.ntpn}</strong></small><br>
-                                        <small class="text-muted">Tanggal Lapor: <strong>${formData.tanggal_lapor}</strong></small>
-                                    </div>
+                            html: `<div class="text-start">
+                                <p>${response.message}</p>
+                                <div class="mt-2 p-2 bg-light rounded">
+                                    <small class="text-muted">NTPN: <strong>${formData.ntpn}</strong></small><br>
+                                    <small class="text-muted">Tanggal Lapor: <strong>${formData.tanggal_lapor}</strong></small>
                                 </div>
-                            `,
+                            </div>`,
                             icon: 'success',
                             confirmButtonColor: '#198754'
                         }).then(() => {

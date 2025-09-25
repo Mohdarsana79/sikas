@@ -27,7 +27,7 @@ return new class extends Migration
             $table->text('uraian'); // Lunas Bayar Belanja {uraian}
             $table->decimal('anggaran', 15, 2)->default(0);
             $table->decimal('dibelanjakan', 15, 2)->default(0);
-            $table->decimal('total_transaksi_kotor', 15, 2)->nullable();
+            $table->decimal('total_transaksi_kotor', 15, 2)->default(0);
             $table->string('pajak')->nullable();
             $table->integer('persen_pajak')->nullable();
             $table->decimal('total_pajak', 15, 2)->nullable();

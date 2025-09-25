@@ -307,6 +307,10 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                         aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm"
                                         id="nomor_nota">
                                 </div>
+                                <small class="text-muted" id="lastNotaInfo">
+                                    <i class="bi bi-info-circle"></i>
+                                    Memuat informasi nomor nota terakhir...
+                                </small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="tanggal_nota" class="form-label">Tanggal Belanja/Nota</label>
@@ -370,7 +374,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                             <!-- Cards kegiatan akan dirender di sini -->
                         </div>
                         <div class="row">
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-12 me-2 ms-2 mb-3 card bg-success bg-opacity-10 p-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" value="" id="checkPajak">
                                     <label class="form-check-label" for="checkPajak">
@@ -586,6 +590,9 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             const dateRange = getDateRangeForMonth(bulan, tahun);
             $('#tanggal_transaksi, #tanggal_nota').val(dateRange.min);
 
+            // Memuat nomor nota terakhir
+            loadLastNotaNumber();
+
             // Inisialisasi Select2 setelah modal terbuka
             setTimeout(() => {
                 initializeSelect2();
@@ -610,6 +617,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 } else if (currentStep === 2) {
                     if (!validateStep2()) {
                         console.log('Step 2 validation failed');
+                        return;
+                    }
+                    
+                    // PERBAIKAN: Validasi volume tambahan sebelum pindah ke step 3
+                    if (!validateAllVolumes()) {
+                        console.log('Volume validation failed');
                         return;
                     }
                 }
@@ -730,6 +743,35 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             if (!uraianDipilih) {
                 console.log('Validation failed: no uraian selected');
                 showValidationError('Minimal satu uraian harus dipilih');
+                return false;
+            }
+
+            // PERBAIKAN: Validasi volume tidak melebihi maksimal
+            let volumeMelebihiMaksimal = false;
+            let uraianMelebihi = '';
+            
+            $('.uraian-checkbox:checked').each(function() {
+                const uraianItem = $(this).closest('.uraian-item');
+                const jumlahInput = uraianItem.find('.jumlah-input');
+                const maxVolume = parseFloat(jumlahInput.attr('max')) || 0;
+                const volume = parseFloat(jumlahInput.val()) || 0;
+                const uraianText = uraianItem.find('.form-check-label').text();
+                
+                if (volume > maxVolume) {
+                    volumeMelebihiMaksimal = true;
+                    uraianMelebihi = uraianText;
+                    return false; // break loop
+                }
+            });
+            
+            if (volumeMelebihiMaksimal) {
+                console.log('Validation failed: volume exceeds maximum');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Volume Melebihi Maksimal',
+                    html: `Maaf, jumlah volume melebihi jumlah maksimal untuk uraian:<br><strong>${uraianMelebihi}</strong>`,
+                    confirmButtonColor: '#0d6efd',
+                });
                 return false;
             }
             
@@ -1045,6 +1087,9 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                     `;
                 }
                 
+                // Escape single quotes dalam uraian untuk JavaScript
+                const escapedUraian = uraian.uraian.replace(/'/g, "\\'");
+                
                 return `
                 <div class="card mb-3 uraian-item" data-uraian-id="${uraian.id}">
                     <div class="card-body">
@@ -1064,10 +1109,10 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                             <div class="col-md-4 mb-2">
                                 <label class="form-label">Jumlah</label>
                                 <div class="input-group input-group-sm">
-                                    <input type="number" class="form-control jumlah-input" value="1" min="1" 
+                                    <input type="number" class="form-control jumlah-input" value="${uraian.volume_maksimal}" min="1" 
                                         max="${uraian.volume_maksimal}" aria-label="Jumlah" 
                                         ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'disabled' : '' }
-                                        oninput="validateVolumeInput(this, ${uraian.volume_maksimal})">
+                                        oninput="validateVolumeInput(this, ${uraian.volume_maksimal}, '${escapedUraian}')">
                                     <span class="input-group-text">Maks. ${uraian.volume_maksimal}</span>
                                 </div>
                                 <small class="text-muted">Sisa volume total: ${uraian.sisa_volume} ${uraian.satuan}</small>
@@ -1075,6 +1120,8 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                 `<small class="text-info d-block">+ ${uraian.volume_bulan_tertutup} dari bulan sebelumnya (${uraian.bulan_tertutup_list.join(', ')})</small>` : ''}
                                 ${uraian.volume_bulan_ini > 0 ?
                                 `<small class="text-success d-block">+ ${uraian.volume_bulan_ini} dari bulan ${bulan}</small>` : ''}
+                                ${uraian.volume_sudah_dibelanjakan > 0 ?
+                                `<small class="text-warning d-block">- ${uraian.volume_sudah_dibelanjakan} sudah dibelanjakan</small>` : ''}
                                 <div class="text-danger volume-error" style="display: none;">
                                     <small><i class="bi bi-exclamation-circle"></i> Maaf, jumlah volume melebihi jumlah maksimal</small>
                                 </div>
@@ -1117,24 +1164,76 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             // Event listener untuk input jumlah
             container.find('.jumlah-input').on('input', function() {
                 const maxVolume = parseFloat($(this).attr('max')) || 0;
-                validateVolumeInput(this, maxVolume);
+                const uraianText = $(this).closest('.card-body').find('.form-check-label').text();
+                validateVolumeInput(this, maxVolume, uraianText);
                 updateUraianSubtotal($(this).closest('.uraian-item'));
                 updateTotalTransaksiDisplay();
             });
         }
 
         // Fungsi untuk validasi input volume
-        function validateVolumeInput(inputElement, maxVolume) {
+        function validateVolumeInput(inputElement, maxVolume, uraianText) {
             const value = parseInt(inputElement.value) || 0;
             const errorElement = $(inputElement).closest('.mb-2').find('.volume-error');
             
             if (value > maxVolume) {
                 errorElement.show();
                 inputElement.setCustomValidity('Jumlah volume melebihi maksimal');
+                
+                // Simpan informasi uraian yang melebihi untuk validasi step
+                $(inputElement).data('exceeds-limit', true);
+                $(inputElement).data('uraian-text', uraianText);
             } else {
                 errorElement.hide();
                 inputElement.setCustomValidity('');
+                $(inputElement).data('exceeds-limit', false);
+                $(inputElement).removeData('uraian-text');
             }
+        }
+
+        // Fungsi untuk validasi semua volume sebelum pindah step
+        function validateAllVolumes() {
+            let volumeMelebihiMaksimal = false;
+            let uraianDetails = [];
+            
+            $('.jumlah-input').each(function() {
+                const value = parseInt($(this).val()) || 0;
+                const maxVolume = parseFloat($(this).attr('max')) || 0;
+                const uraianText = $(this).data('uraian-text') || $(this).closest('.card-body').find('.form-check-label').text();
+                const isChecked = $(this).closest('.uraian-item').find('.uraian-checkbox').is(':checked');
+                
+                if (isChecked && value > maxVolume) {
+                    volumeMelebihiMaksimal = true;
+                    uraianDetails.push({
+                        uraian: uraianText,
+                        volume: value,
+                        max_volume: maxVolume
+                    });
+                }
+            });
+            
+            if (volumeMelebihiMaksimal) {
+                // Format pesan error dengan detail
+                let errorMessage = 'Maaf, jumlah volume melebihi jumlah maksimal untuk uraian berikut:<br><br>';
+                
+                uraianDetails.forEach((detail, index) => {
+                    errorMessage += `<strong>${index + 1}. ${detail.uraian}</strong><br>`;
+                    errorMessage += `Volume: ${detail.volume} (Maks: ${detail.max_volume})<br><br>`;
+                });
+                
+                errorMessage += 'Silakan perbaiki volume sebelum melanjutkan.';
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Volume Melebihi Maksimal',
+                    html: errorMessage,
+                    confirmButtonColor: '#0d6efd',
+                });
+                
+                return false;
+            }
+            
+            return true;
         }
 
         // Fungsi untuk memperbarui subtotal uraian
@@ -1484,6 +1583,122 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             }
         });
         
+        // Fungsi untuk memuat nomor nota terakhir
+        function loadLastNotaNumber() {
+            const tahun = '{{ $tahun }}';
+            const bulan = '{{ $bulan }}';
+            
+            $.ajax({
+                url: '/bku/last-nota-number/' + tahun + '/' + bulan,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const lastNota = response.last_nota_number;
+                        const suggestedNext = response.suggested_next_number;
+                        
+                        let infoText = '';
+                        if (lastNota) {
+                            infoText = `Nomor nota terakhir: <strong>${lastNota}</strong>`;
+                            if (suggestedNext) {
+                                infoText += ` | Saran berikutnya: <strong>${suggestedNext}</strong>`;
+                            }
+                        } else {
+                            infoText = 'Belum ada nomor nota untuk bulan ini';
+                        }
+                        
+                        $('#lastNotaInfo').html(`<i class="bi bi-info-circle"></i> ${infoText}`);
+                        
+                        // Auto-fill dengan saran nomor berikutnya jika field kosong
+                        if (suggestedNext && $('#nomor_nota').val() === '') {
+                            $('#nomor_nota').val(suggestedNext);
+                        }
+                    } else {
+                        $('#lastNotaInfo').html('<i class="bi bi-exclamation-triangle"></i> Gagal memuat informasi');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error loading last nota number:', xhr);
+                    $('#lastNotaInfo').html('<i class="bi bi-exclamation-triangle"></i> Error memuat informasi');
+                }
+            });
+        }
+
+        // Fungsi untuk mendapatkan nomor berikutnya (versi improved)
+        function getNextNotaNumber(lastNota) {
+            if (!lastNota) {
+                return '001';
+            }
+            
+            // Coba ekstrak angka dari nomor nota
+            const numericMatches = lastNota.match(/\d+/g);
+            
+            if (numericMatches && numericMatches.length > 0) {
+                // Ambil angka terakhir yang ditemukan
+                const lastNum = parseInt(numericMatches[numericMatches.length - 1]);
+                
+                if (!isNaN(lastNum)) {
+                    const nextNum = lastNum + 1;
+                    
+                    // Pertahankan format asli (prefix dan suffix)
+                    const prefix = lastNota.replace(/\d+.*$/, ''); // Bagian sebelum angka
+                    const suffix = lastNota.replace(/^.*?(\d+)/, '').replace(/\d+$/, ''); // Bagian setelah angka
+                    
+                    // Format angka menjadi 3 digit
+                    const formattedNum = String(nextNum).padStart(3, '0');
+                    
+                    return prefix + formattedNum + suffix;
+                }
+            }
+            
+            // Jika tidak ada angka, tambahkan -001
+            return lastNota + '-001';
+        }
+
+        // Fungsi untuk validasi format nomor nota (versi lebih fleksibel)
+        function validateNotaFormat(notaNumber) {
+            if (!notaNumber.trim()) {
+                return false;
+            }
+            
+            // Format yang diizinkan: boleh mengandung huruf, angka, dan karakter khusus
+            // Minimal harus ada angka
+            const hasNumber = /\d/.test(notaNumber);
+            
+            return hasNumber;
+        }
+
+        // Event handler untuk input nomor nota (versi improved)
+        $('#nomor_nota').on('blur', function() {
+            const notaValue = $(this).val().trim();
+            
+            if (notaValue && !validateNotaFormat(notaValue)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Format Nomor Nota',
+                    text: 'Nomor nota harus mengandung angka. Contoh: 001, BP001, NOTA-001, dll.',
+                    confirmButtonColor: '#0d6efd',
+                });
+                
+                // Fokus kembali ke field
+                $(this).focus();
+                return;
+            }
+            
+            // Jika hanya angka, format ke 3 digit
+            if (/^\d+$/.test(notaValue)) {
+                const number = parseInt(notaValue) || 1;
+                $(this).val(String(number).padStart(3, '0'));
+            }
+        });
+
+        // Event handler untuk memberikan contoh format
+        $('#nomor_nota').on('focus', function() {
+            const currentValue = $(this).val();
+            if (!currentValue) {
+                // Tampilkan placeholder dengan contoh format
+                $(this).attr('placeholder', 'Contoh: 001, BP001, NOTA-001, INV-2024-001');
+            }
+        });
     });
 </script>
 @endpush

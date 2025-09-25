@@ -333,8 +333,24 @@ class BukuKasUmum extends Model
      */
     protected static function booted()
     {
+        // Hanya tambahkan ordering jika query tidak menggunakan GROUP BY
         static::addGlobalScope('orderByIdTransaksi', function ($builder) {
-            $builder->orderBy('id_transaksi', 'asc');
+            // Cek jika query sudah memiliki GROUP BY clause
+            if (empty($builder->getQuery()->groups)) {
+                $builder->orderBy('id_transaksi', 'asc');
+            }
         });
+    }
+
+    // Contoh untuk method lain yang mungkin bermasalah
+    public function someOtherMethod($penganggaran_id)
+    {
+        $data = BukuKasUmum::withoutGlobalScopes()
+            ->where('penganggaran_id', $penganggaran_id)
+            ->selectRaw('EXTRACT(MONTH FROM tanggal_transaksi) as bulan, COUNT(*) as total')
+            ->groupBy('bulan')
+            ->get();
+
+        return $data;
     }
 }

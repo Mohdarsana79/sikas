@@ -39,7 +39,9 @@ class BukuKasUmum extends Model
         'bunga_bank',
         'pajak_bunga_bank',
         'status',
-        'is_bunga_record'
+        'status_bulan',
+        'is_bunga_record',
+        'closed_without_spending'
     ];
 
     protected $casts = [
@@ -53,7 +55,8 @@ class BukuKasUmum extends Model
         'bunga_bank' => 'decimal:2',
         'pajak_bunga_bank' => 'decimal:2',
         'status' => 'string',
-        'is_bunga_record' => 'boolean'
+        'is_bunga_record' => 'boolean',
+        'closed_without_spending' => 'boolean'
     ];
 
     // Accessor untuk bulan
@@ -201,5 +204,137 @@ class BukuKasUmum extends Model
         }
 
         return $query->sum('volume');
+    }
+
+    // Method untuk mendapatkan volume dari bulan tertutup tanpa belanja
+    public static function getVolumeFromClosedMonths($penganggaran_id, $kegiatan_id, $rekening_id, $uraian, $sampaiBulan)
+    {
+        $bulanAngkaList = [
+            'Januari' => 1,
+            'Februari' => 2,
+            'Maret' => 3,
+            'April' => 4,
+            'Mei' => 5,
+            'Juni' => 6,
+            'Juli' => 7,
+            'Agustus' => 8,
+            'September' => 9,
+            'Oktober' => 10,
+            'November' => 11,
+            'Desember' => 12
+        ];
+
+        $sampaiBulanNumber = $bulanAngkaList[$sampaiBulan] ?? 1;
+        $totalVolume = 0;
+        $bulanList = [];
+
+        for ($i = 1; $i < $sampaiBulanNumber; $i++) {
+            $bulanNama = array_search($i, $bulanAngkaList);
+
+            // Cek apakah bulan ini ditutup tanpa belanja
+            $isClosedWithoutSpending = self::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_transaksi', $i)
+                ->where('status', 'closed')
+                ->where('closed_without_spending', true)
+                ->exists();
+
+            if ($isClosedWithoutSpending) {
+                // Tentukan model yang akan digunakan berdasarkan bulan
+                $isTahap1 = in_array($bulanNama, ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']);
+                $model = $isTahap1 ? Rkas::class : RkasPerubahan::class;
+
+                // Hitung volume untuk bulan ini dari RKAS
+                $volumeBulan = $model::where('penganggaran_id', $penganggaran_id)
+                    ->where('bulan', $bulanNama)
+                    ->where('kode_rekening_id', $rekening_id)
+                    ->where('kode_id', $kegiatan_id)
+                    ->where('uraian', 'LIKE', '%' . $uraian . '%')
+                    ->sum('jumlah');
+
+                $totalVolume += $volumeBulan;
+                $bulanList[] = $bulanNama;
+            }
+        }
+
+        return [
+            'total_volume' => $totalVolume,
+            'bulan_list' => $bulanList
+        ];
+    }
+
+    // Method untuk mendapatkan volume yang sudah dibelanjakan per bulan
+    public static function getVolumeSudahDibelanjakanPerBulan($penganggaran_id, $kegiatan_id, $rekening_id, $uraian, $bulanAngka)
+    {
+        return BukuKasUmumUraianDetail::whereHas('bukuKasUmum', function ($query) use ($penganggaran_id, $bulanAngka) {
+            $query->where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_transaksi', $bulanAngka);
+        })
+            ->where('kode_rekening_id', $rekening_id)
+            ->where('kode_kegiatan_id', $kegiatan_id)
+            ->where('uraian', 'LIKE', '%' . $uraian . '%')
+            ->sum('volume');
+    }
+
+    // Method untuk mendapatkan volume RKAS per bulan
+    public static function getVolumeRkasPerBulan($penganggaran_id, $kegiatan_id, $rekening_id, $uraian, $bulanNama, $isTahap1)
+    {
+        $model = $isTahap1 ? Rkas::class : RkasPerubahan::class;
+
+        return $model::where('penganggaran_id', $penganggaran_id)
+            ->where('bulan', $bulanNama)
+            ->where('kode_rekening_id', $rekening_id)
+            ->where('kode_id', $kegiatan_id)
+            ->where('uraian', $uraian)
+            ->sum('jumlah');
+    }
+
+    // Method untuk mendapatkan volume yang sudah dibelanjakan untuk bulan tertentu di SEMUA bulan berikutnya
+    public static function getVolumeSudahDibelanjakanSetelahBulan($penganggaran_id, $kegiatan_id, $rekening_id, $uraian, $bulanAngka)
+    {
+        return BukuKasUmumUraianDetail::whereHas('bukuKasUmum', function ($query) use ($penganggaran_id, $bulanAngka) {
+            $query->where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_transaksi', '>', $bulanAngka);
+        })
+            ->where('kode_rekening_id', $rekening_id)
+            ->where('kode_kegiatan_id', $kegiatan_id)
+            ->where('uraian', 'LIKE', '%' . $uraian . '%')
+            ->sum('volume');
+    }
+
+    // Method untuk update status bulan agar card bulan status draft
+    public static function updateStatusBulan($penganggaran_id, $bulan, $status)
+    {
+        // Update semua record BKU di bulan tersebut
+        $bulanAngka = self::convertBulanToNumber($bulan);
+
+        return self::where('penganggaran_id', $penganggaran_id)
+            ->whereMonth('tanggal_transaksi', $bulanAngka)
+            ->update(['status_bulan' => $status]);
+    }
+
+    // Method untuk mendapatkan status bulan draft
+    public static function getStatusBulan($penganggaran_id, $bulan)
+    {
+        $bulanAngka = self::convertBulanToNumber($bulan);
+
+        $bku = self::where('penganggaran_id', $penganggaran_id)
+            ->whereMonth('tanggal_transaksi', $bulanAngka)
+            ->first();
+
+        if ($bku) {
+            return $bku->status_bulan;
+        }
+
+        return null;
+    }
+
+    /**
+     * The "booted" method of the model default ordering.
+     */
+    protected static function booted()
+    {
+        static::addGlobalScope('orderByIdTransaksi', function ($builder) {
+            $builder->orderBy('id_transaksi', 'asc');
+        });
     }
 }
