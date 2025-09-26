@@ -541,7 +541,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         const totalSteps = 3;
         const tahun = '{{ $tahun }}';
         const bulan = '{{ $bulan }}';
-        
+
         // Variabel global untuk menyimpan data
         window.currentTotalTransaksi = 0;
         window.kegiatanData = [];
@@ -551,7 +551,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         function initializeSelect2() {
             try {
                 console.log('Initializing Select2...');
-                
+
                 // Destroy existing Select2 instances
                 $('.kegiatan-select').each(function() {
                     if ($(this).hasClass('select2-hidden-accessible')) {
@@ -559,14 +559,14 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                         console.log('Destroyed existing Select2 on kegiatan-select');
                     }
                 });
-                
+
                 $('.rekening-select').each(function() {
                     if ($(this).hasClass('select2-hidden-accessible')) {
                         $(this).select2('destroy');
                         console.log('Destroyed existing Select2 on rekening-select');
                     }
                 });
-                
+
                 // Initialize Select2 dengan konfigurasi yang sederhana
                 $('.kegiatan-select').select2({
                     theme: 'bootstrap-5',
@@ -574,14 +574,14 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                     dropdownParent: $('#transactionModal'),
                     minimumResultsForSearch: 1
                 });
-                
+
                 $('.rekening-select').select2({
                     theme: 'bootstrap-5',
                     width: '100%',
                     dropdownParent: $('#transactionModal'),
                     minimumResultsForSearch: 1
                 });
-                
+
                 console.log('Select2 initialized successfully');
             } catch (error) {
                 console.error('Error initializing Select2:', error);
@@ -598,13 +598,22 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         // Fungsi untuk mendapatkan range tanggal
         function getDateRangeForMonth(bulan, tahun) {
             const bulanAngka = {
-                'Januari': 1, 'Februari': 2, 'Maret': 3, 'April': 4,
-                'Mei': 5, 'Juni': 6, 'Juli': 7, 'Agustus': 8,
-                'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12
-            }[bulan] || 1;
-            
+                'Januari': 1,
+                'Februari': 2,
+                'Maret': 3,
+                'April': 4,
+                'Mei': 5,
+                'Juni': 6,
+                'Juli': 7,
+                'Agustus': 8,
+                'September': 9,
+                'Oktober': 10,
+                'November': 11,
+                'Desember': 12
+            } [bulan] || 1;
+
             const lastDay = new Date(tahun, bulanAngka, 0).getDate();
-            
+
             return {
                 min: `${tahun}-${String(bulanAngka).padStart(2, '0')}-01`,
                 max: `${tahun}-${String(bulanAngka).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
@@ -648,9 +657,9 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         // PERBAIKAN: Initialize modal dengan approach yang benar
         $('#transactionModal').on('show.bs.modal', function() {
             console.log('=== MODAL SHOW EVENT TRIGGERED ===');
-            
+
             resetSteps();
-            
+
             // Reset data
             window.kegiatanData = [];
             window.rekeningData = [];
@@ -675,20 +684,20 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         // PERBAIKAN: Fungsi untuk memuat data kegiatan dan rekening
         function loadKegiatanDanRekening() {
             console.log('Loading kegiatan dan rekening untuk:', tahun, bulan);
-            
+
             // Tampilkan loading state
             $('.kegiatan-select').html('<option value="">Memuat data...</option>').prop('disabled', true);
-            
+
             $.ajax({
                 url: '/bku/kegiatan-rekening/' + tahun + '/' + bulan,
                 method: 'GET',
                 success: function(response) {
                     console.log('API Response received:', response);
-                    
+
                     if (response.success) {
                         window.kegiatanData = response.kegiatan_list || [];
                         window.rekeningData = response.rekening_list || [];
-                        
+
                         console.log('Data loaded successfully:', {
                             kegiatan: window.kegiatanData.length,
                             rekening: window.rekeningData.length
@@ -696,7 +705,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
 
                         // Populate select kegiatan
                         populateKegiatanSelect();
-                        
+
                     } else {
                         console.error('Error in API response:', response.message);
                         showError('Gagal memuat data: ' + (response.message || 'Unknown error'));
@@ -709,7 +718,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                         error: error,
                         responseText: xhr.responseText
                     });
-                    
+
                     showError('Gagal terhubung ke server. Silakan coba lagi.');
                     setErrorState();
                 }
@@ -719,23 +728,23 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         // PERBAIKAN: Fungsi untuk mengisi select kegiatan
         function populateKegiatanSelect() {
             const kegiatanSelects = $('.kegiatan-select');
-            
+
             kegiatanSelects.each(function() {
                 const $select = $(this);
                 $select.empty();
-                
+
                 if (window.kegiatanData && window.kegiatanData.length > 0) {
                     $select.append('<option value="">Pilih Jenis Kegiatan</option>');
-                    
+
                     window.kegiatanData.forEach(function(kegiatan) {
                         $select.append(
                             `<option value="${kegiatan.id}">${kegiatan.kode} - ${kegiatan.uraian}</option>`
                         );
                     });
-                    
+
                     $select.prop('disabled', false);
                     console.log('Kegiatan select populated with', window.kegiatanData.length, 'items');
-                    
+
                 } else {
                     $select.append('<option value="" disabled>Tidak ada kegiatan tersedia untuk bulan ini</option>');
                     $select.prop('disabled', true);
@@ -766,15 +775,15 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         // Fungsi untuk reload data ketika bulan berubah
         function reloadKegiatanDanRekening() {
             console.log('Reloading data untuk bulan:', bulan);
-            
+
             // Reset data
             window.kegiatanData = [];
             window.rekeningData = [];
-            
+
             // Tampilkan loading state
             $('.kegiatan-select').html('<option value="">Memuat data...</option>').prop('disabled', true);
             $('.rekening-select').html('<option value="">Pilih kegiatan terlebih dahulu</option>').prop('disabled', true);
-            
+
             // Load data baru
             loadKegiatanDanRekening();
         }
@@ -809,12 +818,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 if (rekeningForKegiatan.length === 0) {
                     rekeningSelect.append('<option value="" disabled>Tidak ada rekening tersedia untuk kegiatan ini</option>');
                     rekeningSelect.prop('disabled', true);
-                    
+
                     uraianContainer.html('<div class="alert alert-warning mt-2">Tidak ada rekening belanja yang tersedia untuk kegiatan ini.</div>');
                 } else {
                     rekeningSelect.append('<option value="">Pilih Rekening Belanja</option>');
                     rekeningSelect.prop('disabled', false);
-                    
+
                     rekeningForKegiatan.forEach(function(rekening) {
                         rekeningSelect.append(
                             `<option value="${rekening.id}">${rekening.kode_rekening} - ${rekening.rincian_objek}</option>`
@@ -835,7 +844,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             } else {
                 rekeningSelect.append('<option value="">Pilih kegiatan terlebih dahulu</option>');
                 rekeningSelect.prop('disabled', true);
-                
+
                 setTimeout(() => {
                     rekeningSelect.select2({
                         theme: 'bootstrap-5',
@@ -912,7 +921,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         function setErrorState() {
             $('.kegiatan-select').html('<option value="" disabled>Gagal memuat data</option>').prop('disabled', true);
             $('.rekening-select').html('<option value="" disabled>Pilih kegiatan terlebih dahulu</option>').prop('disabled', true);
-            
+
             setTimeout(() => {
                 initializeSelect2();
             }, 100);
@@ -937,13 +946,13 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                         console.log('Step 2 validation failed');
                         return;
                     }
-                    
+
                     if (!validateAllVolumes()) {
                         console.log('Volume validation failed');
                         return;
                     }
                 }
-                
+
                 currentStep++;
                 console.log('Moving to step:', currentStep);
                 updateSteps();
@@ -963,7 +972,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 scrollToTop();
             }
         });
-        
+
         // Fungsi untuk validasi step 1
         function validateStep1() {
             const tanggalTransaksi = $('#tanggal_transaksi').val();
@@ -972,7 +981,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             const namaPenerima = $('#nama_penerima').val();
             const alamat = $('#alamat_toko').val();
             const isTokoChecked = $('#checkForm').is(':checked');
-            
+
             if (!tanggalTransaksi) {
                 showValidationError('Tanggal transaksi harus diisi');
                 $('#tanggal_transaksi').focus();
@@ -982,53 +991,56 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             if (!validateDate(document.getElementById('tanggal_transaksi'), bulan, tahun)) {
                 return false;
             }
-            
+
             if (!jenisTransaksi) {
                 showValidationError('Jenis transaksi harus dipilih');
                 $('#jenis_transaksi').focus();
                 return false;
             }
-            
+
             if (!isTokoChecked && !namaToko) {
                 showValidationError('Nama toko/badan usaha harus diisi');
                 $('#nama_toko').focus();
                 return false;
             }
-            
+
             if (isTokoChecked && !namaPenerima) {
                 showValidationError('Nama penerima/penyedia harus diisi');
                 $('#nama_penerima').focus();
                 return false;
             }
-            
+
             if (!alamat) {
                 showValidationError('Alamat harus diisi');
                 $('#alamat_toko').focus();
                 return false;
             }
-            
+
             return true;
         }
-        
+
         // Fungsi untuk validasi step 2
         function validateStep2() {
             const nomorNota = $('#nomor_nota').val();
             const tanggalNota = $('#tanggal_nota').val();
 
-            console.log('Validating step 2:', { nomorNota, tanggalNota });
-            
+            console.log('Validating step 2:', {
+                nomorNota,
+                tanggalNota
+            });
+
             // Validasi jika tidak ada kegiatan yang tersedia
             if (window.kegiatanData && window.kegiatanData.length === 0) {
                 showValidationError('Tidak ada kegiatan yang tersedia untuk bulan ' + bulan + '. Silakan pilih bulan lain.');
                 return false;
             }
-            
+
             if (!nomorNota) {
                 showValidationError('Nomor nota harus diisi');
                 $('#nomor_nota').focus();
                 return false;
             }
-            
+
             if (!tanggalNota) {
                 showValidationError('Tanggal belanja/nota harus diisi');
                 $('#tanggal_nota').focus();
@@ -1038,7 +1050,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             if (!validateDate(document.getElementById('tanggal_nota'), bulan, tahun)) {
                 return false;
             }
-            
+
             const kegiatanDipilih = $('.kegiatan-select').filter(function() {
                 return $(this).val() !== '';
             }).length > 0;
@@ -1056,21 +1068,21 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
 
             let volumeMelebihiMaksimal = false;
             let uraianMelebihi = '';
-            
+
             $('.uraian-checkbox:checked').each(function() {
                 const uraianItem = $(this).closest('.uraian-item');
                 const jumlahInput = uraianItem.find('.jumlah-input');
                 const maxVolume = parseFloat(jumlahInput.attr('max')) || 0;
                 const volume = parseFloat(jumlahInput.val()) || 0;
                 const uraianText = uraianItem.find('.form-check-label').text();
-                
+
                 if (volume > maxVolume) {
                     volumeMelebihiMaksimal = true;
                     uraianMelebihi = uraianText;
                     return false;
                 }
             });
-            
+
             if (volumeMelebihiMaksimal) {
                 Swal.fire({
                     icon: 'error',
@@ -1080,11 +1092,11 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 });
                 return false;
             }
-            
+
             console.log('Step 2 validation passed');
             return true;
         }
-        
+
         // Fungsi untuk menampilkan pesan error validasi
         function showValidationError(message) {
             Swal.fire({
@@ -1098,7 +1110,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         function updateSteps() {
             $('.step-pane').addClass('d-none');
             $(`#step${currentStep}`).removeClass('d-none');
-            
+
             $('.step-item').removeClass('active completed');
             $('.step-item').each(function() {
                 const step = parseInt($(this).data('step'));
@@ -1108,13 +1120,13 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                     $(this).addClass('active');
                 }
             });
-            
+
             if (currentStep === 3) {
                 renderKegiatanCardsStep3();
             }
-            
+
             $('#prevBtn').prop('disabled', currentStep === 1);
-            
+
             if (currentStep === totalSteps) {
                 $('#nextBtn').addClass('d-none');
                 $('#saveBtn').removeClass('d-none');
@@ -1199,13 +1211,13 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         function validateAllVolumes() {
             let volumeMelebihiMaksimal = false;
             let uraianDetails = [];
-            
+
             $('.jumlah-input').each(function() {
                 const value = parseInt($(this).val()) || 0;
                 const maxVolume = parseFloat($(this).attr('max')) || 0;
                 const uraianText = $(this).data('uraian-text') || $(this).closest('.card-body').find('.form-check-label').text();
                 const isChecked = $(this).closest('.uraian-item').find('.uraian-checkbox').is(':checked');
-                
+
                 if (isChecked && value > maxVolume) {
                     volumeMelebihiMaksimal = true;
                     uraianDetails.push({
@@ -1215,159 +1227,183 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                     });
                 }
             });
-            
+
             if (volumeMelebihiMaksimal) {
                 let errorMessage = 'Maaf, jumlah volume melebihi jumlah maksimal untuk uraian berikut:<br><br>';
-                
+
                 uraianDetails.forEach((detail, index) => {
                     errorMessage += `<strong>${index + 1}. ${detail.uraian}</strong><br>`;
                     errorMessage += `Volume: ${detail.volume} (Maks: ${detail.max_volume})<br><br>`;
                 });
-                
+
                 errorMessage += 'Silakan perbaiki volume sebelum melanjutkan.';
-                
+
                 Swal.fire({
                     icon: 'error',
                     title: 'Volume Melebihi Maksimal',
                     html: errorMessage,
                     confirmButtonColor: '#0d6efd',
                 });
-                
+
                 return false;
             }
-            
+
             return true;
         }
 
-        // Fungsi untuk merender opsi uraian
+        // PERBAIKAN: Fungsi untuk merender opsi uraian dengan informasi yang lebih detail
         function renderUraianOptions(data, kegiatanIndex, container) {
             container.empty();
-            
+
             if (data.length === 0) {
                 container.html('<div class="alert alert-info">Tidak ada data uraian untuk rekening ini</div>');
                 return;
             }
-            
-            const uraianHtml = `
+
+            // Hitung uraian yang dapat digunakan
+            const uraianDapatDigunakan = data.filter(uraian => uraian.dapat_digunakan).length;
+
+            let uraianHtml = `
             <div class="col-sm-12 justify-content-between align-content-between d-flex mb-3">
                 <div class="label">
                     <p class="mb-0 fw-bold">Uraian</p>
+                    <small class="text-muted">
+                        Total RKAS: ${data.reduce((sum, u) => sum + u.total_volume, 0)} | 
+                        Sudah: ${data.reduce((sum, u) => sum + u.volume_sudah_dibelanjakan, 0)} | 
+                        Sisa: ${data.reduce((sum, u) => sum + u.sisa_volume, 0)}
+                    </small>
+                    ${uraianDapatDigunakan === 0 ? '<div class="text-danger mt-1">Semua uraian sudah habis dibelanjakan</div>' : ''}
                 </div>
+                ${uraianDapatDigunakan > 0 ? `
                 <div class="form-check">
                     <input class="form-check-input check-all-uraian" type="checkbox" data-kegiatan-index="${kegiatanIndex}">
                     <label class="form-check-label">
                         <strong>Pilih</strong> semua uraian
                     </label>
                 </div>
+                ` : ''}
             </div>
             <hr class="mt-2 mb-3">
-            ${data.map((uraian, index) => {
-                let warningHtml = '';
-                let infoHtml = '';
-                
-                if (uraian.melebihi_maksimal) {
-                    warningHtml = `
-                    <div class="alert alert-danger mt-2 p-2">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        <strong>Peringatan:</strong> Volume melebihi data yang tersedia!
-                    </div>
-                    `;
-                } else if (uraian.from_previous_months) {
-                    infoHtml = `
-                    <div class="alert alert-info mt-2 p-2">
-                        <i class="bi bi-info-circle"></i>
-                        <strong>Informasi:</strong> Termasuk volume dari bulan sebelumnya yang ditutup tanpa belanja
-                        ${uraian.bulan_tertutup_list && uraian.bulan_tertutup_list.length > 0 ? 
-                            `(Bulan: ${uraian.bulan_tertutup_list.join(', ')})` : ''}
-                    </div>
-                    `;
-                }
-                
-                const escapedUraian = uraian.uraian.replace(/'/g, "\\'");
-                
-                return `
-                <div class="card mb-3 uraian-item" data-uraian-id="${uraian.id}">
-                    <div class="card-body">
-                        ${warningHtml}
-                        ${infoHtml}
-                        <div class="form-check mb-3">
-                            <input class="form-check-input uraian-checkbox" type="checkbox" name="uraian" value="${uraian.id}"
-                                data-anggaran="${uraian.anggaran}" ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'disabled' : '' }>
-                            <label class="form-check-label fw-bold ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'text-danger' : ''}">
-                                ${uraian.uraian}
-                            </label>
-                            <input type="hidden" class="uraian-text-input" value="${uraian.uraian}">
-                            <span class="satuan-text d-none">${uraian.satuan || ''}</span>
-                        </div>
+            `;
 
+            data.forEach((uraian, index) => {
+                const isDisabled = !uraian.dapat_digunakan;
+                const disabledClass = isDisabled ? 'text-muted' : '';
+                const disabledAttr = isDisabled ? 'disabled' : '';
+
+                uraianHtml += `
+                <div class="card mb-3 uraian-item ${isDisabled ? 'bg-light' : ''}" data-uraian-id="${uraian.id}">
+                    <div class="card-body">
                         <div class="row">
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label">Jumlah</label>
-                                <div class="input-group input-group-sm">
-                                    <input type="number" class="form-control jumlah-input" value="${uraian.volume_maksimal}" min="1" 
-                                        max="${uraian.volume_maksimal}" aria-label="Jumlah" 
-                                        ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'disabled' : '' }
-                                        oninput="validateVolumeInput(this, ${uraian.volume_maksimal}, '${escapedUraian}')">
-                                    <span class="input-group-text">Maks. ${uraian.volume_maksimal}</span>
+                            <div class="col-12">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input uraian-checkbox" type="checkbox" name="uraian" value="${uraian.id}"
+                                        ${isDisabled ? 'disabled' : ''}>
+                                    <label class="form-check-label fw-bold ${disabledClass}">
+                                        ${uraian.uraian}
+                                    </label>
+                                    <input type="hidden" class="uraian-text-input" value="${uraian.uraian}">
+                                    <span class="satuan-text d-none">${uraian.satuan || ''}</span>
                                 </div>
-                                <small class="text-muted">Sisa volume total: ${uraian.sisa_volume} ${uraian.satuan}</small>
-                                ${uraian.volume_bulan_tertutup > 0 ?
-                                `<small class="text-info d-block">+ ${uraian.volume_bulan_tertutup} dari bulan sebelumnya (${uraian.bulan_tertutup_list.join(', ')})</small>` : ''}
-                                ${uraian.volume_bulan_ini > 0 ?
-                                `<small class="text-success d-block">+ ${uraian.volume_bulan_ini} dari bulan ${bulan}</small>` : ''}
-                                ${uraian.volume_sudah_dibelanjakan > 0 ?
-                                `<small class="text-warning d-block">- ${uraian.volume_sudah_dibelanjakan} sudah dibelanjakan</small>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="alert alert-sm alert-${isDisabled ? 'warning' : 'info'} mb-2">
+                                    <small>
+                                        <strong>Informasi Volume:</strong><br>
+                                        • Total RKAS: <strong>${uraian.total_volume}</strong><br>
+                                        • Sudah dibelanjakan: <strong>${uraian.volume_sudah_dibelanjakan}</strong><br>
+                                        • Sisa tersedia: <strong class="${uraian.sisa_volume > 0 ? 'text-success' : 'text-danger'}">${uraian.sisa_volume}</strong><br>
+                                        • Bulan: ${uraian.bulan_asal.join(', ')}
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="alert alert-sm alert-secondary mb-2">
+                                    <small>
+                                        <strong>Informasi Anggaran:</strong><br>
+                                        • Harga satuan: <strong>Rp ${formatRupiah(uraian.harga_satuan)}</strong><br>
+                                        • Total anggaran: <strong>Rp ${formatRupiah(uraian.total_anggaran)}</strong><br>
+                                        • Sudah dibelanjakan: <strong>Rp ${formatRupiah(uraian.sudah_dibelanjakan)}</strong><br>
+                                        • Sisa anggaran: <strong>Rp ${formatRupiah(uraian.sisa_anggaran)}</strong>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${!isDisabled ? `
+                        <div class="row mt-2">
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">Jumlah yang akan dibelanjakan</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control jumlah-input" value="${uraian.sisa_volume}" min="1" 
+                                        max="${uraian.sisa_volume}" aria-label="Jumlah" 
+                                        oninput="validateVolumeInput(this, ${uraian.sisa_volume}, '${uraian.uraian.replace(/'/g, "\\'")}')">
+                                    <span class="input-group-text">Maks. ${uraian.sisa_volume}</span>
+                                </div>
+                                <small class="text-muted">Sisa volume: ${uraian.sisa_volume} ${uraian.satuan}</small>
                                 <div class="text-danger volume-error" style="display: none;">
-                                    <small><i class="bi bi-exclamation-circle"></i> Maaf, jumlah volume melebihi jumlah maksimal</small>
+                                    <small><i class="bi bi-exclamation-circle"></i> Jumlah melebihi sisa volume</small>
                                 </div>
                             </div>
 
-                            <div class="col-md-8 mb-2">
+                            <div class="col-md-6 mb-2">
                                 <label class="form-label">Harga Satuan</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">Rp</span>
                                     <input type="text" class="form-control harga-input" value="${formatRupiah(uraian.harga_satuan)}"
                                         aria-label="Harga" readonly>
-                                    <span class="input-group-text">Maks. Rp ${formatRupiah(uraian.harga_satuan)}</span>
                                 </div>
+                                <small class="text-muted">Harga tetap sesuai RKAS</small>
                             </div>
                         </div>
+                        ` : `
+                        <div class="alert alert-danger text-center">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            <strong>Uraian tidak dapat digunakan - Volume sudah habis</strong>
+                        </div>
+                        `}
                     </div>
                 </div>
                 `;
-            }).join('')}
-            `;
-            
+            });
+
             container.html(uraianHtml);
-            
-            $(`.check-all-uraian[data-kegiatan-index="${kegiatanIndex}"]`).change(function() {
-                const isChecked = $(this).is(':checked');
-                container.find('.uraian-checkbox:not(:disabled)').prop('checked', isChecked);
-                container.find('.uraian-item').each(function() {
-                    updateUraianSubtotal($(this));
+
+            // Hanya tambahkan event listener jika ada uraian yang dapat digunakan
+            if (uraianDapatDigunakan > 0) {
+                $(`.check-all-uraian[data-kegiatan-index="${kegiatanIndex}"]`).change(function() {
+                    const isChecked = $(this).is(':checked');
+                    container.find('.uraian-checkbox:not(:disabled)').prop('checked', isChecked);
+                    container.find('.uraian-item:not(.bg-light)').each(function() {
+                        updateUraianSubtotal($(this));
+                    });
+                    updateTotalTransaksiDisplay();
                 });
-                updateTotalTransaksiDisplay();
-            });
-            
-            container.find('.uraian-checkbox').change(function() {
-                updateUraianSubtotal($(this).closest('.uraian-item'));
-                updateTotalTransaksiDisplay();
-            });
-            
-            container.find('.jumlah-input').on('input', function() {
-                const maxVolume = parseFloat($(this).attr('max')) || 0;
-                const uraianText = $(this).closest('.card-body').find('.form-check-label').text();
-                validateVolumeInput(this, maxVolume, uraianText);
-                updateUraianSubtotal($(this).closest('.uraian-item'));
-                updateTotalTransaksiDisplay();
-            });
+
+                container.find('.uraian-checkbox:not(:disabled)').change(function() {
+                    updateUraianSubtotal($(this).closest('.uraian-item'));
+                    updateTotalTransaksiDisplay();
+                });
+
+                container.find('.jumlah-input').on('input', function() {
+                    const maxVolume = parseFloat($(this).attr('max')) || 0;
+                    const uraianText = $(this).closest('.card-body').find('.form-check-label').text();
+                    validateVolumeInput(this, maxVolume, uraianText);
+                    updateUraianSubtotal($(this).closest('.uraian-item'));
+                    updateTotalTransaksiDisplay();
+                });
+            }
         }
 
         // Fungsi untuk validasi input volume
         function validateVolumeInput(inputElement, maxVolume, uraianText) {
             const value = parseInt(inputElement.value) || 0;
             const errorElement = $(inputElement).closest('.mb-2').find('.volume-error');
-            
+
             if (value > maxVolume) {
                 errorElement.show();
                 inputElement.setCustomValidity('Jumlah volume melebihi maksimal');
@@ -1393,7 +1429,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 const maxVolume = parseFloat(jumlahInput.attr('max')) || 0;
                 const hargaText = hargaInput.val().replace(/[^\d]/g, '');
                 const harga = parseFloat(hargaText) || 0;
-                
+
                 if (jumlah > maxVolume) {
                     errorElement.show();
                     jumlahInput[0].setCustomValidity('Jumlah volume melebihi maksimal');
@@ -1432,7 +1468,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 console.log('Rendering kegiatan cards for step 3');
                 const kegiatanCardsStep3 = $('#kegiatanCardsStep3');
                 kegiatanCardsStep3.empty();
-                
+
                 const kegiatanCards = $('.kegiatan-card');
                 console.log('Found', kegiatanCards.length, 'kegiatan cards');
 
@@ -1700,12 +1736,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 $('#npwp').prop('disabled', false);
             }
         });
-        
+
         // Fungsi untuk memuat nomor nota terakhir
         function loadLastNotaNumber() {
             const tahun = '{{ $tahun }}';
             const bulan = '{{ $bulan }}';
-            
+
             $.ajax({
                 url: '/bku/last-nota-number/' + tahun + '/' + bulan,
                 method: 'GET',
@@ -1713,7 +1749,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                     if (response.success) {
                         const lastNota = response.last_nota_number;
                         const suggestedNext = response.suggested_next_number;
-                        
+
                         let infoText = '';
                         if (lastNota) {
                             infoText = `Nomor nota terakhir: <strong>${lastNota}</strong>`;
@@ -1723,9 +1759,9 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                         } else {
                             infoText = 'Belum ada nomor nota untuk bulan ini';
                         }
-                        
+
                         $('#lastNotaInfo').html(`<i class="bi bi-info-circle"></i> ${infoText}`);
-                        
+
                         if (suggestedNext && $('#nomor_nota').val() === '') {
                             $('#nomor_nota').val(suggestedNext);
                         }
@@ -1743,7 +1779,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
         // Event handler untuk input nomor nota
         $('#nomor_nota').on('blur', function() {
             const notaValue = $(this).val().trim();
-            
+
             if (notaValue && !validateNotaFormat(notaValue)) {
                 Swal.fire({
                     icon: 'warning',
@@ -1751,11 +1787,11 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                     text: 'Nomor nota harus mengandung angka. Contoh: 001, BP001, NOTA-001, dll.',
                     confirmButtonColor: '#0d6efd',
                 });
-                
+
                 $(this).focus();
                 return;
             }
-            
+
             if (/^\d+$/.test(notaValue)) {
                 const number = parseInt(notaValue) || 1;
                 $(this).val(String(number).padStart(3, '0'));
@@ -1775,7 +1811,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             if (!notaNumber.trim()) {
                 return false;
             }
-            
+
             const hasNumber = /\d/.test(notaNumber);
             return hasNumber;
         }

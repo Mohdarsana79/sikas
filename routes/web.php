@@ -211,6 +211,9 @@ Route::middleware(['auth'])->prefix('bku-audit')->group(function () {
 
 
 Route::middleware(['auth'])->prefix('bku')->group(function () {
+    // Route untuk debug volume
+    Route::get('/debug-volume/{tahun}/{bulan}/{rekeningId}', [BukuKasUmumController::class, 'debugVolumePerhitungan'])
+        ->name('bku.debug-volume');
 
     Route::get('/{tahun}/{bulan}', [BukuKasUmumController::class, 'showByBulan'])->name('bku.showByBulan');
 
