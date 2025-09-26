@@ -1239,7 +1239,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             return true;
         }
 
-        // Fungsi untuk merender opsi uraian
+        // PERBAIKAN: Fungsi untuk merender opsi uraian dengan informasi yang lebih detail
         function renderUraianOptions(data, kegiatanIndex, container) {
             container.empty();
             
@@ -1248,119 +1248,143 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 return;
             }
             
-            const uraianHtml = `
+            // Hitung uraian yang dapat digunakan
+            const uraianDapatDigunakan = data.filter(uraian => uraian.dapat_digunakan).length;
+            
+            let uraianHtml = `
             <div class="col-sm-12 justify-content-between align-content-between d-flex mb-3">
                 <div class="label">
                     <p class="mb-0 fw-bold">Uraian</p>
+                    <small class="text-muted">
+                        Total RKAS: ${data.reduce((sum, u) => sum + u.total_volume, 0)} | 
+                        Sudah: ${data.reduce((sum, u) => sum + u.volume_sudah_dibelanjakan, 0)} | 
+                        Sisa: ${data.reduce((sum, u) => sum + u.sisa_volume, 0)}
+                    </small>
+                    ${uraianDapatDigunakan === 0 ? '<div class="text-danger mt-1">Semua uraian sudah habis dibelanjakan</div>' : ''}
                 </div>
+                ${uraianDapatDigunakan > 0 ? `
                 <div class="form-check">
                     <input class="form-check-input check-all-uraian" type="checkbox" data-kegiatan-index="${kegiatanIndex}">
                     <label class="form-check-label">
                         <strong>Pilih</strong> semua uraian
                     </label>
                 </div>
+                ` : ''}
             </div>
             <hr class="mt-2 mb-3">
-            ${data.map((uraian, index) => {
-                let warningHtml = '';
-                let infoHtml = '';
+            `;
+            
+            data.forEach((uraian, index) => {
+                const isDisabled = !uraian.dapat_digunakan;
+                const disabledClass = isDisabled ? 'text-muted' : '';
+                const disabledAttr = isDisabled ? 'disabled' : '';
                 
-                if (uraian.melebihi_maksimal) {
-                    warningHtml = `
-                    <div class="alert alert-danger mt-2 p-2">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        <strong>Peringatan:</strong> Volume melebihi data yang tersedia!
-                    </div>
-                    `;
-                } else if (uraian.from_previous_months) {
-                    infoHtml = `
-                    <div class="alert alert-info mt-2 p-2">
-                        <i class="bi bi-info-circle"></i>
-                        <strong>Informasi:</strong> Termasuk volume dari bulan sebelumnya yang ditutup tanpa belanja
-                        ${uraian.bulan_tertutup_list && uraian.bulan_tertutup_list.length > 0 ? 
-                            `(Bulan: ${uraian.bulan_tertutup_list.join(', ')})` : ''}
-                    </div>
-                    `;
-                }
-                
-                const escapedUraian = uraian.uraian.replace(/'/g, "\\'");
-                
-                return `
-                <div class="card mb-3 uraian-item" data-uraian-id="${uraian.id}">
+                uraianHtml += `
+                <div class="card mb-3 uraian-item ${isDisabled ? 'bg-light' : ''}" data-uraian-id="${uraian.id}">
                     <div class="card-body">
-                        ${warningHtml}
-                        ${infoHtml}
-                        <div class="form-check mb-3">
-                            <input class="form-check-input uraian-checkbox" type="checkbox" name="uraian" value="${uraian.id}"
-                                data-anggaran="${uraian.anggaran}" ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'disabled' : '' }>
-                            <label class="form-check-label fw-bold ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'text-danger' : ''}">
-                                ${uraian.uraian}
-                            </label>
-                            <input type="hidden" class="uraian-text-input" value="${uraian.uraian}">
-                            <span class="satuan-text d-none">${uraian.satuan || ''}</span>
-                        </div>
-
                         <div class="row">
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label">Jumlah</label>
-                                <div class="input-group input-group-sm">
-                                    <input type="number" class="form-control jumlah-input" value="${uraian.volume_maksimal}" min="1" 
-                                        max="${uraian.volume_maksimal}" aria-label="Jumlah" 
-                                        ${uraian.melebihi_maksimal || uraian.sudah_maksimal ? 'disabled' : '' }
-                                        oninput="validateVolumeInput(this, ${uraian.volume_maksimal}, '${escapedUraian}')">
-                                    <span class="input-group-text">Maks. ${uraian.volume_maksimal}</span>
+                            <div class="col-12">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input uraian-checkbox" type="checkbox" name="uraian" value="${uraian.id}"
+                                        ${isDisabled ? 'disabled' : ''}>
+                                    <label class="form-check-label fw-bold ${disabledClass}">
+                                        ${uraian.uraian}
+                                    </label>
+                                    <input type="hidden" class="uraian-text-input" value="${uraian.uraian}">
+                                    <span class="satuan-text d-none">${uraian.satuan || ''}</span>
                                 </div>
-                                <small class="text-muted">Sisa volume total: ${uraian.sisa_volume} ${uraian.satuan}</small>
-                                ${uraian.volume_bulan_tertutup > 0 ?
-                                `<small class="text-info d-block">+ ${uraian.volume_bulan_tertutup} dari bulan sebelumnya (${uraian.bulan_tertutup_list.join(', ')})</small>` : ''}
-                                ${uraian.volume_bulan_ini > 0 ?
-                                `<small class="text-success d-block">+ ${uraian.volume_bulan_ini} dari bulan ${bulan}</small>` : ''}
-                                ${uraian.volume_sudah_dibelanjakan > 0 ?
-                                `<small class="text-warning d-block">- ${uraian.volume_sudah_dibelanjakan} sudah dibelanjakan</small>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="alert alert-sm alert-${isDisabled ? 'warning' : 'info'} mb-2">
+                                    <small>
+                                        <strong>Informasi Volume:</strong><br>
+                                        • Total RKAS: <strong>${uraian.total_volume}</strong><br>
+                                        • Sudah dibelanjakan: <strong>${uraian.volume_sudah_dibelanjakan}</strong><br>
+                                        • Sisa tersedia: <strong class="${uraian.sisa_volume > 0 ? 'text-success' : 'text-danger'}">${uraian.sisa_volume}</strong><br>
+                                        • Bulan: ${uraian.bulan_asal.join(', ')}
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="alert alert-sm alert-secondary mb-2">
+                                    <small>
+                                        <strong>Informasi Anggaran:</strong><br>
+                                        • Harga satuan: <strong>Rp ${formatRupiah(uraian.harga_satuan)}</strong><br>
+                                        • Total anggaran: <strong>Rp ${formatRupiah(uraian.total_anggaran)}</strong><br>
+                                        • Sudah dibelanjakan: <strong>Rp ${formatRupiah(uraian.sudah_dibelanjakan)}</strong><br>
+                                        • Sisa anggaran: <strong>Rp ${formatRupiah(uraian.sisa_anggaran)}</strong>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${!isDisabled ? `
+                        <div class="row mt-2">
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">Jumlah yang akan dibelanjakan</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control jumlah-input" value="${uraian.sisa_volume}" min="1" 
+                                        max="${uraian.sisa_volume}" aria-label="Jumlah" 
+                                        oninput="validateVolumeInput(this, ${uraian.sisa_volume}, '${uraian.uraian.replace(/'/g, "\\'")}')">
+                                    <span class="input-group-text">Maks. ${uraian.sisa_volume}</span>
+                                </div>
+                                <small class="text-muted">Sisa volume: ${uraian.sisa_volume} ${uraian.satuan}</small>
                                 <div class="text-danger volume-error" style="display: none;">
-                                    <small><i class="bi bi-exclamation-circle"></i> Maaf, jumlah volume melebihi jumlah maksimal</small>
+                                    <small><i class="bi bi-exclamation-circle"></i> Jumlah melebihi sisa volume</small>
                                 </div>
                             </div>
 
-                            <div class="col-md-8 mb-2">
+                            <div class="col-md-6 mb-2">
                                 <label class="form-label">Harga Satuan</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">Rp</span>
                                     <input type="text" class="form-control harga-input" value="${formatRupiah(uraian.harga_satuan)}"
                                         aria-label="Harga" readonly>
-                                    <span class="input-group-text">Maks. Rp ${formatRupiah(uraian.harga_satuan)}</span>
                                 </div>
+                                <small class="text-muted">Harga tetap sesuai RKAS</small>
                             </div>
                         </div>
+                        ` : `
+                        <div class="alert alert-danger text-center">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            <strong>Uraian tidak dapat digunakan - Volume sudah habis</strong>
+                        </div>
+                        `}
                     </div>
                 </div>
                 `;
-            }).join('')}
-            `;
+            });
             
             container.html(uraianHtml);
             
-            $(`.check-all-uraian[data-kegiatan-index="${kegiatanIndex}"]`).change(function() {
-                const isChecked = $(this).is(':checked');
-                container.find('.uraian-checkbox:not(:disabled)').prop('checked', isChecked);
-                container.find('.uraian-item').each(function() {
-                    updateUraianSubtotal($(this));
+            // Hanya tambahkan event listener jika ada uraian yang dapat digunakan
+            if (uraianDapatDigunakan > 0) {
+                $(`.check-all-uraian[data-kegiatan-index="${kegiatanIndex}"]`).change(function() {
+                    const isChecked = $(this).is(':checked');
+                    container.find('.uraian-checkbox:not(:disabled)').prop('checked', isChecked);
+                    container.find('.uraian-item:not(.bg-light)').each(function() {
+                        updateUraianSubtotal($(this));
+                    });
+                    updateTotalTransaksiDisplay();
                 });
-                updateTotalTransaksiDisplay();
-            });
-            
-            container.find('.uraian-checkbox').change(function() {
-                updateUraianSubtotal($(this).closest('.uraian-item'));
-                updateTotalTransaksiDisplay();
-            });
-            
-            container.find('.jumlah-input').on('input', function() {
-                const maxVolume = parseFloat($(this).attr('max')) || 0;
-                const uraianText = $(this).closest('.card-body').find('.form-check-label').text();
-                validateVolumeInput(this, maxVolume, uraianText);
-                updateUraianSubtotal($(this).closest('.uraian-item'));
-                updateTotalTransaksiDisplay();
-            });
+                
+                container.find('.uraian-checkbox:not(:disabled)').change(function() {
+                    updateUraianSubtotal($(this).closest('.uraian-item'));
+                    updateTotalTransaksiDisplay();
+                });
+                
+                container.find('.jumlah-input').on('input', function() {
+                    const maxVolume = parseFloat($(this).attr('max')) || 0;
+                    const uraianText = $(this).closest('.card-body').find('.form-check-label').text();
+                    validateVolumeInput(this, maxVolume, uraianText);
+                    updateUraianSubtotal($(this).closest('.uraian-item'));
+                    updateTotalTransaksiDisplay();
+                });
+            }
         }
 
         // Fungsi untuk validasi input volume

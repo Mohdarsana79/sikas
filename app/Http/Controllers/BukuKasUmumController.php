@@ -47,11 +47,12 @@ class BukuKasUmumController extends Controller
             return view('bku-audit.audit', [
                 'penganggaran' => $penganggaran,
                 'tahun' => $tahun,
-                'bulan' => $bulan
+                'bulan' => $bulan,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error loading audit page: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Gagal memuat halaman audit: ' . $e->getMessage());
+            Log::error('Error loading audit page: '.$e->getMessage());
+
+            return redirect()->back()->with('error', 'Gagal memuat halaman audit: '.$e->getMessage());
         }
     }
 
@@ -69,20 +70,20 @@ class BukuKasUmumController extends Controller
                 'message' => 'Audit data berhasil dilakukan',
                 'debug' => [
                     'penganggaran_id' => $penganggaran_id,
-                    'timestamp' => now()->toDateTimeString()
-                ]
+                    'timestamp' => now()->toDateTimeString(),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error dalam getAuditData: ' . $e->getMessage());
+            Log::error('Error dalam getAuditData: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal melakukan audit: ' . $e->getMessage(),
+                'message' => 'Gagal melakukan audit: '.$e->getMessage(),
                 'audit_data' => null,
                 'debug' => [
                     'penganggaran_id' => $penganggaran_id,
-                    'error' => $e->getMessage()
-                ]
+                    'error' => $e->getMessage(),
+                ],
             ], 500);
         }
     }
@@ -126,7 +127,7 @@ class BukuKasUmumController extends Controller
                     'old_total' => $oldTotal,
                     'old_dibelanjakan' => $oldDibelanjakan,
                     'new_total' => $bku->total_transaksi_kotor,
-                    'new_dibelanjakan' => $bku->dibelanjakan
+                    'new_dibelanjakan' => $bku->dibelanjakan,
                 ];
             }
 
@@ -151,7 +152,7 @@ class BukuKasUmumController extends Controller
                 $updateCount = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
                     ->whereMonth('tanggal_transaksi', $month->bulan)
                     ->whereYear('tanggal_transaksi', $month->tahun)
-                    ->update(['closed_without_spending' => !$hasRegularTransactions]);
+                    ->update(['closed_without_spending' => ! $hasRegularTransactions]);
 
                 $fixedClosedFlags += $updateCount;
             }
@@ -165,15 +166,15 @@ class BukuKasUmumController extends Controller
             return response()->json([
                 'success' => true,
                 'fix_results' => $fixResults,
-                'message' => 'Perbaikan data berhasil dilakukan'
+                'message' => 'Perbaikan data berhasil dilakukan',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error dalam fixData: ' . $e->getMessage());
+            Log::error('Error dalam fixData: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memperbaiki data: ' . $e->getMessage()
+                'message' => 'Gagal memperbaiki data: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -201,10 +202,10 @@ class BukuKasUmumController extends Controller
                         'jumlah_dana' => $p->jumlah_dana,
                         'saldo_awal' => $p->saldo_awal,
                         'tanggal_terima' => $p->tanggal_terima,
-                        'total' => $p->jumlah_dana + ($p->saldo_awal ?? 0)
+                        'total' => $p->jumlah_dana + ($p->saldo_awal ?? 0),
                     ];
                 }),
-                'count' => $penerimaanDanas->count()
+                'count' => $penerimaanDanas->count(),
             ];
 
             // 2. Data Penarikan dan Setor Tunai
@@ -218,14 +219,14 @@ class BukuKasUmumController extends Controller
                 'penarikan' => [
                     'total' => $totalPenarikan,
                     'detail' => $penarikanTunais,
-                    'count' => $penarikanTunais->count()
+                    'count' => $penarikanTunais->count(),
                 ],
                 'setor' => [
                     'total' => $totalSetor,
                     'detail' => $setorTunais,
-                    'count' => $setorTunais->count()
+                    'count' => $setorTunais->count(),
                 ],
-                'net' => $totalPenarikan - $totalSetor
+                'net' => $totalPenarikan - $totalSetor,
             ];
 
             // 3. Data BKU
@@ -238,7 +239,7 @@ class BukuKasUmumController extends Controller
 
             foreach ($bkuData as $bku) {
                 $bulan = $bku->tanggal_transaksi->format('F Y');
-                if (!isset($belanjaPerBulan[$bulan])) {
+                if (! isset($belanjaPerBulan[$bulan])) {
                     $belanjaPerBulan[$bulan] = 0;
                 }
                 $belanjaPerBulan[$bulan] += $bku->total_transaksi_kotor;
@@ -258,10 +259,10 @@ class BukuKasUmumController extends Controller
                         'dibelanjakan' => $bku->dibelanjakan,
                         'is_bunga_record' => $bku->is_bunga_record,
                         'status' => $bku->status,
-                        'selisih_internal' => $bku->total_transaksi_kotor - $bku->dibelanjakan
+                        'selisih_internal' => $bku->total_transaksi_kotor - $bku->dibelanjakan,
                     ];
                 }),
-                'count' => $bkuData->count()
+                'count' => $bkuData->count(),
             ];
 
             // 4. Hitung saldo seharusnya
@@ -274,7 +275,7 @@ class BukuKasUmumController extends Controller
                 'seharusnya' => $saldoSeharusnya,
                 'sistem' => $saldoSistem['total_dana_tersedia'],
                 'selisih' => $saldoSeharusnya - $saldoSistem['total_dana_tersedia'],
-                'detail_sistem' => $saldoSistem
+                'detail_sistem' => $saldoSistem,
             ];
 
             // 6. Identifikasi data bermasalah
@@ -304,15 +305,15 @@ class BukuKasUmumController extends Controller
             $recommendations = [];
 
             if (abs($auditResult['saldo']['selisih']) > 1000) {
-                $recommendations[] = "Ditemukan selisih signifikan: Rp " . number_format($auditResult['saldo']['selisih'], 0, ',', '.') . ". Periksa data BKU dan penerimaan dana.";
+                $recommendations[] = 'Ditemukan selisih signifikan: Rp '.number_format($auditResult['saldo']['selisih'], 0, ',', '.').'. Periksa data BKU dan penerimaan dana.';
             }
 
             if ($bkuInternalProblem->count() > 0) {
-                $recommendations[] = "Ditemukan " . $bkuInternalProblem->count() . " transaksi BKU dengan ketidaksesuaian internal.";
+                $recommendations[] = 'Ditemukan '.$bkuInternalProblem->count().' transaksi BKU dengan ketidaksesuaian internal.';
             }
 
             if (count($problematicData) > 0) {
-                $recommendations[] = "Ditemukan data bermasalah yang perlu diperbaiki.";
+                $recommendations[] = 'Ditemukan data bermasalah yang perlu diperbaiki.';
             }
 
             $auditResult['recommendations'] = $recommendations;
@@ -320,12 +321,13 @@ class BukuKasUmumController extends Controller
             Log::info('=== AUDIT DATA SELESAI ===', [
                 'penganggaran_id' => $penganggaran_id,
                 'selisih' => $auditResult['saldo']['selisih'],
-                'rekomendasi' => count($recommendations)
+                'rekomendasi' => count($recommendations),
             ]);
 
             return $auditResult;
         } catch (\Exception $e) {
-            Log::error('Error dalam auditData: ' . $e->getMessage());
+            Log::error('Error dalam auditData: '.$e->getMessage());
+
             return ['error' => $e->getMessage()];
         }
     }
@@ -339,10 +341,10 @@ class BukuKasUmumController extends Controller
             Log::info('=== DEBUG PERHITUNGAN DIMULAI ===', ['penganggaran_id' => $penganggaran_id]);
 
             $penganggaran = Penganggaran::find($penganggaran_id);
-            if (!$penganggaran) {
+            if (! $penganggaran) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan'
+                    'message' => 'Data penganggaran tidak ditemukan',
                 ], 404);
             }
 
@@ -368,7 +370,7 @@ class BukuKasUmumController extends Controller
                 $results[$bulan] = [
                     'rkas' => (float) $rkasTotal,
                     'bku' => (float) $bkuTotal,
-                    'selisih' => (float) $rkasTotal - (float) $bkuTotal
+                    'selisih' => (float) $rkasTotal - (float) $bkuTotal,
                 ];
 
                 $totalRkas += (float) $rkasTotal;
@@ -378,7 +380,7 @@ class BukuKasUmumController extends Controller
             $results['total'] = [
                 'rkas' => (float) $totalRkas,
                 'bku' => (float) $totalBku,
-                'selisih' => (float) $totalRkas - (float) $totalBku
+                'selisih' => (float) $totalRkas - (float) $totalBku,
             ];
 
             Log::info('=== DEBUG PERHITUNGAN SELESAI ===', $results);
@@ -389,16 +391,16 @@ class BukuKasUmumController extends Controller
                 'message' => 'Debug perhitungan berhasil',
                 'penganggaran' => [
                     'id' => $penganggaran->id,
-                    'tahun' => $penganggaran->tahun_anggaran
-                ]
+                    'tahun' => $penganggaran->tahun_anggaran,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error debug perhitungan: ' . $e->getMessage());
+            Log::error('Error debug perhitungan: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Error debug: ' . $e->getMessage(),
-                'trace' => env('APP_DEBUG') ? $e->getTrace() : null
+                'message' => 'Error debug: '.$e->getMessage(),
+                'trace' => env('APP_DEBUG') ? $e->getTrace() : null,
             ], 500);
         }
     }
@@ -412,10 +414,10 @@ class BukuKasUmumController extends Controller
             Log::info('=== DEBUG KEGIATAN REKENING ===', ['tahun' => $tahun, 'bulan' => $bulan]);
 
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
-            if (!$penganggaran) {
+            if (! $penganggaran) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan'
+                    'message' => 'Data penganggaran tidak ditemukan',
                 ], 404);
             }
 
@@ -447,17 +449,17 @@ class BukuKasUmumController extends Controller
                         'total_rkas' => $rkasData->sum(function ($item) {
                             return $item->harga_satuan * $item->jumlah;
                         }),
-                        'total_bku' => $bkuData->sum('total_transaksi_kotor')
-                    ]
+                        'total_bku' => $bkuData->sum('total_transaksi_kotor'),
+                    ],
                 ],
-                'message' => 'Debug kegiatan rekening berhasil'
+                'message' => 'Debug kegiatan rekening berhasil',
             ]);
         } catch (\Exception $e) {
-            Log::error('Error debug kegiatan rekening: ' . $e->getMessage());
+            Log::error('Error debug kegiatan rekening: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Error debug: ' . $e->getMessage()
+                'message' => 'Error debug: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -470,11 +472,12 @@ class BukuKasUmumController extends Controller
 
             // 1. Hitung total penerimaan dana (termasuk saldo awal)
             $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran_id)->get();
-            $totalPenerimaan = $penerimaanDanas->sum(function($penerimaan) {
+            $totalPenerimaan = $penerimaanDanas->sum(function ($penerimaan) {
                 $total = $penerimaan->jumlah_dana;
                 if ($penerimaan->sumber_dana === 'Bosp Reguler Tahap 1' && $penerimaan->saldo_awal) {
                     $total += $penerimaan->saldo_awal;
                 }
+
                 return $total;
             });
 
@@ -488,7 +491,7 @@ class BukuKasUmumController extends Controller
             Log::info('Transaksi Tunai', [
                 'penarikan' => $totalPenarikan,
                 'setor' => $totalSetor,
-                'net' => $netTunai
+                'net' => $netTunai,
             ]);
 
             // 3. Hitung total belanja (gunakan total_transaksi_kotor)
@@ -508,7 +511,7 @@ class BukuKasUmumController extends Controller
 
             Log::info('Detail Belanja', [
                 'tunai' => $belanjaTunai,
-                'non_tunai' => $belanjaNonTunai
+                'non_tunai' => $belanjaNonTunai,
             ]);
 
             // 5. Hitung saldo tunai
@@ -527,7 +530,7 @@ class BukuKasUmumController extends Controller
                 'saldo_non_tunai' => $saldoNonTunai,
                 'total_saldo' => $totalSaldo,
                 'total_seharusnya' => $totalSeharusnya,
-                'selisih' => $selisih
+                'selisih' => $selisih,
             ]);
 
             // 8. Jika ada selisih signifikan, koreksi saldo non-tunai
@@ -545,7 +548,7 @@ class BukuKasUmumController extends Controller
                 'belanja_tunai' => $belanjaTunai,
                 'belanja_non_tunai' => $belanjaNonTunai,
                 'net_tunai' => $netTunai,
-                'selisih' => $selisih
+                'selisih' => $selisih,
             ];
 
             Log::info('=== HASIL PERHITUNGAN SALDO ===', $result);
@@ -553,7 +556,8 @@ class BukuKasUmumController extends Controller
             return $result;
 
         } catch (\Exception $e) {
-            Log::error('Error dalam hitungSaldoTunaiNonTunai: ' . $e->getMessage());
+            Log::error('Error dalam hitungSaldoTunaiNonTunai: '.$e->getMessage());
+
             return [
                 'tunai' => 0,
                 'non_tunai' => 0,
@@ -563,7 +567,7 @@ class BukuKasUmumController extends Controller
                 'belanja_tunai' => 0,
                 'belanja_non_tunai' => 0,
                 'net_tunai' => 0,
-                'selisih' => 0
+                'selisih' => 0,
             ];
         }
     }
@@ -752,17 +756,18 @@ class BukuKasUmumController extends Controller
         try {
             Log::info('=== DEBUG getKegiatanDanRekening - PERBAIKAN ===', [
                 'tahun' => $tahun,
-                'bulan' => $bulan
+                'bulan' => $bulan,
             ]);
 
             // Cari data penganggaran berdasarkan tahun
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
-            if (!$penganggaran) {
+            if (! $penganggaran) {
                 Log::warning('Penganggaran tidak ditemukan', ['tahun' => $tahun]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan'
+                    'message' => 'Data penganggaran tidak ditemukan',
                 ], 404);
             }
 
@@ -781,7 +786,7 @@ class BukuKasUmumController extends Controller
                 'September' => 9,
                 'Oktober' => 10,
                 'November' => 11,
-                'Desember' => 12
+                'Desember' => 12,
             ];
 
             $bulanTargetNumber = $bulanAngkaList[$bulan] ?? 1;
@@ -815,13 +820,14 @@ class BukuKasUmumController extends Controller
             Log::info('Total data RKAS ditemukan:', ['count' => $allRkasData->count()]);
 
             if ($allRkasData->isEmpty()) {
-                Log::warning('Tidak ada data RKAS ditemukan untuk bulan: ' . implode(', ', $bulanUntukDiambil));
+                Log::warning('Tidak ada data RKAS ditemukan untuk bulan: '.implode(', ', $bulanUntukDiambil));
+
                 return response()->json([
                     'success' => true,
                     'data' => [],
                     'kegiatan_list' => [],
                     'rekening_list' => [],
-                    'message' => 'Tidak ada data RKAS untuk bulan ' . implode(', ', $bulanUntukDiambil)
+                    'message' => 'Tidak ada data RKAS untuk bulan '.implode(', ', $bulanUntukDiambil),
                 ]);
             }
 
@@ -832,30 +838,30 @@ class BukuKasUmumController extends Controller
                 ->with(['kodeKegiatan', 'rekeningBelanja'])
                 ->get();
 
-            Log::info('Data BKU ditemukan sampai bulan ' . $bulan, ['count' => $bkuData->count()]);
+            Log::info('Data BKU ditemukan sampai bulan '.$bulan, ['count' => $bkuData->count()]);
 
             // PERBAIKAN: Struktur data dengan filter yang benar untuk SEMUA BULAN
             $kegiatanList = [];
             $rekeningList = [];
 
             // Kelompokkan data berdasarkan kode kegiatan
-            $groupedData = $allRkasData->groupBy('kode_id')->map(function ($items) use ($bkuData, &$kegiatanList, &$rekeningList, $penganggaran, $bulan, $bulanTargetNumber, $tahun) {
+            $groupedData = $allRkasData->groupBy('kode_id')->map(function ($items) use ($bkuData, &$kegiatanList, &$rekeningList) {
                 $kegiatan = $items->first()->kodeKegiatan;
 
                 Log::info('Processing kegiatan', [
                     'kegiatan_id' => $kegiatan->id,
                     'kegiatan_kode' => $kegiatan->kode,
-                    'kegiatan_uraian' => $kegiatan->uraian
+                    'kegiatan_uraian' => $kegiatan->uraian,
                 ]);
 
                 // Kelompokkan rekening belanja by kode_rekening_id
-                $rekeningGrouped = $items->groupBy('kode_rekening_id')->map(function ($rekeningItems) use ($bkuData, $kegiatan, $penganggaran, $bulan, $bulanTargetNumber, $tahun) {
+                $rekeningGrouped = $items->groupBy('kode_rekening_id')->map(function ($rekeningItems) use ($bkuData, $kegiatan) {
                     $firstItem = $rekeningItems->first();
 
                     Log::info('Processing rekening', [
                         'rekening_id' => $firstItem->kode_rekening_id,
                         'rekening_kode' => $firstItem->rekeningBelanja->kode_rekening ?? 'N/A',
-                        'rekening_rincian' => $firstItem->rekeningBelanja->rincian_objek ?? 'N/A'
+                        'rekening_rincian' => $firstItem->rekeningBelanja->rincian_objek ?? 'N/A',
                     ]);
 
                     // PERBAIKAN: Hitung total yang sudah dibelanjakan untuk rekening ini di SEMUA BULAN sampai bulan target
@@ -873,7 +879,7 @@ class BukuKasUmumController extends Controller
                     Log::info('Rekening calculation - PERBAIKAN', [
                         'total_anggaran' => $totalAnggaran,
                         'sudah_dibelanjakan' => $sudahDibelanjakan,
-                        'sisa_anggaran' => $sisaAnggaran
+                        'sisa_anggaran' => $sisaAnggaran,
                     ]);
 
                     // PERBAIKAN PENTING: Cek apakah ada uraian yang tersedia untuk rekening ini di SEMUA BULAN
@@ -887,7 +893,7 @@ class BukuKasUmumController extends Controller
                             'total_anggaran' => $totalAnggaran,
                             'sudah_dibelanjakan' => $sudahDibelanjakan,
                             'sisa_anggaran' => $sisaAnggaran,
-                            'uraian_tersedia' => true
+                            'uraian_tersedia' => true,
                         ];
 
                         return $rekeningData;
@@ -895,7 +901,7 @@ class BukuKasUmumController extends Controller
 
                     Log::info('Rekening diabaikan karena sisa anggaran <= 0', [
                         'rekening_id' => $firstItem->kode_rekening_id,
-                        'sisa_anggaran' => $sisaAnggaran
+                        'sisa_anggaran' => $sisaAnggaran,
                     ]);
 
                     return null;
@@ -910,7 +916,7 @@ class BukuKasUmumController extends Controller
                         'program' => $kegiatan->program,
                         'sub_program' => $kegiatan->sub_program,
                         'uraian' => $kegiatan->uraian,
-                        'rekening_count' => $rekeningGrouped->count()
+                        'rekening_count' => $rekeningGrouped->count(),
                     ];
 
                     // Tambahkan rekening ke daftar global
@@ -920,13 +926,13 @@ class BukuKasUmumController extends Controller
 
                     return [
                         'kegiatan' => $kegiatan,
-                        'rekening_belanja' => $rekeningGrouped
+                        'rekening_belanja' => $rekeningGrouped,
                     ];
                 }
 
                 Log::info('Kegiatan diabaikan karena tidak memiliki rekening valid', [
                     'kegiatan_id' => $kegiatan->id,
-                    'rekening_count' => $rekeningGrouped->count()
+                    'rekening_count' => $rekeningGrouped->count(),
                 ]);
 
                 return null;
@@ -936,7 +942,7 @@ class BukuKasUmumController extends Controller
                 'kegiatan_count' => count($kegiatanList),
                 'rekening_count' => count($rekeningList),
                 'grouped_data_count' => $groupedData->count(),
-                'bulan_diambil' => $bulanUntukDiambil
+                'bulan_diambil' => $bulanUntukDiambil,
             ]);
 
             return response()->json([
@@ -952,27 +958,28 @@ class BukuKasUmumController extends Controller
                     'bku_count' => $bkuData->count(),
                     'kegiatan_filtered' => count($kegiatanList),
                     'rekening_filtered' => count($rekeningList),
-                    'bulan_diambil' => $bulanUntukDiambil
-                ]
+                    'bulan_diambil' => $bulanUntukDiambil,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting kegiatan dan rekening: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Error getting kegiatan dan rekening: '.$e->getMessage());
+            Log::error('Stack trace: '.$e->getTraceAsString());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data: ' . $e->getMessage()
+                'message' => 'Gagal mengambil data: '.$e->getMessage(),
             ], 500);
         }
     }
 
-    // PERBAIKAN: ambil uraian by rekening dengan include semua bulan sebelumnya
+    // PERBAIKAN: ambil uraian by rekening dengan perhitungan volume yang benar
     public function getUraianByRekening($tahun, $bulan, $rekeningId, Request $request)
     {
         try {
             // Ambil kegiatan_id dari query parameter
             $kegiatanId = $request->query('kegiatan_id');
 
-            Log::info('=== DEBUG getUraianByRekening - PERBAIKAN ===', [
+            Log::info('=== DEBUG getUraianByRekening - PERBAIKAN VOLUME ===', [
                 'tahun' => $tahun,
                 'bulan' => $bulan,
                 'rekeningId' => $rekeningId,
@@ -1018,7 +1025,7 @@ class BukuKasUmumController extends Controller
 
             $bulanTargetNumber = $bulanAngkaList[$bulan] ?? 1;
 
-            // PERBAIKAN PENTING: Ambil uraian dari SEMUA BULAN sampai bulan target
+            // PERBAIKAN: Ambil uraian dari SEMUA BULAN sampai bulan target
             $bulanUntukDiambil = [];
             for ($i = 1; $i <= $bulanTargetNumber; $i++) {
                 $bulanNama = array_search($i, $bulanAngkaList);
@@ -1027,28 +1034,31 @@ class BukuKasUmumController extends Controller
 
             Log::info('Mengambil uraian dari bulan:', $bulanUntukDiambil);
 
-            $allUraianData = collect();
+            // PERBAIKAN: Ambil semua data RKAS untuk kombinasi ini
+            $allRkasData = collect();
 
             foreach ($bulanUntukDiambil as $bulanItem) {
-                // Tentukan model yang akan digunakan berdasarkan bulan
                 $isTahap1 = in_array($bulanItem, ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']);
                 $model = $isTahap1 ? Rkas::class : RkasPerubahan::class;
 
-                $uraianBulan = $model::where('penganggaran_id', $penganggaran->id)
+                $rkasData = $model::where('penganggaran_id', $penganggaran->id)
                     ->where('bulan', $bulanItem)
                     ->where('kode_rekening_id', $rekeningId)
                     ->where('kode_id', $kegiatanId)
-                    ->with('rekeningBelanja')
                     ->get();
 
-                $allUraianData = $allUraianData->merge($uraianBulan);
+                // Tambahkan informasi bulan
+                $rkasData->each(function ($item) use ($bulanItem) {
+                    $item->bulan_asal = $bulanItem;
+                });
+
+                $allRkasData = $allRkasData->merge($rkasData);
             }
 
-            Log::info('Total uraian ditemukan dari semua bulan:', ['count' => $allUraianData->count()]);
+            Log::info('Total data RKAS ditemukan:', ['count' => $allRkasData->count()]);
 
-            // Jika tidak ada uraian, kembalikan response kosong
-            if ($allUraianData->isEmpty()) {
-                Log::warning('Tidak ada uraian ditemukan untuk kombinasi ini');
+            if ($allRkasData->isEmpty()) {
+                Log::warning('Tidak ada data RKAS ditemukan');
                 return response()->json([
                     'success' => true,
                     'data' => [],
@@ -1056,77 +1066,101 @@ class BukuKasUmumController extends Controller
                 ]);
             }
 
-            // PERBAIKAN: Hitung total volume yang sudah dibelanjakan untuk uraian ini di SEMUA BULAN
-            $sudahDibelanjakanVolume = BukuKasUmumUraianDetail::where('penganggaran_id', $penganggaran->id)
-                ->where('kode_rekening_id', $rekeningId)
-                ->where('kode_kegiatan_id', $kegiatanId)
-                ->whereHas('bukuKasUmum', function ($query) use ($penganggaran, $bulanTargetNumber) {
-                    $query->where('penganggaran_id', $penganggaran->id)
-                        ->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) <= ?', [$bulanTargetNumber]);
-                })
-                ->sum('volume');
+            // PERBAIKAN: Debug detail data RKAS
+            Log::info('Detail data RKAS:', $allRkasData->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'uraian' => $item->uraian,
+                    'bulan' => $item->bulan_asal,
+                    'volume' => $item->jumlah,
+                    'harga' => $item->harga_satuan,
+                    'subtotal' => $item->harga_satuan * $item->jumlah
+                ];
+            })->toArray());
 
-            Log::info('Volume sudah dibelanjakan sampai bulan ' . $bulan . ': ' . $sudahDibelanjakanVolume);
-
-            // Kelompokkan uraian by nama uraian untuk menggabungkan yang sama
-            $uraianGrouped = $allUraianData->groupBy('uraian')->map(function ($uraianItems) use ($penganggaran, $rekeningId, $kegiatanId, $sudahDibelanjakanVolume, $bulanTargetNumber) {
+            // PERBAIKAN: Hitung total volume dari RKAS dengan benar
+            // Kelompokkan berdasarkan uraian yang sama persis
+            $uraianGrouped = $allRkasData->groupBy('uraian')->map(function ($uraianItems) use ($penganggaran, $rekeningId, $kegiatanId, $bulanTargetNumber) {
                 $firstItem = $uraianItems->first();
 
-                // Hitung total volume (jumlah) dari SEMUA BULAN
-                $totalVolumeAllMonths = $uraianItems->sum('jumlah');
+                // PERBAIKAN: Hitung total volume dari RKAS (jumlah dari semua bulan)
+                $totalVolumeRkas = $uraianItems->sum('jumlah');
 
-                // Hitung sisa volume yang benar-benar tersedia
-                $sisaVolumeTotal = max(0, $totalVolumeAllMonths - $sudahDibelanjakanVolume);
+                // Dapatkan daftar bulan asal
+                $bulanAsal = $uraianItems->pluck('bulan_asal')->unique()->sort()->values();
 
-                Log::info('Uraian calculation - PERBAIKAN', [
-                    'uraian' => $firstItem->uraian,
-                    'total_volume_all_months' => $totalVolumeAllMonths,
+                // PERBAIKAN: Hitung volume yang sudah dibelanjakan untuk uraian ini
+                // Gunakan pencarian yang lebih akurat
+                $sudahDibelanjakanVolume = BukuKasUmumUraianDetail::where('penganggaran_id', $penganggaran->id)
+                    ->where('kode_rekening_id', $rekeningId)
+                    ->where('kode_kegiatan_id', $kegiatanId)
+                    ->where('uraian', 'LIKE', '%' . $firstItem->uraian . '%')
+                    ->whereHas('bukuKasUmum', function ($query) use ($penganggaran, $bulanTargetNumber) {
+                        $query->where('penganggaran_id', $penganggaran->id)
+                            ->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) <= ?', [$bulanTargetNumber]);
+                    })
+                    ->sum('volume');
+
+                // Hitung sisa volume
+                $sisaVolume = max(0, $totalVolumeRkas - $sudahDibelanjakanVolume);
+
+                Log::info('Perhitungan volume untuk uraian: ' . $firstItem->uraian, [
+                    'total_volume_rkas' => $totalVolumeRkas,
                     'volume_sudah_dibelanjakan' => $sudahDibelanjakanVolume,
-                    'sisa_volume_total' => $sisaVolumeTotal
+                    'sisa_volume' => $sisaVolume,
+                    'bulan_asal' => $bulanAsal->toArray()
                 ]);
 
-                // Hanya tampilkan uraian yang masih memiliki sisa volume
-                if ($sisaVolumeTotal > 0) {
-                    return [
-                        'id' => $firstItem->id,
-                        'uraian' => $firstItem->uraian,
-                        'total_volume' => $totalVolumeAllMonths,
-                        'volume_maksimal' => $sisaVolumeTotal,
-                        'harga_satuan' => $firstItem->harga_satuan,
-                        'satuan' => $firstItem->satuan,
-                        'total_anggaran' => $firstItem->harga_satuan * $totalVolumeAllMonths,
-                        'sudah_dibelanjakan' => $sudahDibelanjakanVolume * $firstItem->harga_satuan,
-                        'sisa_anggaran' => max(0, ($totalVolumeAllMonths - $sudahDibelanjakanVolume) * $firstItem->harga_satuan),
-                        'volume_sudah_dibelanjakan' => $sudahDibelanjakanVolume,
-                        'sisa_volume' => $sisaVolumeTotal,
-                        'sudah_maksimal' => $sudahDibelanjakanVolume >= $totalVolumeAllMonths,
-                        'dapat_digunakan' => $sisaVolumeTotal > 0,
-                        'kode_id' => $firstItem->kode_id,
-                        'from_previous_months' => true // Selalu true karena mengambil dari semua bulan
-                    ];
-                }
-
-                Log::info('Uraian diabaikan karena sisa volume <= 0', [
+                return [
+                    'id' => $firstItem->id,
                     'uraian' => $firstItem->uraian,
-                    'sisa_volume' => $sisaVolumeTotal
-                ]);
+                    'total_volume' => $totalVolumeRkas,
+                    'volume_maksimal' => $sisaVolume,
+                    'harga_satuan' => $firstItem->harga_satuan,
+                    'satuan' => $firstItem->satuan,
+                    'total_anggaran' => $firstItem->harga_satuan * $totalVolumeRkas,
+                    'sudah_dibelanjakan' => $sudahDibelanjakanVolume * $firstItem->harga_satuan,
+                    'sisa_anggaran' => max(0, ($totalVolumeRkas - $sudahDibelanjakanVolume) * $firstItem->harga_satuan),
+                    'volume_sudah_dibelanjakan' => $sudahDibelanjakanVolume,
+                    'sisa_volume' => $sisaVolume,
+                    'sudah_maksimal' => $sudahDibelanjakanVolume >= $totalVolumeRkas,
+                    'dapat_digunakan' => $sisaVolume > 0,
+                    'kode_id' => $firstItem->kode_id,
+                    'from_previous_months' => $bulanAsal->count() > 1,
+                    'bulan_asal' => $bulanAsal->toArray(),
+                    'debug_info' => "RKAS: {$totalVolumeRkas}, Sudah: {$sudahDibelanjakanVolume}, Sisa: {$sisaVolume}"
+                ];
+            })->values();
 
-                return null;
-            })->filter()->values();
+            Log::info('Jumlah uraian setelah grouping:', ['count' => count($uraianGrouped)]);
 
-            Log::info('Jumlah uraian setelah filtering:', ['count' => count($uraianGrouped)]);
+            // PERBAIKAN: Hitung total volume dari semua uraian
+            $totalVolumeSemuaUraian = collect($uraianGrouped)->sum('total_volume');
+            $totalVolumeSudahDibelanjakan = collect($uraianGrouped)->sum('volume_sudah_dibelanjakan');
+            $totalSisaVolume = collect($uraianGrouped)->sum('sisa_volume');
+
+            Log::info('Total keseluruhan:', [
+                'total_volume_rkas' => $totalVolumeSemuaUraian,
+                'total_sudah_dibelanjakan' => $totalVolumeSudahDibelanjakan,
+                'total_sisa_volume' => $totalSisaVolume
+            ]);
 
             return response()->json([
                 'success' => true,
                 'data' => $uraianGrouped,
+                'summary' => [
+                    'total_volume_rkas' => $totalVolumeSemuaUraian,
+                    'total_sudah_dibelanjakan' => $totalVolumeSudahDibelanjakan,
+                    'total_sisa_volume' => $totalSisaVolume
+                ],
                 'debug' => [
-                    'total_uraian_raw' => $allUraianData->count(),
-                    'total_uraian_grouped' => count($uraianGrouped),
-                    'bulan_target' => $bulan,
                     'penganggaran_id' => $penganggaran->id,
                     'rekening_id' => $rekeningId,
                     'kegiatan_id' => $kegiatanId,
-                    'volume_sudah_dibelanjakan' => $sudahDibelanjakanVolume
+                    'bulan_target' => $bulan,
+                    'bulan_diambil' => $bulanUntukDiambil,
+                    'total_uraian' => count($uraianGrouped),
+                    'rkas_data_count' => $allRkasData->count()
                 ]
             ]);
         } catch (\Exception $e) {
@@ -1140,7 +1174,6 @@ class BukuKasUmumController extends Controller
             ], 500);
         }
     }
-
 
     // Helper function untuk konversi bulan
     private function convertBulanToNumber($bulan)
@@ -1340,12 +1373,13 @@ class BukuKasUmumController extends Controller
             Log::info('Perhitungan Total Dibelanjakan - PERBAIKAN', [
                 'penganggaran_id' => $penganggaran_id,
                 'bulan' => $bulan,
-                'total_dibelanjakan' => $totalDibelanjakan
+                'total_dibelanjakan' => $totalDibelanjakan,
             ]);
 
             return $totalDibelanjakan;
         } catch (\Exception $e) {
-            Log::error('Error menghitung total dibelanjakan: ' . $e->getMessage());
+            Log::error('Error menghitung total dibelanjakan: '.$e->getMessage());
+
             return 0;
         }
     }
@@ -1378,12 +1412,13 @@ class BukuKasUmumController extends Controller
             Log::info('Perhitungan Total Dibelanjakan Sampai Bulan - PERBAIKAN', [
                 'penganggaran_id' => $penganggaran_id,
                 'bulan_target' => $bulanTarget,
-                'total_dibelanjakan' => $totalDibelanjakan
+                'total_dibelanjakan' => $totalDibelanjakan,
             ]);
 
             return $totalDibelanjakan;
         } catch (\Exception $e) {
-            Log::error('Error menghitung total dibelanjakan sampai bulan ini: ' . $e->getMessage());
+            Log::error('Error menghitung total dibelanjakan sampai bulan ini: '.$e->getMessage());
+
             return 0;
         }
     }
@@ -1550,7 +1585,7 @@ class BukuKasUmumController extends Controller
 
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
-            if (!$penganggaran) {
+            if (! $penganggaran) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Data penganggaran tidak ditemukan',
@@ -1572,7 +1607,7 @@ class BukuKasUmumController extends Controller
                 ->exists();
 
             // PERBAIKAN: Set flag closed_without_spending dengan benar
-            $closedWithoutSpending = !$hasRegularTransactions;
+            $closedWithoutSpending = ! $hasRegularTransactions;
 
             // Update semua data BKU untuk bulan tersebut menjadi status closed
             $updated = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
@@ -1587,7 +1622,7 @@ class BukuKasUmumController extends Controller
                 ]);
 
             // Jika tidak ada transaksi reguler, buat record bunga bank
-            if (!$hasRegularTransactions && $updated === 0) {
+            if (! $hasRegularTransactions && $updated === 0) {
                 $tanggalAkhirBulan = Carbon::create($tahun, $bulanAngka, 1)->endOfMonth();
 
                 $bku = BukuKasUmum::create([
@@ -1916,5 +1951,4 @@ class BukuKasUmumController extends Controller
         // Jika tidak ada angka, tambahkan -001
         return $lastNotaNumber.'-001';
     }
-
 }
