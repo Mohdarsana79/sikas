@@ -6,36 +6,103 @@ use App\Models\Penganggaran;
 use App\Models\Rkas;
 use App\Models\PenerimaanDana;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PenatausahaanController extends Controller
 {
     public function index(Request $request)
     {
-        $tahun = $request->tahun ?? date('Y');
-        $tahunList = range(date('Y') - 5, date('Y') + 1);
+        // Ambil semua tahun yang ada
+        $tahunList = Penganggaran::distinct()
+            ->orderBy('tahun_anggaran', 'desc')
+            ->pluck('tahun_anggaran')
+            ->toArray();
 
-        $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+        // Ambil semua data penganggaran dengan relasi yang diperlukan
+        $penganggaranList = Penganggaran::with(['penerimaanDanas']) // Pastikan relasi ini dimuat
+            ->orderBy('tahun_anggaran', 'desc')
+            ->get();
 
-        // Ambil bulan yang sudah memiliki RKAS
-        $bulanWithRkas = [];
-        $statusBulan = [];
-
-        if ($penganggaran) {
-            $bulanWithRkas = Rkas::where('penganggaran_id', $penganggaran->id)
-                ->distinct()
-                ->pluck('bulan')
-                ->toArray();
-
-            // Dapatkan status untuk setiap bulan
-            $statusBulan = $penganggaran->getBulanStatus();
+        // Siapkan data status untuk setiap tahun
+        $statusPerTahun = [];
+        foreach ($penganggaranList as $penganggaran) {
+            $statusPerTahun[$penganggaran->tahun_anggaran] = $penganggaran->getBulanStatus();
         }
 
         return view('penatausahaan.penatausahaan', [
-            'tahun' => $tahun,
             'tahunList' => $tahunList,
-            'penganggaran' => $penganggaran,
-            'bulanWithRkas' => $bulanWithRkas,
-            'statusBulan' => $statusBulan
+            'penganggaranList' => $penganggaranList,
+            'statusPerTahun' => $statusPerTahun,
+            'tahun' => date('Y')
         ]);
+    }
+
+    public function getPenganggaranId(Request $request)
+    {
+        $tahun = $request->query('tahun');
+
+        Log::info('getPenganggaranId called with tahun: ' . $tahun);
+
+        if (!$tahun) {
+            return response()->json([
+                'error' => 'Parameter tahun diperlukan'
+            ], 400);
+        }
+
+        try {
+            // Cari penganggaran berdasarkan tahun
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if ($penganggaran) {
+                return response()->json([
+                    'penganggaran_id' => $penganggaran->id,
+                    'tahun_anggaran' => $penganggaran->tahun_anggaran
+                ]);
+            } else {
+                return response()->json([
+                    'error' => 'Data penganggaran tidak ditemukan untuk tahun ' . $tahun
+                ], 404);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error in getPenganggaranId: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Terjadi kesalahan server: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getByPenganggaran($penganggaran_id)
+    {
+        try {
+            Log::info('getByPenganggaran called with ID: ' . $penganggaran_id);
+
+            // Pastikan penganggaran_id adalah angka dan valid
+            if (!is_numeric($penganggaran_id) || $penganggaran_id <= 0) {
+                return response()->json([
+                    'error' => 'Invalid penganggaran ID'
+                ], 400);
+            }
+
+            // Cek apakah penganggaran exists
+            $penganggaran = Penganggaran::find($penganggaran_id);
+            if (!$penganggaran) {
+                return response()->json([
+                    'error' => 'Data penganggaran tidak ditemukan'
+                ], 404);
+            }
+
+            $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran_id)
+                ->orderBy('tanggal_terima', 'asc')
+                ->get();
+
+            Log::info('Penerimaan dana found: ' . $penerimaanDanas->count() . ' records for penganggaran ID: ' . $penganggaran_id);
+
+            return response()->json($penerimaanDanas);
+        } catch (\Exception $e) {
+            Log::error('Error getting penerimaan dana: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to load data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

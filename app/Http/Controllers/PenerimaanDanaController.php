@@ -47,6 +47,15 @@ class PenerimaanDanaController extends Controller
         $request->validate($validationRules);
 
         try {
+            // Validasi tahun anggaran - pastikan sesuai dengan penganggaran_id
+            $penganggaran = Penganggaran::find($request->penganggaran_id);
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan'
+                ], 422);
+            }
+
             // Cek apakah sudah ada penerimaan dana untuk sumber dana ini
             $existingPenerimaan = PenerimaanDana::where('penganggaran_id', $request->penganggaran_id)
                 ->where('sumber_dana', $request->sumber_dana)

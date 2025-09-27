@@ -749,262 +749,33 @@ class BukuKasUmumController extends Controller
         }
     }
 
-    // PERBAIKAN: ambil kegiatan dan rekening - dengan include bulan sebelumnya yang ditutup tanpa belanja
+    // PERBAIKAN: ambil kegiatan dan rekening dengan memperhitungkan pergeseran bulan dalam periode yang sama
     public function getKegiatanDanRekening($tahun, $bulan)
     {
         try {
-            Log::info('=== DEBUG getKegiatanDanRekening - PERBAIKAN ===', [
+            Log::info('=== DEBUG getKegiatanDanRekening - PERGESERAN DALAM PERIODE ===', [
                 'tahun' => $tahun,
-                'bulan' => $bulan,
+                'bulan' => $bulan
             ]);
 
-            // Cari data penganggaran berdasarkan tahun
-            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
-
-            if (! $penganggaran) {
-                Log::warning('Penganggaran tidak ditemukan', ['tahun' => $tahun]);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan',
-                ], 404);
-            }
-
-            Log::info('Penganggaran ditemukan', ['id' => $penganggaran->id]);
-
-            // Konversi bulan ke angka
-            $bulanAngkaList = [
-                'Januari' => 1,
-                'Februari' => 2,
-                'Maret' => 3,
-                'April' => 4,
-                'Mei' => 5,
-                'Juni' => 6,
-                'Juli' => 7,
-                'Agustus' => 8,
-                'September' => 9,
-                'Oktober' => 10,
-                'November' => 11,
-                'Desember' => 12,
-            ];
-
-            $bulanTargetNumber = $bulanAngkaList[$bulan] ?? 1;
-
-            // PERBAIKAN PENTING: Ambil data dari SEMUA BULAN sampai bulan target
-            // untuk menangkap kegiatan/rekening dari bulan sebelumnya yang belum dibelanjakan
-            $bulanUntukDiambil = [];
-            for ($i = 1; $i <= $bulanTargetNumber; $i++) {
-                $bulanNama = array_search($i, $bulanAngkaList);
-                $bulanUntukDiambil[] = $bulanNama;
-            }
-
-            Log::info('Bulan yang akan diambil data:', $bulanUntukDiambil);
-
-            // Kumpulkan data RKAS dari semua bulan sampai bulan target
-            $allRkasData = collect();
-
-            foreach ($bulanUntukDiambil as $bulanItem) {
-                // Tentukan model yang akan digunakan berdasarkan bulan
-                $isTahap1 = in_array($bulanItem, ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']);
-                $model = $isTahap1 ? Rkas::class : RkasPerubahan::class;
-
-                $rkasDataBulan = $model::where('penganggaran_id', $penganggaran->id)
-                    ->where('bulan', $bulanItem)
-                    ->with(['kodeKegiatan', 'rekeningBelanja'])
-                    ->get();
-
-                $allRkasData = $allRkasData->merge($rkasDataBulan);
-            }
-
-            Log::info('Total data RKAS ditemukan:', ['count' => $allRkasData->count()]);
-
-            if ($allRkasData->isEmpty()) {
-                Log::warning('Tidak ada data RKAS ditemukan untuk bulan: ' . implode(', ', $bulanUntukDiambil));
-
-                return response()->json([
-                    'success' => true,
-                    'data' => [],
-                    'kegiatan_list' => [],
-                    'rekening_list' => [],
-                    'message' => 'Tidak ada data RKAS untuk bulan ' . implode(', ', $bulanUntukDiambil),
-                ]);
-            }
-
-            // Ambil data BKU yang sudah dibelanjakan untuk SEMUA BULAN sampai bulan target
-            $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-                ->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) <= ?', [$bulanTargetNumber])
-                ->whereYear('tanggal_transaksi', $tahun)
-                ->with(['kodeKegiatan', 'rekeningBelanja'])
-                ->get();
-
-            Log::info('Data BKU ditemukan sampai bulan ' . $bulan, ['count' => $bkuData->count()]);
-
-            // PERBAIKAN: Struktur data dengan filter yang benar untuk SEMUA BULAN
-            $kegiatanList = [];
-            $rekeningList = [];
-
-            // Kelompokkan data berdasarkan kode kegiatan
-            $groupedData = $allRkasData->groupBy('kode_id')->map(function ($items) use ($bkuData, &$kegiatanList, &$rekeningList) {
-                $kegiatan = $items->first()->kodeKegiatan;
-
-                Log::info('Processing kegiatan', [
-                    'kegiatan_id' => $kegiatan->id,
-                    'kegiatan_kode' => $kegiatan->kode,
-                    'kegiatan_uraian' => $kegiatan->uraian,
-                ]);
-
-                // Kelompokkan rekening belanja by kode_rekening_id
-                $rekeningGrouped = $items->groupBy('kode_rekening_id')->map(function ($rekeningItems) use ($bkuData, $kegiatan) {
-                    $firstItem = $rekeningItems->first();
-
-                    Log::info('Processing rekening', [
-                        'rekening_id' => $firstItem->kode_rekening_id,
-                        'rekening_kode' => $firstItem->rekeningBelanja->kode_rekening ?? 'N/A',
-                        'rekening_rincian' => $firstItem->rekeningBelanja->rincian_objek ?? 'N/A',
-                    ]);
-
-                    // PERBAIKAN: Hitung total yang sudah dibelanjakan untuk rekening ini di SEMUA BULAN sampai bulan target
-                    $sudahDibelanjakan = $bkuData->where('kode_rekening_id', $firstItem->kode_rekening_id)
-                        ->where('kode_kegiatan_id', $kegiatan->id)
-                        ->sum('dibelanjakan');
-
-                    // Hitung total anggaran untuk rekening ini (sum dari semua bulan sampai target)
-                    $totalAnggaran = $rekeningItems->sum(function ($item) {
-                        return $item->harga_satuan * $item->jumlah;
-                    });
-
-                    $sisaAnggaran = $totalAnggaran - $sudahDibelanjakan;
-
-                    Log::info('Rekening calculation - PERBAIKAN', [
-                        'total_anggaran' => $totalAnggaran,
-                        'sudah_dibelanjakan' => $sudahDibelanjakan,
-                        'sisa_anggaran' => $sisaAnggaran,
-                    ]);
-
-                    // PERBAIKAN PENTING: Cek apakah ada uraian yang tersedia untuk rekening ini di SEMUA BULAN
-                    // dan masih memiliki sisa anggaran
-                    if ($sisaAnggaran > 0) {
-                        $rekeningData = [
-                            'id' => $firstItem->kode_rekening_id,
-                            'kegiatan_id' => $kegiatan->id,
-                            'kode_rekening' => $firstItem->rekeningBelanja->kode_rekening ?? 'N/A',
-                            'rincian_objek' => $firstItem->rekeningBelanja->rincian_objek ?? 'N/A',
-                            'total_anggaran' => $totalAnggaran,
-                            'sudah_dibelanjakan' => $sudahDibelanjakan,
-                            'sisa_anggaran' => $sisaAnggaran,
-                            'uraian_tersedia' => true,
-                        ];
-
-                        return $rekeningData;
-                    }
-
-                    Log::info('Rekening diabaikan karena sisa anggaran <= 0', [
-                        'rekening_id' => $firstItem->kode_rekening_id,
-                        'sisa_anggaran' => $sisaAnggaran,
-                    ]);
-
-                    return null;
-                })->filter()->values();
-
-                // PERBAIKAN: Hanya tambahkan kegiatan jika memiliki minimal satu rekening yang valid
-                if ($rekeningGrouped->count() > 0) {
-                    // Tambahkan ke daftar kegiatan
-                    $kegiatanList[] = [
-                        'id' => $kegiatan->id,
-                        'kode' => $kegiatan->kode,
-                        'program' => $kegiatan->program,
-                        'sub_program' => $kegiatan->sub_program,
-                        'uraian' => $kegiatan->uraian,
-                        'rekening_count' => $rekeningGrouped->count(),
-                    ];
-
-                    // Tambahkan rekening ke daftar global
-                    foreach ($rekeningGrouped as $rekening) {
-                        $rekeningList[] = $rekening;
-                    }
-
-                    return [
-                        'kegiatan' => $kegiatan,
-                        'rekening_belanja' => $rekeningGrouped,
-                    ];
-                }
-
-                Log::info('Kegiatan diabaikan karena tidak memiliki rekening valid', [
-                    'kegiatan_id' => $kegiatan->id,
-                    'rekening_count' => $rekeningGrouped->count(),
-                ]);
-
-                return null;
-            })->filter()->values();
-
-            Log::info('Final result setelah filter - PERBAIKAN', [
-                'kegiatan_count' => count($kegiatanList),
-                'rekening_count' => count($rekeningList),
-                'grouped_data_count' => $groupedData->count(),
-                'bulan_diambil' => $bulanUntukDiambil,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'data' => $groupedData,
-                'kegiatan_list' => $kegiatanList,
-                'rekening_list' => $rekeningList,
-                'bulan' => $bulan,
-                'tahap' => in_array($bulan, ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']) ? 'RKAS Asli' : 'RKAS Perubahan',
-                'debug' => [
-                    'penganggaran_id' => $penganggaran->id,
-                    'rkas_count' => $allRkasData->count(),
-                    'bku_count' => $bkuData->count(),
-                    'kegiatan_filtered' => count($kegiatanList),
-                    'rekening_filtered' => count($rekeningList),
-                    'bulan_diambil' => $bulanUntukDiambil,
-                ],
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error getting kegiatan dan rekening: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengambil data: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    // PERBAIKAN: ambil uraian by rekening dengan perhitungan volume yang benar
-    public function getUraianByRekening($tahun, $bulan, $rekeningId, Request $request)
-    {
-        try {
-            // Ambil kegiatan_id dari query parameter
-            $kegiatanId = $request->query('kegiatan_id');
-
-            Log::info('=== DEBUG getUraianByRekening - PERBAIKAN VOLUME ===', [
-                'tahun' => $tahun,
-                'bulan' => $bulan,
-                'rekeningId' => $rekeningId,
-                'kegiatanId' => $kegiatanId
-            ]);
-
-            if (!$kegiatanId) {
-                Log::warning('Parameter kegiatan_id tidak ditemukan');
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Parameter kegiatan_id diperlukan'
-                ], 400);
-            }
-
-            // Cari data penganggaran berdasarkan tahun
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
             if (!$penganggaran) {
-                Log::warning('Penganggaran tidak ditemukan untuk tahun: ' . $tahun);
                 return response()->json([
                     'success' => false,
                     'message' => 'Data penganggaran tidak ditemukan'
                 ], 404);
             }
 
-            Log::info('Penganggaran ditemukan', ['penganggaran_id' => $penganggaran->id]);
+            // Tentukan model yang akan digunakan berdasarkan bulan
+            $isTahap1 = in_array($bulan, ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']);
+            $model = $isTahap1 ? Rkas::class : RkasPerubahan::class;
+
+            Log::info('Model yang digunakan:', [
+                'bulan' => $bulan,
+                'isTahap1' => $isTahap1,
+                'model' => $model
+            ]);
 
             // Konversi bulan ke angka
             $bulanAngkaList = [
@@ -1024,32 +795,41 @@ class BukuKasUmumController extends Controller
 
             $bulanTargetNumber = $bulanAngkaList[$bulan] ?? 1;
 
-            // PERBAIKAN: Ambil uraian dari SEMUA BULAN sampai bulan target
-            $bulanUntukDiambil = [];
-            for ($i = 1; $i <= $bulanTargetNumber; $i++) {
-                $bulanNama = array_search($i, $bulanAngkaList);
-                $bulanUntukDiambil[] = $bulanNama;
+            // PERBAIKAN PENTING: Tentukan range bulan yang akan diambil
+            // Untuk periode yang sama, ambil SEMUA BULAN dari awal periode sampai bulan target
+            if ($isTahap1) {
+                // Tahap 1: Januari sampai bulan target (Januari-Juni)
+                $startBulan = 1;
+                $endBulan = $bulanTargetNumber;
+            } else {
+                // Tahap 2: Juli sampai bulan target (Juli-Desember)
+                $startBulan = 7; // Mulai dari Juli
+                $endBulan = $bulanTargetNumber;
             }
 
-            Log::info('Mengambil uraian dari bulan:', $bulanUntukDiambil);
+            $bulanUntukDiambil = [];
+            for ($i = $startBulan; $i <= $endBulan; $i++) {
+                $bulanNama = array_search($i, $bulanAngkaList);
+                if ($bulanNama) {
+                    $bulanUntukDiambil[] = $bulanNama;
+                }
+            }
 
-            // PERBAIKAN: Ambil semua data RKAS untuk kombinasi ini
+            Log::info('Bulan yang akan diambil:', [
+                'start_bulan' => $startBulan,
+                'end_bulan' => $endBulan,
+                'bulan_diambil' => $bulanUntukDiambil
+            ]);
+
+            // Ambil data RKAS dari bulan-bulan yang ditentukan
             $allRkasData = collect();
-
             foreach ($bulanUntukDiambil as $bulanItem) {
-                $isTahap1 = in_array($bulanItem, ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']);
-                $model = $isTahap1 ? Rkas::class : RkasPerubahan::class;
-
                 $rkasData = $model::where('penganggaran_id', $penganggaran->id)
                     ->where('bulan', $bulanItem)
-                    ->where('kode_rekening_id', $rekeningId)
-                    ->where('kode_id', $kegiatanId)
+                    ->with(['kodeKegiatan', 'rekeningBelanja'])
                     ->get();
 
-                // Tambahkan informasi bulan
-                $rkasData->each(function ($item) use ($bulanItem) {
-                    $item->bulan_asal = $bulanItem;
-                });
+                Log::info('Data RKAS untuk bulan ' . $bulanItem . ':', ['count' => $rkasData->count()]);
 
                 $allRkasData = $allRkasData->merge($rkasData);
             }
@@ -1061,115 +841,278 @@ class BukuKasUmumController extends Controller
                 return response()->json([
                     'success' => true,
                     'data' => [],
-                    'message' => 'Tidak ada uraian untuk kombinasi kegiatan dan rekening ini'
+                    'kegiatan_list' => [],
+                    'rekening_list' => [],
+                    'message' => 'Tidak ada data RKAS untuk bulan ' . implode(', ', $bulanUntukDiambil)
                 ]);
             }
 
-            // PERBAIKAN: Debug detail data RKAS
-            Log::info('Detail data RKAS:', $allRkasData->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'uraian' => $item->uraian,
-                    'bulan' => $item->bulan_asal,
-                    'volume' => $item->jumlah,
-                    'harga' => $item->harga_satuan,
-                    'subtotal' => $item->harga_satuan * $item->jumlah
-                ];
-            })->toArray());
+            // Ambil data BKU yang sudah dibelanjakan untuk periode yang sesuai
+            $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
+                ->where(function ($query) use ($isTahap1, $bulanTargetNumber) {
+                    if ($isTahap1) {
+                        // Untuk Tahap 1: data dari Januari sampai bulan target
+                        $query->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) BETWEEN 1 AND ?', [$bulanTargetNumber]);
+                    } else {
+                        // Untuk Tahap 2: data dari Juli sampai bulan target
+                        $query->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) BETWEEN 7 AND ?', [$bulanTargetNumber]);
+                    }
+                })
+                ->whereYear('tanggal_transaksi', $tahun)
+                ->with(['kodeKegiatan', 'rekeningBelanja'])
+                ->get();
 
-            // PERBAIKAN: Hitung total volume dari RKAS dengan benar
-            // Kelompokkan berdasarkan uraian yang sama persis
-            $uraianGrouped = $allRkasData->groupBy('uraian')->map(function ($uraianItems) use ($penganggaran, $rekeningId, $kegiatanId, $bulanTargetNumber) {
-                $firstItem = $uraianItems->first();
+            Log::info('Data BKU ditemukan:', ['count' => $bkuData->count()]);
 
-                // PERBAIKAN: Hitung total volume dari RKAS (jumlah dari semua bulan)
-                $totalVolumeRkas = $uraianItems->sum('jumlah');
+            // Kelompokkan data berdasarkan kode kegiatan
+            $kegiatanList = [];
+            $rekeningList = [];
 
-                // Dapatkan daftar bulan asal
-                $bulanAsal = $uraianItems->pluck('bulan_asal')->unique()->sort()->values();
+            $groupedData = $allRkasData->groupBy('kode_id')->map(function ($items) use ($bkuData, &$kegiatanList, &$rekeningList, $penganggaran, $bulan, $isTahap1, $bulanTargetNumber) {
+                $kegiatan = $items->first()->kodeKegiatan;
 
-                // PERBAIKAN: Hitung volume yang sudah dibelanjakan untuk uraian ini
-                // Gunakan pencarian yang lebih akurat
-                $sudahDibelanjakanVolume = BukuKasUmumUraianDetail::where('penganggaran_id', $penganggaran->id)
-                    ->where('kode_rekening_id', $rekeningId)
-                    ->where('kode_kegiatan_id', $kegiatanId)
-                    ->where('uraian', 'LIKE', '%' . $firstItem->uraian . '%')
-                    ->whereHas('bukuKasUmum', function ($query) use ($penganggaran, $bulanTargetNumber) {
-                        $query->where('penganggaran_id', $penganggaran->id)
-                            ->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) <= ?', [$bulanTargetNumber]);
-                    })
-                    ->sum('volume');
+                // Kelompokkan rekening belanja by kode_rekening_id
+                $rekeningGrouped = $items->groupBy('kode_rekening_id')->map(function ($rekeningItems) use ($bkuData, $kegiatan, $penganggaran, $isTahap1, $bulanTargetNumber) {
+                    $firstItem = $rekeningItems->first();
 
-                // Hitung sisa volume
-                $sisaVolume = max(0, $totalVolumeRkas - $sudahDibelanjakanVolume);
+                    // Hitung total yang sudah dibelanjakan untuk rekening ini dalam periode yang sesuai
+                    $sudahDibelanjakan = $bkuData->where('kode_rekening_id', $firstItem->kode_rekening_id)
+                        ->where('kode_kegiatan_id', $kegiatan->id)
+                        ->sum('dibelanjakan');
 
-                Log::info('Perhitungan volume untuk uraian: ' . $firstItem->uraian, [
-                    'total_volume_rkas' => $totalVolumeRkas,
-                    'volume_sudah_dibelanjakan' => $sudahDibelanjakanVolume,
-                    'sisa_volume' => $sisaVolume,
-                    'bulan_asal' => $bulanAsal->toArray()
-                ]);
+                    // Hitung total anggaran untuk rekening ini
+                    $totalAnggaran = $rekeningItems->sum(function ($item) {
+                        return $item->harga_satuan * $item->jumlah;
+                    });
 
-                return [
-                    'id' => $firstItem->id,
-                    'uraian' => $firstItem->uraian,
-                    'total_volume' => $totalVolumeRkas,
-                    'volume_maksimal' => $sisaVolume,
-                    'harga_satuan' => $firstItem->harga_satuan,
-                    'satuan' => $firstItem->satuan,
-                    'total_anggaran' => $firstItem->harga_satuan * $totalVolumeRkas,
-                    'sudah_dibelanjakan' => $sudahDibelanjakanVolume * $firstItem->harga_satuan,
-                    'sisa_anggaran' => max(0, ($totalVolumeRkas - $sudahDibelanjakanVolume) * $firstItem->harga_satuan),
-                    'volume_sudah_dibelanjakan' => $sudahDibelanjakanVolume,
-                    'sisa_volume' => $sisaVolume,
-                    'sudah_maksimal' => $sudahDibelanjakanVolume >= $totalVolumeRkas,
-                    'dapat_digunakan' => $sisaVolume > 0,
-                    'kode_id' => $firstItem->kode_id,
-                    'from_previous_months' => $bulanAsal->count() > 1,
-                    'bulan_asal' => $bulanAsal->toArray(),
-                    'debug_info' => "RKAS: {$totalVolumeRkas}, Sudah: {$sudahDibelanjakanVolume}, Sisa: {$sisaVolume}"
-                ];
-            })->values();
+                    $sisaAnggaran = $totalAnggaran - $sudahDibelanjakan;
 
-            Log::info('Jumlah uraian setelah grouping:', ['count' => count($uraianGrouped)]);
+                    Log::info('Perhitungan rekening:', [
+                        'rekening' => $firstItem->rekeningBelanja->rincian_objek ?? 'N/A',
+                        'total_anggaran' => $totalAnggaran,
+                        'sudah_dibelanjakan' => $sudahDibelanjakan,
+                        'sisa_anggaran' => $sisaAnggaran
+                    ]);
 
-            // PERBAIKAN: Hitung total volume dari semua uraian
-            $totalVolumeSemuaUraian = collect($uraianGrouped)->sum('total_volume');
-            $totalVolumeSudahDibelanjakan = collect($uraianGrouped)->sum('volume_sudah_dibelanjakan');
-            $totalSisaVolume = collect($uraianGrouped)->sum('sisa_volume');
+                    // Hanya tampilkan rekening yang masih memiliki sisa anggaran
+                    if ($sisaAnggaran > 0) {
+                        $rekeningData = [
+                            'id' => $firstItem->kode_rekening_id,
+                            'kegiatan_id' => $kegiatan->id,
+                            'kode_rekening' => $firstItem->rekeningBelanja->kode_rekening ?? 'N/A',
+                            'rincian_objek' => $firstItem->rekeningBelanja->rincian_objek ?? 'N/A',
+                            'total_anggaran' => $totalAnggaran,
+                            'sudah_dibelanjakan' => $sudahDibelanjakan,
+                            'sisa_anggaran' => $sisaAnggaran,
+                            'uraian_tersedia' => true
+                        ];
 
-            Log::info('Total keseluruhan:', [
-                'total_volume_rkas' => $totalVolumeSemuaUraian,
-                'total_sudah_dibelanjakan' => $totalVolumeSudahDibelanjakan,
-                'total_sisa_volume' => $totalSisaVolume
+                        return $rekeningData;
+                    }
+
+                    return null;
+                })->filter()->values();
+
+                // Hanya tambahkan kegiatan jika memiliki minimal satu rekening yang valid
+                if ($rekeningGrouped->count() > 0) {
+                    $kegiatanList[] = [
+                        'id' => $kegiatan->id,
+                        'kode' => $kegiatan->kode,
+                        'program' => $kegiatan->program,
+                        'sub_program' => $kegiatan->sub_program,
+                        'uraian' => $kegiatan->uraian,
+                        'rekening_count' => $rekeningGrouped->count()
+                    ];
+
+                    foreach ($rekeningGrouped as $rekening) {
+                        $rekeningList[] = $rekening;
+                    }
+
+                    return [
+                        'kegiatan' => $kegiatan,
+                        'rekening_belanja' => $rekeningGrouped
+                    ];
+                }
+
+                return null;
+            })->filter()->values();
+
+            Log::info('Final result:', [
+                'kegiatan_count' => count($kegiatanList),
+                'rekening_count' => count($rekeningList),
+                'periode' => $isTahap1 ? 'Tahap 1' : 'Tahap 2'
             ]);
 
             return response()->json([
                 'success' => true,
-                'data' => $uraianGrouped,
-                'summary' => [
-                    'total_volume_rkas' => $totalVolumeSemuaUraian,
-                    'total_sudah_dibelanjakan' => $totalVolumeSudahDibelanjakan,
-                    'total_sisa_volume' => $totalSisaVolume
-                ],
+                'data' => $groupedData,
+                'kegiatan_list' => $kegiatanList,
+                'rekening_list' => $rekeningList,
+                'periode' => $isTahap1 ? 'Tahap 1 (Januari-Juni)' : 'Perubahan (Juli-Desember)',
                 'debug' => [
-                    'penganggaran_id' => $penganggaran->id,
-                    'rekening_id' => $rekeningId,
-                    'kegiatan_id' => $kegiatanId,
-                    'bulan_target' => $bulan,
+                    'model_digunakan' => $model,
                     'bulan_diambil' => $bulanUntukDiambil,
+                    'start_bulan' => $isTahap1 ? 1 : 7,
+                    'end_bulan' => $bulanTargetNumber
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting kegiatan dan rekening: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // PERBAIKAN: ambil uraian dengan perhitungan yang lebih akurat - VERSI DIPERBAIKI
+    public function getUraianByRekening($tahun, $bulan, $rekeningId, Request $request)
+    {
+        try {
+            $kegiatanId = $request->query('kegiatan_id');
+
+            Log::info('=== DEBUG getUraianByRekening - PERHITUNGAN AKURAT ===', [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'rekeningId' => $rekeningId,
+                'kegiatanId' => $kegiatanId
+            ]);
+
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan'
+                ], 404);
+            }
+
+            // Tentukan model
+            $isTahap1 = in_array($bulan, ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']);
+            $model = $isTahap1 ? Rkas::class : RkasPerubahan::class;
+
+            $bulanAngkaList = [
+                'Januari' => 1,
+                'Februari' => 2,
+                'Maret' => 3,
+                'April' => 4,
+                'Mei' => 5,
+                'Juni' => 6,
+                'Juli' => 7,
+                'Agustus' => 8,
+                'September' => 9,
+                'Oktober' => 10,
+                'November' => 11,
+                'Desember' => 12
+            ];
+
+            $bulanTargetNumber = $bulanAngkaList[$bulan] ?? 1;
+            $startBulan = $isTahap1 ? 1 : 7;
+
+            // Ambil data RKAS
+            $allRkasData = collect();
+            for ($i = $startBulan; $i <= $bulanTargetNumber; $i++) {
+                $bulanNama = array_search($i, $bulanAngkaList);
+                if (!$bulanNama) continue;
+
+                $rkasData = $model::where('penganggaran_id', $penganggaran->id)
+                    ->where('bulan', $bulanNama)
+                    ->where('kode_rekening_id', $rekeningId)
+                    ->where('kode_id', $kegiatanId)
+                    ->get();
+
+                $rkasData->each(function ($item) use ($bulanNama) {
+                    $item->bulan_asal = $bulanNama;
+                });
+
+                $allRkasData = $allRkasData->merge($rkasData);
+            }
+
+            if ($allRkasData->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'Tidak ada uraian untuk kombinasi kegiatan dan rekening ini'
+                ]);
+            }
+
+            // PERBAIKAN PENTING: Hitung volume yang sudah dibelanjakan dengan cara yang lebih akurat
+            // Ambil semua data BKU detail untuk kombinasi ini
+            $bkuDetails = BukuKasUmumUraianDetail::where('penganggaran_id', $penganggaran->id)
+                ->where('kode_rekening_id', $rekeningId)
+                ->where('kode_kegiatan_id', $kegiatanId)
+                ->whereHas('bukuKasUmum', function ($query) use ($isTahap1, $bulanTargetNumber) {
+                    if ($isTahap1) {
+                        $query->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) BETWEEN 1 AND ?', [$bulanTargetNumber]);
+                    } else {
+                        $query->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) BETWEEN 7 AND ?', [$bulanTargetNumber]);
+                    }
+                })
+                ->get();
+
+            Log::info('Data BKU Details ditemukan:', ['count' => $bkuDetails->count()]);
+
+            // Kelompokkan uraian dengan matching yang lebih akurat
+            $uraianGrouped = $allRkasData->groupBy('uraian')->map(function ($uraianItems) use ($bkuDetails, $isTahap1) {
+                $firstItem = $uraianItems->first();
+                $uraianName = $firstItem->uraian; // PERBAIKAN: Definisikan variabel
+
+                // Hitung total volume dari RKAS
+                $totalVolumeRkas = $uraianItems->sum('jumlah');
+                $bulanAsal = $uraianItems->pluck('bulan_asal')->unique()->sort()->values();
+
+                // PERBAIKAN: Hitung volume yang sudah dibelanjakan dengan matching yang lebih akurat
+                $sudahDibelanjakanVolume = 0;
+
+                // Cari data BKU yang memiliki uraian yang sama persis atau mengandung uraian ini
+                $matchingBkuDetails = $bkuDetails->filter(function ($bkuDetail) use ($uraianName) {
+                    // Matching exact atau partial yang lebih longgar
+                    return strpos($bkuDetail->uraian, $uraianName) !== false ||
+                        strpos($uraianName, $bkuDetail->uraian) !== false;
+                });
+
+                $sudahDibelanjakanVolume = $matchingBkuDetails->sum('volume');
+
+                Log::info('Perhitungan uraian: ' . $uraianName, [
+                    'total_volume_rkas' => $totalVolumeRkas,
+                    'volume_sudah_dibelanjakan' => $sudahDibelanjakanVolume,
+                    'matching_bku_count' => $matchingBkuDetails->count(),
+                    'sisa_volume' => $totalVolumeRkas - $sudahDibelanjakanVolume,
+                    'bulan_asal' => $bulanAsal->toArray()
+                ]);
+
+                $sisaVolume = max(0, $totalVolumeRkas - $sudahDibelanjakanVolume);
+
+                return [
+                    'id' => $firstItem->id,
+                    'uraian' => $uraianName,
+                    'total_volume' => $totalVolumeRkas,
+                    'volume_maksimal' => $sisaVolume,
+                    'harga_satuan' => $firstItem->harga_satuan,
+                    'satuan' => $firstItem->satuan,
+                    'volume_sudah_dibelanjakan' => $sudahDibelanjakanVolume,
+                    'sisa_volume' => $sisaVolume,
+                    'dapat_digunakan' => $sisaVolume > 0,
+                    'bulan_asal' => $bulanAsal->toArray(),
+                    'is_tahap1' => $isTahap1,
+                    'debug_info' => "RKAS: {$totalVolumeRkas}, Sudah: {$sudahDibelanjakanVolume}, Sisa: {$sisaVolume}"
+                ];
+            })->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => $uraianGrouped,
+                'debug' => [
+                    'periode' => $isTahap1 ? 'Tahap 1' : 'Tahap 2',
                     'total_uraian' => count($uraianGrouped),
-                    'rkas_data_count' => $allRkasData->count()
+                    'uraian_dapat_digunakan' => collect($uraianGrouped)->filter(fn($u) => $u['dapat_digunakan'])->count()
                 ]
             ]);
         } catch (\Exception $e) {
             Log::error('Error getting uraian: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data uraian: ' . $e->getMessage(),
-                'error_details' => $e->getTraceAsString()
+                'message' => 'Gagal mengambil data uraian: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -1949,5 +1892,151 @@ class BukuKasUmumController extends Controller
 
         // Jika tidak ada angka, tambahkan -001
         return $lastNotaNumber . '-001';
+    }
+
+    // Method untuk debug perhitungan volume - VERSI DIPERBAIKI
+    public function debugVolumePerhitungan($tahun, $bulan, $rekeningId, Request $request)
+    {
+        try {
+            $kegiatanId = $request->query('kegiatan_id');
+
+            Log::info('=== DEBUG VOLUME PERHITUNGAN ===', [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'rekeningId' => $rekeningId,
+                'kegiatanId' => $kegiatanId
+            ]);
+
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json(['success' => false, 'message' => 'Penganggaran tidak ditemukan']);
+            }
+
+            // Tentukan model
+            $isTahap1 = in_array($bulan, ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']);
+            $model = $isTahap1 ? Rkas::class : RkasPerubahan::class;
+
+            $bulanAngkaList = [
+                'Januari' => 1,
+                'Februari' => 2,
+                'Maret' => 3,
+                'April' => 4,
+                'Mei' => 5,
+                'Juni' => 6,
+                'Juli' => 7,
+                'Agustus' => 8,
+                'September' => 9,
+                'Oktober' => 10,
+                'November' => 11,
+                'Desember' => 12
+            ];
+
+            $bulanTargetNumber = $bulanAngkaList[$bulan] ?? 1;
+
+            // Ambil data RKAS
+            $startBulan = $isTahap1 ? 1 : 7;
+            $allRkasData = collect();
+
+            for ($i = $startBulan; $i <= $bulanTargetNumber; $i++) {
+                $bulanNama = array_search($i, $bulanAngkaList);
+                if (!$bulanNama) continue;
+
+                $rkasData = $model::where('penganggaran_id', $penganggaran->id)
+                    ->where('bulan', $bulanNama)
+                    ->where('kode_rekening_id', $rekeningId)
+                    ->where('kode_id', $kegiatanId)
+                    ->get();
+
+                $rkasData->each(function ($item) use ($bulanNama) {
+                    $item->bulan_asal = $bulanNama;
+                });
+
+                $allRkasData = $allRkasData->merge($rkasData);
+            }
+
+            // Hitung volume dari RKAS per uraian
+            $volumeRkasPerUraian = [];
+            foreach ($allRkasData as $item) {
+                $uraian = $item->uraian; // PERBAIKAN: Definisikan variabel
+                if (!isset($volumeRkasPerUraian[$uraian])) {
+                    $volumeRkasPerUraian[$uraian] = 0;
+                }
+                $volumeRkasPerUraian[$uraian] += $item->jumlah;
+            }
+
+            // Hitung volume yang sudah dibelanjakan per uraian
+            $volumeSudahDibelanjakanPerUraian = [];
+            $uraianNames = $allRkasData->pluck('uraian')->unique();
+
+            foreach ($uraianNames as $uraianName) {
+                $volume = BukuKasUmumUraianDetail::where('penganggaran_id', $penganggaran->id)
+                    ->where('kode_rekening_id', $rekeningId)
+                    ->where('kode_kegiatan_id', $kegiatanId)
+                    ->where('uraian', 'LIKE', '%' . $uraianName . '%')
+                    ->whereHas('bukuKasUmum', function ($query) use ($isTahap1, $bulanTargetNumber) {
+                        if ($isTahap1) {
+                            $query->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) BETWEEN 1 AND ?', [$bulanTargetNumber]);
+                        } else {
+                            $query->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) BETWEEN 7 AND ?', [$bulanTargetNumber]);
+                        }
+                    })
+                    ->sum('volume');
+
+                $volumeSudahDibelanjakanPerUraian[$uraianName] = $volume;
+            }
+
+            // Hitung sisa volume per uraian - PERBAIKAN: Gunakan cara yang benar
+            $sisaVolumePerUraian = [];
+            foreach ($volumeRkasPerUraian as $uraian => $volumeRkas) {
+                $volumeSudah = $volumeSudahDibelanjakanPerUraian[$uraian] ?? 0;
+                $sisaVolumePerUraian[$uraian] = max(0, $volumeRkas - $volumeSudah);
+            }
+
+            // Detail data BKU yang sudah dibelanjakan
+            $detailBku = BukuKasUmumUraianDetail::where('penganggaran_id', $penganggaran->id)
+                ->where('kode_rekening_id', $rekeningId)
+                ->where('kode_kegiatan_id', $kegiatanId)
+                ->whereHas('bukuKasUmum', function ($query) use ($isTahap1, $bulanTargetNumber) {
+                    if ($isTahap1) {
+                        $query->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) BETWEEN 1 AND ?', [$bulanTargetNumber]);
+                    } else {
+                        $query->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) BETWEEN 7 AND ?', [$bulanTargetNumber]);
+                    }
+                })
+                ->with('bukuKasUmum')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'uraian' => $item->uraian,
+                        'volume' => $item->volume,
+                        'bulan' => $item->bukuKasUmum->tanggal_transaksi->format('F'),
+                        'tanggal' => $item->bukuKasUmum->tanggal_transaksi->format('Y-m-d')
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'debug_info' => [
+                    'penganggaran_id' => $penganggaran->id,
+                    'periode' => $isTahap1 ? 'Tahap 1' : 'Tahap 2',
+                    'bulan_target' => $bulan,
+                    'bulan_diambil' => array_slice($bulanAngkaList, $startBulan - 1, $bulanTargetNumber - $startBulan + 1, true)
+                ],
+                'volume_rkas' => $volumeRkasPerUraian,
+                'volume_sudah_dibelanjakan' => $volumeSudahDibelanjakanPerUraian,
+                'sisa_volume' => $sisaVolumePerUraian, // PERBAIKAN: Gunakan array yang sudah dihitung
+                'detail_bku' => $detailBku,
+                'total_rkas' => array_sum($volumeRkasPerUraian),
+                'total_sudah_dibelanjakan' => array_sum($volumeSudahDibelanjakanPerUraian),
+                'total_sisa' => array_sum($sisaVolumePerUraian)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error debug volume: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

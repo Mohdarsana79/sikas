@@ -190,8 +190,11 @@ Route::middleware(['auth'])->prefix('referensi')->group(function () {
 
 Route::middleware(['auth'])->prefix('penatausahaan')->group(function () {
     Route::get('/penatausahaan', [PenatausahaanController::class, 'index'])->name('penatausahaan.penatausahaan');
-    Route::post('/', [PenerimaanDanaController::class, 'store'])->name('penerimaan-dana.store');
-    Route::get('penerimaan-dana/{penganggaran_id}', [PenerimaanDanaController::class, 'getByPenganggaran'])->name('penerimaan-dana.getByPenganggaran');
+    Route::get('/get-penganggaran-id', [PenatausahaanController::class, 'getPenganggaranId']);
+
+    // Route untuk penerimaan dana - lebih spesifik
+    Route::post('/penerimaan-dana/store', [PenerimaanDanaController::class, 'store'])->name('penerimaan-dana.store');
+    Route::get('/penerimaan-dana/{penganggaran_id}', [PenerimaanDanaController::class, 'getByPenganggaran'])->name('penerimaan-dana.getByPenganggaran');
 });
 
 // ROUTE BKU AUDIT (BARU - DIPISAHKAN)
