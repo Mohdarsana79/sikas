@@ -51,6 +51,33 @@ class PenarikanTunaiController extends Controller
         }
     }
 
+    public function destroy($id)
+    {
+        try {
+            $penarikan = PenarikanTunai::findOrFail($id);
+            $penarikan->delete();
+
+            // Cek jika request AJAX
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Penarikan berhasil dihapus',
+                ]);
+            }
+
+            // Redirect untuk request biasa
+            return redirect()->back()->with('success', 'Penarikan berhasil dihapus');
+        } catch (\Exception $e) {
+            Log::error('Error deleting penarikan tunai: ' . $e->getMessage());
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus penarikan: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+    }
+
     private function hitungTotalDanaTersedia($penganggaran_id)
     {
         $penerimaanDanas = \App\Models\PenerimaanDana::where('penganggaran_id', $penganggaran_id)->get();

@@ -195,6 +195,8 @@ Route::middleware(['auth'])->prefix('penatausahaan')->group(function () {
     // Route untuk penerimaan dana - lebih spesifik
     Route::post('/penerimaan-dana/store', [PenerimaanDanaController::class, 'store'])->name('penerimaan-dana.store');
     Route::get('/penerimaan-dana/{penganggaran_id}', [PenerimaanDanaController::class, 'getByPenganggaran'])->name('penerimaan-dana.getByPenganggaran');
+
+    Route::delete('/penerimaan-dana/{id}', [PenerimaanDanaController::class, 'destroy'])->name('penerimaan-dana.destroy');
 });
 
 // ROUTE BKU AUDIT (BARU - DIPISAHKAN)
@@ -215,6 +217,7 @@ Route::middleware(['auth'])->prefix('bku-audit')->group(function () {
 
 Route::middleware(['auth'])->prefix('bku')->group(function () {
     // Route untuk debug volume
+
     Route::get('/debug-volume/{tahun}/{bulan}/{rekeningId}', [BukuKasUmumController::class, 'debugVolumePerhitungan'])
         ->name('bku.debug-volume');
 
@@ -229,8 +232,15 @@ Route::middleware(['auth'])->prefix('bku')->group(function () {
 
     // penarikan tunai
     Route::post('/penarikan-tunai', [PenarikanTunaiController::class, 'store'])->name('bku.penarikan-tunai.store');
+    Route::delete('/penarikan-tunai/{id}', [PenarikanTunaiController::class, 'destroy'])->name('penarikan.destroy');
+
+    // set tanggal sebelum tanggal penarikan tunai
+    Route::get('/tanggal-penarikan/{penganggaran_id}', [BukuKasUmumController::class, 'getTanggalPenarikanTunai'])
+        ->name('bku.tanggal-penarikan');
+
     // setor tunai
     Route::post('/setor-tunai', [SetorTunaiController::class, 'store'])->name('bku.setor-tunai.store');
+    Route::delete('/setor-tunai/{id}', [SetorTunaiController::class, 'destroy'])->name('setor-tunai.destroy');
 
     Route::get('/kegiatan-rekening/{tahun}/{bulan}', [BukuKasUmumController::class, 'getKegiatanDanRekening'])
         ->name('bku.kegiatan-rekening');
@@ -272,4 +282,21 @@ Route::middleware(['auth'])->prefix('bku')->group(function () {
 
     // Route untuk update bunga bank (tanpa modal)
     Route::put('/{tahun}/{bulan}/update-bunga', [BukuKasUmumController::class, 'updateBungaBank'])->name('bku.update-bunga');
+
+});
+
+Route::middleware(['auth'])->prefix('laporan')->group(function () {
+    // Route untuk AJAX rekapan BKU
+    Route::get('/laporan/rekapan-bku/ajax', [BukuKasUmumController::class, 'getRekapanBkuAjax'])
+        ->name('laporan.rekapan-bku.ajax');
+
+    Route::get('/rekapan-bku', [BukuKasUmumController::class, 'rekapanBku'])
+        ->name('laporan.rekapan-bku');
+
+    // Route untuk generate PDF BKP Bank dengan prefix yang konsisten
+    Route::get('/laporan/bkp-bank-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkpBankPdf'])
+        ->name('laporan.bkp-bank-pdf');
+
+    Route::get('/laporan/bku-pembantu-tunai-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkuPembantuTunaiPdf'])
+    ->name('laporan.bku-pembantu-tunai-pdf');
 });

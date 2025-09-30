@@ -5,6 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use App\Models\Penganggaran;
+use App\Models\KodeKegiatan;
+use App\Models\RekeningBelanja;
+use App\Models\Rkas;
+use App\Models\RkasPerubahan;
+use App\Models\BukuKasUmumUraianDetail;
 
 class BukuKasUmum extends Model
 {
@@ -146,6 +153,143 @@ class BukuKasUmum extends Model
         ];
 
         return $bulanList[$bulan] ?? 1;
+    }
+
+    /**
+     * Get nama bulan dari angka
+     */
+    public static function convertNumberToBulan($angka)
+    {
+        $bulanList = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember',
+        ];
+
+        return $bulanList[$angka] ?? 'Januari';
+    }
+
+    /**
+     * Get nama hari dalam bahasa Indonesia dari tanggal
+     */
+    public static function getNamaHari($tanggal)
+    {
+        $carbonDate = Carbon::parse($tanggal);
+
+        $hariList = [
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
+        ];
+
+        return $hariList[$carbonDate->englishDayOfWeek] ?? 'Hari tidak diketahui';
+    }
+
+    /**
+     * Get nama hari dalam bahasa Indonesia dari angka hari (0-6)
+     * 0 = Minggu, 1 = Senin, ..., 6 = Sabtu
+     */
+    public static function getNamaHariFromNumber($angkaHari)
+    {
+        $hariList = [
+            0 => 'Minggu',
+            1 => 'Senin',
+            2 => 'Selasa',
+            3 => 'Rabu',
+            4 => 'Kamis',
+            5 => 'Jumat',
+            6 => 'Sabtu'
+        ];
+
+        return $hariList[$angkaHari] ?? 'Hari tidak diketahui';
+    }
+
+    /**
+     * Format tanggal lengkap dengan nama hari (bahasa Indonesia)
+     * Contoh: Senin, 31 Maret 2025
+     */
+    public static function formatTanggalLengkap($tanggal)
+    {
+        $carbonDate = Carbon::parse($tanggal);
+
+        $namaHari = self::getNamaHari($tanggal);
+        $tanggalFormatted = $carbonDate->format('d');
+        $namaBulan = self::convertNumberToBulan($carbonDate->month);
+        $tahun = $carbonDate->format('Y');
+
+        return "{$namaHari}, {$tanggalFormatted} {$namaBulan} {$tahun}";
+    }
+
+    /**
+     * Format tanggal singkat (bahasa Indonesia)
+     * Contoh: 31 Maret 2025
+     */
+    public static function formatTanggalSingkat($tanggal)
+    {
+        $carbonDate = Carbon::parse($tanggal);
+
+        $tanggalFormatted = $carbonDate->format('d');
+        $namaBulanSingkat = self::convertNumberToBulan($carbonDate->month);
+        $tahun = $carbonDate->format('Y');
+
+        return "{$tanggalFormatted} {$namaBulanSingkat} {$tahun}";
+    }
+
+    /**
+     * Get tanggal akhir bulan dari tahun dan bulan
+     */
+    public static function getTanggalAkhirBulan($tahun, $bulan)
+    {
+        $bulanAngka = self::convertBulanToNumber($bulan);
+        return Carbon::create($tahun, $bulanAngka, 1)->endOfMonth();
+    }
+
+    /**
+     * Get nama hari untuk tanggal akhir bulan
+     */
+    public static function getHariAkhirBulan($tahun, $bulan)
+    {
+        $tanggalAkhirBulan = self::getTanggalAkhirBulan($tahun, $bulan);
+        return self::getNamaHari($tanggalAkhirBulan);
+    }
+
+    /**
+     * Format lengkap untuk tanggal akhir bulan Pakai Hari
+     * Contoh: Senin, 31 Maret 2025
+     */
+    public static function formatAkhirBulanLengkapHari($tahun, $bulan)
+    {
+        $tanggalAkhirBulan = self::getTanggalAkhirBulan($tahun, $bulan);
+        return self::formatTanggalLengkap($tanggalAkhirBulan);
+    }
+
+    // Format Lengkap Tanggal Akhir Bulan Tanpa Hari
+    public static function formatTanggalAkhirBulanLengkap($tahun, $bulan)
+    {
+        $tanggalAkhirBulan = self::getTanggalAkhirBulan($tahun, $bulan);
+        return self::formatTanggalSingkat($tanggalAkhirBulan);
+    }
+    /**
+     * Format singkat untuk tanggal akhir bulan
+     * Contoh: 31 Mar 2025
+     */
+    public static function formatAkhirBulanSingkat($tahun, $bulan)
+    {
+        $tanggalAkhirBulan = self::getTanggalAkhirBulan($tahun, $bulan);
+        return self::formatTanggalSingkat($tanggalAkhirBulan);
     }
 
     public function uraianDetails()

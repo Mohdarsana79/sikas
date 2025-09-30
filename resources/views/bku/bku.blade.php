@@ -59,10 +59,10 @@
                         <i class="bi bi-search me-1"></i>
                         Audit Data
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm-custom" id="btnCetak">
+                    <a href="{{ route('laporan.rekapan-bku') }}?tahun={{ $tahun }}" class="btn btn-outline-secondary btn-sm-custom" id="btnCetak">
                         <i class="bi bi-printer me-1"></i>
                         Cetak
-                    </button>
+                    </a>
                     <button type="button" class="btn btn-dark btn-sm-custom" data-bs-toggle="modal" data-bs-target="#tutupBku"
                         id="btnTutupBku">
                         Tutup BKU
@@ -81,6 +81,10 @@
                         <i class="bi bi-search me-1"></i>
                         Audit Data
                     </button>
+                    <a href="{{ route('laporan.rekapan-bku') }}?tahun={{ $tahun }}" class="btn btn-outline-secondary btn-sm-custom" id="btnCetak">
+                        <i class="bi bi-printer me-1"></i>
+                        Cetak
+                    </a>
                     @endif
             
                 </div>
@@ -249,7 +253,22 @@
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">-</td>
-                                    <td class="px-4 py-3 text-center">-</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="dropdown dropstart">
+                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button" id="dropdownMenuButton{{ $penerimaan->id }}"
+                                                data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none;">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ $penerimaan->id }}">
+                                                <li>
+                                                    <a class="dropdown-item text-danger btn-hapus-penerimaan"
+                                                        href="{{ route('penerimaan-dana.destroy', $penerimaan->id ) }}" data-id="{{ $penerimaan->id }}">
+                                                        <i class="bi bi-trash me-2"></i>Hapus
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
                                 </tr>
                                 @if($penerimaan->sumber_dana === 'Bosp Reguler Tahap 1' && $penerimaan->saldo_awal)
                                 <tr class="bg-light">
@@ -313,7 +332,22 @@
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">-</td>
-                                    <td class="px-4 py-3 text-center">-</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="dropdown dropstart">
+                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button" id="dropdownMenuButton{{ $penarikan->id }}"
+                                                data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none;">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ $penarikan->id }}">
+                                                <li>
+                                                    <a class="dropdown-item text-danger btn-hapus-penarikan" href="{{ route('penarikan.destroy', $penarikan->id ) }}"
+                                                        data-id="{{ $penarikan->id }}">
+                                                        <i class="bi bi-trash me-2"></i>Hapus
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                </td>
                                 </tr>
                                 @endif
                                 @endforeach
@@ -357,7 +391,22 @@
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">-</td>
-                                    <td class="px-4 py-3 text-center">-</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="dropdown dropstart">
+                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button" id="dropdownMenuButton{{ $penerimaan->id }}"
+                                                data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none;">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ $setor->id }}">
+                                                <li>
+                                                    <a class="dropdown-item text-danger btn-hapus-setor"
+                                                        href="{{ route('setor-tunai.destroy', $setor->id ) }}" data-id="{{ $setor->id }}">
+                                                        <i class="bi bi-trash me-2"></i>Hapus
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
                                 </tr>
                                 @endif
                                 @endforeach
@@ -865,6 +914,153 @@
             Swal.fire({
                 title: 'Hapus Transaksi?',
                 text: "Apakah Anda yakin ingin menghapus transaksi ini?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                customClass: {
+                    confirmButton: 'btn btn-danger me-2',
+                    cancelButton: 'btn btn-secondary me-2'
+                },
+                buttonsStyling: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Buat form untuk submit
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = url;
+
+                    // Tambahkan CSRF token
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = $('meta[name="csrf-token"]').attr('content');
+                    form.appendChild(csrfToken);
+
+                    // Tambahkan method spoofing
+                    const method = document.createElement('input');
+                    method.type = 'hidden';
+                    method.name = '_method';
+                    method.value = 'DELETE';
+                    form.appendChild(method);
+
+                    // Submit form
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+
+        // SweetAlert untuk hapus data individual
+        $('a.btn-hapus-penarikan').on('click', function(e) {
+            e.preventDefault();
+            const url = $(this).attr('href');
+            const id = $(this).data('id');
+
+            Swal.fire({
+                title: 'Hapus Transaksi?',
+                text: "Apakah Anda yakin ingin menghapus penarikan tunai ini?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                customClass: {
+                    confirmButton: 'btn btn-danger me-2',
+                    cancelButton: 'btn btn-secondary me-2'
+                },
+                buttonsStyling: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Buat form untuk submit
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = url;
+
+                    // Tambahkan CSRF token
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = $('meta[name="csrf-token"]').attr('content');
+                    form.appendChild(csrfToken);
+
+                    // Tambahkan method spoofing
+                    const method = document.createElement('input');
+                    method.type = 'hidden';
+                    method.name = '_method';
+                    method.value = 'DELETE';
+                    form.appendChild(method);
+
+                    // Submit form
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+
+        // SweetAlert untuk hapus data individual
+        $('a.btn-hapus-penerimaan').on('click', function(e) {
+            e.preventDefault();
+            const url = $(this).attr('href');
+            const id = $(this).data('id');
+
+            Swal.fire({
+                title: 'Hapus Transaksi?',
+                text: "Apakah Anda yakin ingin menghapus perimaan dana ini?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                customClass: {
+                    confirmButton: 'btn btn-danger me-2',
+                    cancelButton: 'btn btn-secondary me-2'
+                },
+                buttonsStyling: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Buat form untuk submit
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = url;
+
+                    // Tambahkan CSRF token
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = $('meta[name="csrf-token"]').attr('content');
+                    form.appendChild(csrfToken);
+
+                    // Tambahkan method spoofing
+                    const method = document.createElement('input');
+                    method.type = 'hidden';
+                    method.name = '_method';
+                    method.value = 'DELETE';
+                    form.appendChild(method);
+
+                    // Submit form
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+
+        // SweetAlert untuk hapus data individual
+        $('a.btn-hapus-setor').on('click', function(e) {
+            e.preventDefault();
+            const url = $(this).attr('href');
+            const id = $(this).data('id');
+
+            Swal.fire({
+                title: 'Hapus Transaksi?',
+                text: "Apakah Anda yakin ingin menghapus setor tunai ini?",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',

@@ -1,4 +1,26 @@
 <!-- Modal Setor Tunai-->
+{{-- Batasi Format Tanggal --}}
+@php
+$tahun = $tahun ?? date('Y');
+$bulan = $bulan ?? 'Januari';
+$bulanList = [
+'Januari' => 1,
+'Februari' => 2,
+'Maret' => 3,
+'April' => 4,
+'Mei' => 5,
+'Juni' => 6,
+'Juli' => 7,
+'Agustus' => 8,
+'September' => 9,
+'Oktober' => 10,
+'November' => 11,
+'Desember' => 12,
+];
+$bulanAngka = $bulanList[$bulan] ?? 1;
+$lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
+@endphp
+{{-- Format tanggal di batasi selesai --}}
 <div class="modal fade" id="setorTunai" tabindex="-1" aria-labelledby="setorTunaiModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content shadow-sm border-0 rounded-4">
@@ -17,8 +39,10 @@
                                 <span class="input-group-text bg-light text-primary">
                                     <i class="bi bi-calendar-event-fill"></i>
                                 </span>
-                                <input type="date" class="form-control" name="tanggal_setor" id="tanggal_setor"
-                                    placeholder="Pilih tanggal" required>
+                                <input type="date" class="form-control" name="tanggal_setor" id="tanggal_setor" aria-label="Sizing example input"
+                                        aria-describedby="dateHelp1"
+                                        min="{{ $tahun }}-{{ str_pad($bulanAngka, 2, '0', STR_PAD_LEFT) }}-01"
+                                        max="{{ $tahun }}-{{ str_pad($bulanAngka, 2, '0', STR_PAD_LEFT) }}-{{ str_pad($lastDay, 2, '0', STR_PAD_LEFT) }}" required>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -50,6 +74,35 @@
     // Format input jumlah setor
     const jumlahInput = document.getElementById('jumlah_setor');
     const maxAmount = parseFloat(jumlahInput.dataset.max);
+
+    // variabel batasi tahun dan tanggal
+    const tahun = '{{ $tahun }}';
+    const bulan = '{{ $bulan }}';
+    const tanggalInput = document.getElementById('tanggal_setor');
+    const dateRange = getDateRangeForMonth(bulan, tahun);
+    tanggalInput.min = dateRange.min;
+    tanggalInput.max = dateRange.max;
+
+    // Fungsi untuk mendapatkan range tanggal
+    function getDateRangeForMonth(bulan, tahun) {
+        const bulanAngka = {
+            'Januari': 1, 'Februari': 2, 'Maret': 3, 'April': 4,
+            'Mei': 5, 'Juni': 6, 'Juli': 7, 'Agustus': 8,
+            'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12
+        }[bulan] || 1;
+            
+        const lastDay = new Date(tahun, bulanAngka, 0).getDate();
+            
+        return {
+            min: `${tahun}-${String(bulanAngka).padStart(2, '0')}-01`,
+            max: `${tahun}-${String(bulanAngka).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+        };
+    }
+
+    // Fungsi untuk memformat angka ke format Rupiah
+    function formatRupiah(angka) {
+        return new Intl.NumberFormat('id-ID').format(angka);
+    }
     
     jumlahInput.addEventListener('input', function(e) {
         let value = e.target.value.replace(/[^\d]/g, '');

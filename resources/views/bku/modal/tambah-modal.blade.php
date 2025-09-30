@@ -188,6 +188,17 @@
         color: #dc3545;
         font-style: italic;
     }
+
+    /* Style untuk informasi penarikan tunai */
+    .penarikan-info {
+        font-size: 0.875rem;
+        padding: 0.75rem;
+        border-left: 4px solid #0dcaf0;
+    }
+    
+    .penarikan-info .bi {
+        margin-right: 0.5rem;
+    }
 </style>
 
 @php
@@ -616,23 +627,56 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             return new Intl.NumberFormat('id-ID').format(angka);
         }
 
-        // Fungsi untuk memvalidasi tanggal
+        // PERBAIKAN: Update fungsi validasi tanggal dengan logging
         function validateDate(inputElement, bulan, tahun) {
-            const dateRange = getDateRangeForMonth(bulan, tahun);
             const selectedDate = new Date(inputElement.value);
-            const minDate = new Date(dateRange.min);
-            const maxDate = new Date(dateRange.max);
+            const minDate = new Date(inputElement.min);
+            const maxDate = new Date(inputElement.max);
+
+            console.log('Validating date:', {
+                selected: inputElement.value,
+                min: inputElement.min,
+                max: inputElement.max,
+                selectedDate: selectedDate,
+                minDate: minDate,
+                maxDate: maxDate
+            });
 
             if (inputElement.value && (selectedDate < minDate || selectedDate > maxDate)) {
-                inputElement.value = dateRange.min;
+                // Format tanggal untuk pesan error
+                const minFormatted = new Date(minDate).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
+                const maxFormatted = new Date(maxDate).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
+                let errorMessage = `Tanggal harus antara ${minFormatted} dan ${maxFormatted}`;
+                
+                // Jika ada penarikan tunai, tambahkan informasi khusus
+                const defaultMin = getDateRangeForMonth(bulan, tahun).min;
+                if (minDate > new Date(defaultMin)) {
+                    errorMessage += ` (dibatasi oleh tanggal penarikan tunai)`;
+                }
+                
+                inputElement.value = inputElement.min;
+                console.log('Date validation failed, setting to min:', inputElement.min);
+                
                 Swal.fire({
                     icon: 'warning',
                     title: 'Tanggal Tidak Valid',
-                    text: `Tanggal harus dalam bulan ${bulan} ${tahun}`,
+                    text: errorMessage,
                     confirmButtonColor: '#0d6efd',
                 });
                 return false;
             }
+            
+            console.log('Date validation passed');
             return true;
         }
 
@@ -645,7 +689,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             });
         }
 
-        // PERBAIKAN: Initialize modal dengan approach yang benar
+        // PERBAIKAN: Update modal show event - Urutkan dengan benar
         $('#transactionModal').on('show.bs.modal', function() {
             console.log('=== MODAL SHOW EVENT TRIGGERED ===');
             
@@ -656,19 +700,21 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             window.rekeningData = [];
             window.currentTotalTransaksi = 0;
 
-            // Set tanggal range
-            disableOutOfRangeDates();
+            // Pertama: Set default dates dulu
             const dateRange = getDateRangeForMonth(bulan, tahun);
-            $('#tanggal_transaksi, #tanggal_nota').val(dateRange.min);
+            console.log('Initial date range:', dateRange);
+            
+            $('#tanggal_transaksi, #tanggal_nota').attr({
+                'min': dateRange.min,
+                'max': dateRange.max
+            }).val(dateRange.min);
 
             // PERBAIKAN: Set state awal untuk select elements
             $('.kegiatan-select').html('<option value="">Memuat data kegiatan...</option>').prop('disabled', true);
             $('.rekening-select').html('<option value="">Pilih kegiatan terlebih dahulu</option>').prop('disabled', true);
 
-            // Load data terlebih dahulu
+            // KETIGA: Load data lainnya
             loadKegiatanDanRekening();
-
-            // Memuat nomor nota terakhir
             loadLastNotaNumber();
         });
 

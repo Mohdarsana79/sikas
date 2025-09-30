@@ -128,9 +128,35 @@ class PenerimaanDanaController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(PenerimaanDana $penerimaanDana)
+    public function destroy($id)
     {
-        //
+        try{
+            $penerimaanDana = PenerimaanDana::findOrFail($id);
+            $penerimaanDana->delete();
+
+            // Cek jika request AJAX
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Penerimaan Dana berhasil dihapus',
+                ]);
+            }
+
+            // Redirect untuk request biasa
+            return redirect()->back()->with('success', 'Penerimaan Dana berhasil dihapus');
+        } catch (\Exception $e) {
+            Log::error('Error deleting penerimaan dana: ' . $e->getMessage());
+            // Cek jika request AJAX
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus penerimaan dana: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            // Redirect untuk request biasa
+            return redirect()->back()->with('error', 'Gagal menghapus penerimaan dana: ' . $e->getMessage());
+        }
     }
 
     /**

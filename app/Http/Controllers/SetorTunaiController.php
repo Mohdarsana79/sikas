@@ -39,4 +39,34 @@ class SetorTunaiController extends Controller
             ], 500);
         }
     }
+
+    public function destroy($id)
+    {
+        try {
+            $setorTunai = SetorTunai::findOrFail($id);
+            $setorTunai->delete();
+
+            // Cek jika request AJAX
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Setor tunai berhasil dihapus',
+                ]);
+            }
+            // Redirect untuk request biasa
+            return redirect()->back()->with('success', 'Setor tunai berhasil dihapus');
+        } catch (\Exception $e) {
+            Log::error('Error deleting setor tunai: ' . $e->getMessage());
+            // Cek jika request AJAX
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus setor tunai: '.$e->getMessage(),
+                ], 500);
+            }
+
+            // Redirect untuk request biasa
+            return redirect()->back()->with('error', 'Gagal menghapus setor tunai: '.$e->getMessage());
+        }
+    }
 }

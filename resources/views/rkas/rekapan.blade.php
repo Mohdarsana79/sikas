@@ -618,47 +618,4 @@
             }
         }
     </style>
-    <script src="{{ asset('assets/js/jquery-3.6.0.min.js') }}"></script>
-    <script>
-        $(document).ready(function() {
-        $('#bulanSelect').change(function() {
-        const bulan = $(this).val();
-        const tahun = "{{ $tahun }}";
-
-        if (!bulan) return;
-        
-        // Update URL cetak PDF secara langsung
-        const pdfUrl = "{{ route('rkas.rka-bulanan-pdf', ['tahun' => ':tahun', 'bulan' => ':bulan']) }}"
-        .replace(':tahun', tahun)
-        .replace(':bulan', bulan);
-        $('#cetakPdfButton').attr('href', pdfUrl);
-        
-        // AJAX request untuk load data tabel
-        $('#loadingIndicator').show();
-        $('#rka-bulan table tbody').hide();
-        
-        $.ajax({
-        url: "{{ route('rkas.get-monthly-data') }}",
-        type: "GET",
-        data: {
-        bulan: bulan,
-        tahun: tahun,
-        _token: "{{ csrf_token() }}"
-        },
-        success: function(response) {
-        if (response.success) {
-        $('#rka-bulan table tbody').html(response.html);
-        $('#rka-bulan table tfoot td.text-right').html(
-        '<strong>' + new Intl.NumberFormat('id-ID').format(response.totalBulanan) + '</strong>'
-        );
-        }
-        },
-        complete: function() {
-        $('#rka-bulan table tbody').fadeIn();
-        $('#loadingIndicator').hide();
-        }
-        });
-        });
-        });
-    </script>
 @endsection

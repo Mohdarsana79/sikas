@@ -131,9 +131,11 @@
                                             <div class="accordion-body">
                                                 <div class="d-flex justify-content-between mb-4">
                                                     <div>
-                                                        <button class="btn btn-outline-secondary me-2">
-                                                            <i class="bi bi-printer me-2"></i>Cetak
-                                                        </button>
+                                                        <a href="{{ route('laporan.rekapan-bku') }}?tahun={{ $tahun }}" class="btn btn-outline-secondary btn-sm-custom"
+                                                            id="btnCetak" target="_blank">
+                                                            <i class="bi bi-printer me-1"></i>
+                                                            Cetak
+                                                        </a>
                                                     </div>
                                                     <div>
                                                         <button
