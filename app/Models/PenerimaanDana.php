@@ -12,13 +12,15 @@ class PenerimaanDana extends Model
         'sumber_dana',
         'tanggal_terima',
         'jumlah_dana',
-        'saldo_awal'
+        'saldo_awal',
+        'tanggal_saldo_awal'
     ];
 
     protected $casts = [
         'tanggal_terima' => 'date',
         'jumlah_dana' => 'decimal:2',
-        'saldo_awal' => 'decimal:2'
+        'saldo_awal' => 'decimal:2',
+        'tanggal_saldo_awal' => 'date'
     ];
 
     /**

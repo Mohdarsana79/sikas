@@ -32,6 +32,7 @@ class BukuKasUmum extends Model
         'nomor_telepon',
         'npwp',
         'uraian',
+        'uraian_opsional',
         'anggaran',
         'dibelanjakan',
         'total_transaksi_kotor',

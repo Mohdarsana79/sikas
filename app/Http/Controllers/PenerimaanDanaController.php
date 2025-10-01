@@ -42,6 +42,7 @@ class PenerimaanDanaController extends Controller
         // Hanya validasi saldo_awal jika sumber dana adalah Tahap 1
         if ($request->sumber_dana === 'Bosp Reguler Tahap 1') {
             $validationRules['saldo_awal'] = 'nullable|numeric';
+            $validationRules['tanggal_saldo_awal'] = 'nullable|date';
         }
 
         $request->validate($validationRules);

@@ -188,6 +188,17 @@
         color: #dc3545;
         font-style: italic;
     }
+
+    /* Style untuk informasi penarikan tunai */
+    .penarikan-info {
+        font-size: 0.875rem;
+        padding: 0.75rem;
+        border-left: 4px solid #0dcaf0;
+    }
+
+    .penarikan-info .bi {
+        margin-right: 0.5rem;
+    }
 </style>
 
 @php
@@ -385,6 +396,16 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                                     <option value="">Pilih kegiatan terlebih dahulu</option>
                                                 </select>
                                             </div>
+                                            <div class="col-md-12">
+                                                <label for="uraian_opsional" class="form-label">Uraian Belanja (Opsional)</label>
+                                                <div class="input-group input-group-sm mb-3">
+                                                    <textarea class="form-control" placeholder="Lunas Bayar Belanja Honorarium Guru" id="uraian_opsional"
+                                                        style="height: 10px"></textarea>
+                                                </div>
+                                                <small class="text-danger">
+                                                    <i class="bi bi-info-circle"></i> Uraian akan otomatis oleh sistem menggunakan uraian rekening belanja jika uraian belanja tidak diisi
+                                                </small>
+                                            </div>
                                         </div>
 
                                         <!-- Container untuk uraian -->
@@ -393,11 +414,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col-md-12 mb-3">
-                                <button type="button" class="btn btn-outline-primary btn-sm" id="tambahKegiatan">
-                                    <i class="bi bi-plus-circle me-1"></i>Tambah Kegiatan
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -625,23 +641,56 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             return new Intl.NumberFormat('id-ID').format(angka);
         }
 
-        // Fungsi untuk memvalidasi tanggal
+        // PERBAIKAN: Update fungsi validasi tanggal dengan logging
         function validateDate(inputElement, bulan, tahun) {
-            const dateRange = getDateRangeForMonth(bulan, tahun);
             const selectedDate = new Date(inputElement.value);
-            const minDate = new Date(dateRange.min);
-            const maxDate = new Date(dateRange.max);
+            const minDate = new Date(inputElement.min);
+            const maxDate = new Date(inputElement.max);
+
+            console.log('Validating date:', {
+                selected: inputElement.value,
+                min: inputElement.min,
+                max: inputElement.max,
+                selectedDate: selectedDate,
+                minDate: minDate,
+                maxDate: maxDate
+            });
 
             if (inputElement.value && (selectedDate < minDate || selectedDate > maxDate)) {
-                inputElement.value = dateRange.min;
+                // Format tanggal untuk pesan error
+                const minFormatted = new Date(minDate).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                const maxFormatted = new Date(maxDate).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                let errorMessage = `Tanggal harus antara ${minFormatted} dan ${maxFormatted}`;
+
+                // Jika ada penarikan tunai, tambahkan informasi khusus
+                const defaultMin = getDateRangeForMonth(bulan, tahun).min;
+                if (minDate > new Date(defaultMin)) {
+                    errorMessage += ` (dibatasi oleh tanggal penarikan tunai)`;
+                }
+
+                inputElement.value = inputElement.min;
+                console.log('Date validation failed, setting to min:', inputElement.min);
+
                 Swal.fire({
                     icon: 'warning',
                     title: 'Tanggal Tidak Valid',
-                    text: `Tanggal harus dalam bulan ${bulan} ${tahun}`,
+                    text: errorMessage,
                     confirmButtonColor: '#0d6efd',
                 });
                 return false;
             }
+
+            console.log('Date validation passed');
             return true;
         }
 
@@ -654,7 +703,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             });
         }
 
-        // PERBAIKAN: Initialize modal dengan approach yang benar
+        // PERBAIKAN: Update modal show event - Urutkan dengan benar
         $('#transactionModal').on('show.bs.modal', function() {
             console.log('=== MODAL SHOW EVENT TRIGGERED ===');
 
@@ -665,19 +714,21 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             window.rekeningData = [];
             window.currentTotalTransaksi = 0;
 
-            // Set tanggal range
-            disableOutOfRangeDates();
+            // Pertama: Set default dates dulu
             const dateRange = getDateRangeForMonth(bulan, tahun);
-            $('#tanggal_transaksi, #tanggal_nota').val(dateRange.min);
+            console.log('Initial date range:', dateRange);
+
+            $('#tanggal_transaksi, #tanggal_nota').attr({
+                'min': dateRange.min,
+                'max': dateRange.max
+            }).val(dateRange.min);
 
             // PERBAIKAN: Set state awal untuk select elements
             $('.kegiatan-select').html('<option value="">Memuat data kegiatan...</option>').prop('disabled', true);
             $('.rekening-select').html('<option value="">Pilih kegiatan terlebih dahulu</option>').prop('disabled', true);
 
-            // Load data terlebih dahulu
+            // KETIGA: Load data lainnya
             loadKegiatanDanRekening();
-
-            // Memuat nomor nota terakhir
             loadLastNotaNumber();
         });
 
@@ -1599,6 +1650,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 npwp: $('#checkNpwp').is(':checked') ? null : $('#npwp').val(),
                 nomor_nota: $('#nomor_nota').val(),
                 tanggal_nota: $('#tanggal_nota').val(),
+                uraian_opsional: $('#uraian_opsional').val(),
                 bulan: bulan,
                 kode_kegiatan_id: [],
                 kode_rekening_id: [],
@@ -1753,18 +1805,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                         let infoText = '';
                         if (lastNota) {
                             infoText = `Nomor nota terakhir: <strong>${lastNota}</strong>`;
-                            if (suggestedNext) {
-                                infoText += ` | Saran berikutnya: <strong>${suggestedNext}</strong>`;
-                            }
                         } else {
                             infoText = 'Belum ada nomor nota untuk bulan ini';
                         }
 
                         $('#lastNotaInfo').html(`<i class="bi bi-info-circle"></i> ${infoText}`);
 
-                        if (suggestedNext && $('#nomor_nota').val() === '') {
-                            $('#nomor_nota').val(suggestedNext);
-                        }
                     } else {
                         $('#lastNotaInfo').html('<i class="bi bi-exclamation-triangle"></i> Gagal memuat informasi');
                     }
@@ -1815,57 +1861,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             const hasNumber = /\d/.test(notaNumber);
             return hasNumber;
         }
-
-        // Event handler untuk tombol tambah kegiatan
-        $('#tambahKegiatan').click(function() {
-            const kegiatanContainer = $('#kegiatanContainer');
-            const kegiatanCount = $('.kegiatan-card').length;
-            const newIndex = kegiatanCount + 1;
-
-            const newKegiatanCard = `
-            <div class="card mb-3 kegiatan-card" data-kegiatan-index="${newIndex}">
-                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Kegiatan ${newIndex}</h5>
-                    <button type="button" class="btn btn-sm btn-danger remove-kegiatan">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Kegiatan</label>
-                            <select class="form-select form-select-sm kegiatan-select" name="kode_kegiatan_id[]" required>
-                                ${window.kegiatanData && window.kegiatanData.length > 0 ? 
-                                    '<option value="">Pilih Jenis Kegiatan</option>' + 
-                                    window.kegiatanData.map(k => `<option value="${k.id}">${k.kode} - ${k.uraian}</option>`).join('') 
-                                    : '<option value="">Memuat data kegiatan...</option>'
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Rekening Belanja</label>
-                            <select class="form-select form-select-sm rekening-select" name="kode_rekening_id[]" required disabled>
-                                <option value="">Pilih kegiatan terlebih dahulu</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="uraian-container" id="uraianContainer-${newIndex}"></div>
-                </div>
-            </div>
-            `;
-
-            kegiatanContainer.append(newKegiatanCard);
-
-            // Show remove buttons if there's more than one card
-            if ($('.kegiatan-card').length > 1) {
-                $('.remove-kegiatan').removeClass('d-none');
-            }
-
-            // Initialize Select2 for the new selects
-            setTimeout(() => {
-                initializeSelect2();
-            }, 100);
-        });
 
         console.log('=== TRANSACTION MODAL SCRIPT READY ===');
     });

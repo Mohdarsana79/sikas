@@ -396,6 +396,16 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                                     <option value="">Pilih kegiatan terlebih dahulu</option>
                                                 </select>
                                             </div>
+                                            <div class="col-md-12">
+                                                <label for="uraian_opsional" class="form-label">Uraian Belanja (Opsional)</label>
+                                                <div class="input-group input-group-sm mb-3">
+                                                    <textarea class="form-control" placeholder="Lunas Bayar Belanja Honorarium Guru" id="uraian_opsional"
+                                                        style="height: 10px"></textarea>
+                                                </div>
+                                                <small class="text-danger">
+                                                    <i class="bi bi-info-circle"></i> Uraian akan otomatis oleh sistem menggunakan uraian rekening belanja jika uraian belanja tidak diisi
+                                                </small>
+                                            </div>
                                         </div>
 
                                         <!-- Container untuk uraian -->
@@ -404,11 +414,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col-md-12 mb-3">
-                                <button type="button" class="btn btn-outline-primary btn-sm" id="tambahKegiatan">
-                                    <i class="bi bi-plus-circle me-1"></i>Tambah Kegiatan
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -1626,13 +1631,14 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 penganggaran_id: '{{ $penganggaran->id }}',
                 tanggal_transaksi: $('#tanggal_transaksi').val(),
                 jenis_transaksi: $('#jenis_transaksi').val(),
-                nama_penyedia: $('#checkForm').is(':checked') ? $('#nama_penerima').val() : $('#nama_toko').val(),
-                nama_penerima: $('#checkForm').is(':checked') ? $('#nama_penerima').val() : $('#nama_toko').val(),
+                nama_penyedia: $('#nama_toko').val(),
+                nama_penerima: $('#nama_penerima').val(),
                 alamat: $('#alamat_toko').val(),
                 nomor_telepon: $('#nomor_telepon').val(),
                 npwp: $('#checkNpwp').is(':checked') ? null : $('#npwp').val(),
                 nomor_nota: $('#nomor_nota').val(),
                 tanggal_nota: $('#tanggal_nota').val(),
+                uraian_opsional: $('#uraian_opsional').val(),
                 bulan: bulan,
                 kode_kegiatan_id: [],
                 kode_rekening_id: [],
@@ -1787,18 +1793,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                         let infoText = '';
                         if (lastNota) {
                             infoText = `Nomor nota terakhir: <strong>${lastNota}</strong>`;
-                            if (suggestedNext) {
-                                infoText += ` | Saran berikutnya: <strong>${suggestedNext}</strong>`;
-                            }
                         } else {
                             infoText = 'Belum ada nomor nota untuk bulan ini';
                         }
                         
                         $('#lastNotaInfo').html(`<i class="bi bi-info-circle"></i> ${infoText}`);
                         
-                        if (suggestedNext && $('#nomor_nota').val() === '') {
-                            $('#nomor_nota').val(suggestedNext);
-                        }
                     } else {
                         $('#lastNotaInfo').html('<i class="bi bi-exclamation-triangle"></i> Gagal memuat informasi');
                     }
@@ -1849,57 +1849,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             const hasNumber = /\d/.test(notaNumber);
             return hasNumber;
         }
-
-        // Event handler untuk tombol tambah kegiatan
-        $('#tambahKegiatan').click(function() {
-            const kegiatanContainer = $('#kegiatanContainer');
-            const kegiatanCount = $('.kegiatan-card').length;
-            const newIndex = kegiatanCount + 1;
-
-            const newKegiatanCard = `
-            <div class="card mb-3 kegiatan-card" data-kegiatan-index="${newIndex}">
-                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Kegiatan ${newIndex}</h5>
-                    <button type="button" class="btn btn-sm btn-danger remove-kegiatan">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Kegiatan</label>
-                            <select class="form-select form-select-sm kegiatan-select" name="kode_kegiatan_id[]" required>
-                                ${window.kegiatanData && window.kegiatanData.length > 0 ? 
-                                    '<option value="">Pilih Jenis Kegiatan</option>' + 
-                                    window.kegiatanData.map(k => `<option value="${k.id}">${k.kode} - ${k.uraian}</option>`).join('') 
-                                    : '<option value="">Memuat data kegiatan...</option>'
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Rekening Belanja</label>
-                            <select class="form-select form-select-sm rekening-select" name="kode_rekening_id[]" required disabled>
-                                <option value="">Pilih kegiatan terlebih dahulu</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="uraian-container" id="uraianContainer-${newIndex}"></div>
-                </div>
-            </div>
-            `;
-
-            kegiatanContainer.append(newKegiatanCard);
-
-            // Show remove buttons if there's more than one card
-            if ($('.kegiatan-card').length > 1) {
-                $('.remove-kegiatan').removeClass('d-none');
-            }
-
-            // Initialize Select2 for the new selects
-            setTimeout(() => {
-                initializeSelect2();
-            }, 100);
-        });
 
         console.log('=== TRANSACTION MODAL SCRIPT READY ===');
     });

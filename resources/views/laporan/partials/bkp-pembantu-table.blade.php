@@ -88,7 +88,11 @@
                         <td>{{ $transaksi->kodeKegiatan->kode ?? '' }}</td>
                         <td>{{ $transaksi->rekeningBelanja->kode_rekening ?? '' }}</td>
                         <td>{{ $transaksi->id_transaksi }}</td>
-                        <td>{{ $transaksi->uraian }}</td>
+                        @if ($transaksi->uraian_opsional)
+                            <td>{{ $transaksi->uraian_opsional }}</td>
+                        @else
+                            <td>{{ $transaksi->uraian }}</td>
+                        @endif
                         <td class="text-end">0</td>
                         <td class="text-end">Rp {{ number_format($transaksi->total_transaksi_kotor, 0, ',', '.') }}</td>
                         <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>

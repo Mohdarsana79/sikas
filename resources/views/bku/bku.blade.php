@@ -274,7 +274,7 @@
                                 <tr class="bg-light">
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">{{
-                                        \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('d M Y') }}</td>
+                                        \Carbon\Carbon::parse($penerimaan->tanggal_saldo_awal)->format('d M Y') }}</td>
                                     <td class="px-4 py-3 fw-semibold">
                                         <div class="d-flex align-items-center">
                                             <i class="bi bi-arrow-left-circle text-success me-2"></i>
@@ -418,7 +418,15 @@
                                     <td class="px-4 py-3">{{ $bku->id_transaksi }}</td>
                                     <td class="px-4 py-3">{{ $bku->tanggal_transaksi->format('d/m/Y') }}</td>
                                     <td class="px-4 py-3">{{ $bku->kodeKegiatan->uraian }}</td>
-                                    <td class="px-4 py-3">{{ $bku->rekeningBelanja->rincian_objek }}</td>
+                                    @if ($bku->uraian_opsional)
+                                    <td class="px-4 py-3">
+                                        {{ $bku->uraian_opsional }}
+                                    </td>
+                                    @else
+                                    <td class="px-4 py-3">
+                                        {{ $bku->rekeningBelanja->rincian_objek }}
+                                    </td>
+                                    @endif
                                     <td class="px-4 py-3">{{ ucfirst($bku->jenis_transaksi) }}</td>
                                     <td class="px-4 py-3">Rp {{ number_format($bku->anggaran, 0, ',', '.') }}</td>
                                     <td class="px-4 py-3">Rp {{ number_format($bku->total_transaksi_kotor, 0, ',', '.')

@@ -1176,11 +1176,12 @@ class BukuKasUmumController extends Controller
                 'tanggal_nota' => 'required|date',
                 'jenis_transaksi' => 'required|in:tunai,non-tunai',
                 'nomor_nota' => 'required|string|max:100',
-                'nama_penyedia' => 'required|string|max:255',
+                'nama_penyedia' => 'nullable|string|max:255',
                 'nama_penerima' => 'nullable|string|max:255',
                 'alamat' => 'nullable|string',
                 'nomor_telepon' => 'nullable|string|max:20',
                 'npwp' => 'nullable|string|max:25',
+                'uraian_opsional' => 'nullable|string',
                 'uraian_items' => 'required|array',
                 'uraian_items.*.id' => 'required|numeric',
                 'uraian_items.*.uraian_text' => 'required|string',
@@ -1235,7 +1236,7 @@ class BukuKasUmumController extends Controller
 
                 // Dapatkan data rekening belanja untuk uraian
                 $rekeningBelanja = RekeningBelanja::find($rekeningId);
-                $uraianText = 'Lunas Bayar Belanja '.$rekeningBelanja->rincian_objek;
+                $uraianText = 'Lunas Bayar '.$rekeningBelanja->rincian_objek;
 
                 // Dapatkan total anggaran untuk rekening belanja di bulan tersebut
                 $isTahap1 = in_array($bulanTarget, ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']);
@@ -1255,11 +1256,12 @@ class BukuKasUmumController extends Controller
                     'jenis_transaksi' => $validated['jenis_transaksi'],
                     'id_transaksi' => $validated['nomor_nota'],
                     'nama_penyedia_barang_jasa' => $validated['nama_penyedia'],
-                    'nama_penerima_pembayaran' => $validated['nama_penerima'] ?? $validated['nama_penyedia'],
+                    'nama_penerima_pembayaran' => $validated['nama_penerima'],
                     'alamat' => $validated['alamat'],
                     'nomor_telepon' => $validated['nomor_telepon'],
                     'npwp' => $validated['npwp'],
                     'uraian' => $uraianText,
+                    'uraian_opsional' => $validated['uraian_opsional'],
                     'anggaran' => $totalAnggaran,
                     'dibelanjakan' => $totalKegiatanSetelahPajak,
                     'total_transaksi_kotor' => $totalKegiatan,

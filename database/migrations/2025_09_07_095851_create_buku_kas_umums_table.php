@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('nomor_telepon')->nullable();
             $table->string('npwp')->nullable();
             $table->text('uraian'); // Lunas Bayar Belanja {uraian}
+            $table->text('uraian_opsional')->nullable(); // Uraian tambahan dari user
             $table->decimal('anggaran', 15, 2)->default(0);
             $table->decimal('dibelanjakan', 15, 2)->default(0);
             $table->decimal('total_transaksi_kotor', 15, 2)->default(0);

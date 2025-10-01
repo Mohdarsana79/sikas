@@ -300,6 +300,11 @@
                             <input type="text" class="form-control" name="jumlah_dana" id="jumlahDana" required>
                         </div>
 
+                        <div class="mb-3" id="tanggalSaldoAwalContainer">
+                            <label class="form-label">Tanggal Saldo Awal</label>
+                            <input type="date" class="form-control" name="tanggal_saldo_awal" id="tanggal_saldo_awal">
+                        </div>
+
                         <div class="mb-3" id="saldoAwalContainer">
                             <label class="form-label">Saldo Awal</label>
                             <input type="text" class="form-control" name="saldo_awal" id="saldoAwal">
@@ -511,16 +516,23 @@
             const sumberDanaSelect = document.getElementById('sumberDana');
             const saldoAwalContainer = document.getElementById('saldoAwalContainer');
             
-            if (sumberDanaSelect && saldoAwalContainer) {
+            if (sumberDanaSelect && saldoAwalContainer && tanggalSaldoAwalContainer) {
                 // Tampilkan saldo awal hanya untuk BOSP Reguler Tahap 1
                 if (sumberDanaSelect.value === 'Bosp Reguler Tahap 1') {
                     saldoAwalContainer.style.display = 'block';
+                    tanggalSaldoAwalContainer.style.display = 'block';
                 } else {
                     saldoAwalContainer.style.display = 'none';
+                    tanggalSaldoAwalContainer.style.display = 'none';
                     // Reset nilai saldo awal jika bukan tahap 1
                     const saldoAwalInput = document.getElementById('saldoAwal');
                     if (saldoAwalInput) {
                         saldoAwalInput.value = '';
+                    }
+                    // reset nilai tanggal saldo awal
+                    const tanggalSaldoAwalInput = document.getElementById('tanggal_saldo_awal');
+                    if (tanggalSaldoAwalInput) {
+                        tanggalSaldoAwalInput.value = '';
                     }
                 }
             }
