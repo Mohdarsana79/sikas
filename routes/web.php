@@ -290,6 +290,9 @@ Route::middleware(['auth'])->prefix('laporan')->group(function () {
     Route::get('/laporan/rekapan-bku/ajax', [BukuKasUmumController::class, 'getRekapanBkuAjax'])
         ->name('laporan.rekapan-bku.ajax');
 
+    Route::get('/bkp-bank/data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getBkpBankData'])
+        ->name('bkp-bank.data');
+
     Route::get('/rekapan-bku', [BukuKasUmumController::class, 'rekapanBku'])
         ->name('laporan.rekapan-bku');
 

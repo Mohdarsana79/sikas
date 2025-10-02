@@ -173,6 +173,9 @@
         <tbody>
             @php
             $saldo = $saldoAwal;
+            $totalPenerimaanBulanIni = 0;
+            $totalPengeluaranBulanIni = 0;
+            $totalPenarikan = 0; // VARIABEL INI YANG DITAMBAHKAN
             @endphp
 
             <!-- Saldo Awal -->
@@ -206,6 +209,8 @@
             @foreach($penarikanTunais as $penarikan)
             @php
             $saldo -= $penarikan->jumlah_penarikan;
+            $totalPengeluaranBulanIni += $penarikan->jumlah_penarikan;
+            $totalPenarikan += $penarikan->jumlah_penarikan; // PERHITUNGAN TOTAL PENARIKAN
             @endphp
             <tr>
                 <td class="text-center">{{ \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d-m-Y') }}</td>
@@ -223,6 +228,7 @@
             @if($bungaRecord && $bungaRecord->bunga_bank > 0)
             @php
             $saldo += $bungaRecord->bunga_bank;
+            $totalPenerimaanBulanIni += $bungaRecord->bunga_bank;
             @endphp
             <tr>
                 <td class="text-center">{{ \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d-m-Y') }}
@@ -241,6 +247,7 @@
             @if($bungaRecord && $bungaRecord->pajak_bunga_bank > 0)
             @php
             $saldo -= $bungaRecord->pajak_bunga_bank;
+            $totalPengeluaranBulanIni += $bungaRecord->pajak_bunga_bank;
             @endphp
             <tr>
                 <td class="text-center">{{ \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d-m-Y') }}
@@ -258,9 +265,9 @@
             <!-- Jumlah -->
             <tr class="bold">
                 <td colspan="5" class="text-center">Jumlah</td>
-                <td class="text-right">{{ number_format($totalPenerimaan, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($totalPengeluaran, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($currentSaldo, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($totalPenerimaanBulanIni, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($totalPengeluaranBulanIni, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($saldo, 0, ',', '.') }}</td>
             </tr>
         </tbody>
     </table>
@@ -269,7 +276,7 @@
         <p>Pada hari ini {{ $formatAkhirBulanLengkapHari }}, Buku Kas Umum Ditutup dengan
             keadaan/posisi buku sebagai berikut :</p>
 
-        <p><strong>Saldo Bank : Rp. {{ number_format($currentSaldo, 0, ',', '.') }}</strong></p>
+        <p><strong>Saldo Bank : Rp. {{ number_format($saldo, 0, ',', '.') }}</strong></p>
 
         <table class="footer-table">
             <tr>
@@ -285,7 +292,7 @@
                 </td>
                 <td style="width: 50%">
                     <div class="signature">
-                        <p>{{ $sekolah->kabupaten_kota }}, {{ $formatTanggalAkhirBulanLengkap }}</p>
+                        <p>{{ $sekolah->kabupaten_kota ?? 'Tolitoli' }}, {{ $formatTanggalAkhirBulanLengkap }}</p>
                         <p>Bendahara,</p>
                         <div class="signature-line">
                             <strong>{{ $penganggaran->bendahara ?? 'Dra. Masitah Abdullah' }}</strong><br>

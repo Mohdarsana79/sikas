@@ -31,8 +31,9 @@
                 <tbody>
                     @php
                     $saldo = $saldoAwal;
-                    $totalPenarikan = 0;
-                    $totalPenerimaan = $saldoAwal;
+                    $totalPenerimaan = $saldoAwal; // Saldo awal termasuk dalam penerimaan
+                    $totalPengeluaran = 0;
+                    $totalPenarikan = 0; // VARIABEL INI YANG DITAMBAHKAN
                     @endphp
 
                     <!-- Baris Saldo Awal -->
@@ -62,7 +63,8 @@
                     <!-- Baris Penarikan Tunai -->
                     @foreach($penarikanTunais as $penarikan)
                     @php
-                    $totalPenarikan += $penarikan->jumlah_penarikan;
+                    $totalPenarikan += $penarikan->jumlah_penarikan; // PERHITUNGAN TOTAL PENARIKAN
+                    $totalPengeluaran += $penarikan->jumlah_penarikan;
                     $saldo -= $penarikan->jumlah_penarikan;
                     @endphp
                     <tr>
@@ -80,8 +82,8 @@
                     <!-- Baris Bunga Bank -->
                     @if($bungaRecord && $bungaRecord->bunga_bank > 0)
                     @php
-                    $saldo += $bungaRecord->bunga_bank;
                     $totalPenerimaan += $bungaRecord->bunga_bank;
+                    $saldo += $bungaRecord->bunga_bank;
                     @endphp
                     <tr>
                         <td>{{ \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d-m-Y') }}</td>
@@ -98,6 +100,7 @@
                     <!-- Baris Pajak Bunga -->
                     @if($bungaRecord && $bungaRecord->pajak_bunga_bank > 0)
                     @php
+                    $totalPengeluaran += $bungaRecord->pajak_bunga_bank;
                     $saldo -= $bungaRecord->pajak_bunga_bank;
                     @endphp
                     <tr>
@@ -116,8 +119,7 @@
                     <tr class="table-active fw-bold">
                         <td colspan="5" class="text-center">Jumlah</td>
                         <td class="text-end">Rp {{ number_format($totalPenerimaan, 0, ',', '.') }}</td>
-                        <td class="text-end">Rp {{ number_format($totalPenarikan + ($bungaRecord->pajak_bunga_bank ??
-                            0), 0, ',', '.') }}</td>
+                        <td class="text-end">Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}</td>
                         <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                     </tr>
                 </tbody>
