@@ -2409,10 +2409,10 @@ class BukuKasUmumController extends Controller
 
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
-            if (! $penganggaran) {
+            if (!$penganggaran) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan',
+                    'message' => 'Data penganggaran tidak ditemukan'
                 ], 404);
             }
 
@@ -2432,6 +2432,7 @@ class BukuKasUmumController extends Controller
                     ->where('is_bunga_record', true)
                     ->first();
 
+                // Hitung saldo awal dengan method yang diperbaiki
                 $saldoAwal = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka);
 
                 // Hitung total untuk summary
@@ -2454,9 +2455,8 @@ class BukuKasUmumController extends Controller
                     'totalPengeluaran' => $totalPengeluaran,
                     'currentSaldo' => $currentSaldo
                 ])->render();
-
-            } else {
-                // Data untuk BKP Pembantu Tunai
+            } else if ($tabType === 'Pembantu') {
+                // PERBAIKAN: Data untuk BKP Pembantu Tunai
                 $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
                     ->whereMonth('tanggal_penarikan', $bulanAngka)
                     ->whereYear('tanggal_penarikan', $tahun)
@@ -2478,6 +2478,7 @@ class BukuKasUmumController extends Controller
                     ->orderBy('tanggal_transaksi', 'asc')
                     ->get();
 
+                // Hitung saldo awal tunai
                 $saldoAwalTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran->id, $bulanAngka);
 
                 $html = view('laporan.partials.bkp-pembantu-table', [
@@ -2487,23 +2488,24 @@ class BukuKasUmumController extends Controller
                     'penarikanTunais' => $penarikanTunais,
                     'setorTunais' => $setorTunais,
                     'bkuDataTunai' => $bkuDataTunai,
-                    'saldoAwalTunai' => $saldoAwalTunai,
+                    'saldoAwalTunai' => $saldoAwalTunai
                 ])->render();
+            } else {
+                // Data untuk tab lainnya...
+                $html = '<div class="text-center py-5"><i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i><p class="text-muted mt-3">Belum ada data lainnya</p></div>';
             }
 
             return response()->json([
                 'success' => true,
                 'html' => $html,
                 'bulan' => $bulan,
-                'tahun' => $tahun,
+                'tahun' => $tahun
             ]);
-
         } catch (\Exception $e) {
-            Log::error('Error get rekapan BKU AJAX: '.$e->getMessage());
-
+            Log::error('Error get rekapan BKU AJAX: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat data: '.$e->getMessage(),
+                'message' => 'Gagal memuat data: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -2630,7 +2632,7 @@ class BukuKasUmumController extends Controller
         try {
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
-            if (! $penganggaran) {
+            if (!$penganggaran) {
                 return response()->json(['error' => 'Data penganggaran tidak ditemukan'], 404);
             }
 
@@ -2639,7 +2641,7 @@ class BukuKasUmumController extends Controller
 
             $bulanAngka = $this->convertBulanToNumber($bulan);
 
-            // Ambil data BKU untuk bulan tersebut (transaksi tunai)
+            // PERBAIKAN: Ambil data BKU untuk bulan tersebut (semua transaksi tunai)
             $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
                 ->whereMonth('tanggal_transaksi', $bulanAngka)
                 ->whereYear('tanggal_transaksi', $tahun)
@@ -2705,7 +2707,7 @@ class BukuKasUmumController extends Controller
                 'sekolah' => $sekolah,
                 'bkuData' => $bkuData,
                 'penarikanTunais' => $penarikanTunais,
-                'setorTunais' => $setorTunais, // Pastikan ini ada
+                'setorTunais' => $setorTunais,
                 'saldoAwal' => $saldoAwal,
                 'totalPenerimaan' => $totalPenerimaan,
                 'totalPengeluaran' => $totalPengeluaran,
@@ -2718,19 +2720,17 @@ class BukuKasUmumController extends Controller
                 'convertNumberToBulan' => function ($angka) {
                     return $this->convertNumberToBulan($angka);
                 },
-                'tanggal_cetak' => now()->format('d/m/Y'),
+                'tanggal_cetak' => now()->format('d/m/Y')
             ];
 
             $pdf = PDF::loadView('laporan.bku-pembantu-tunai-pdf', $data);
             $pdf->setPaper('A4', 'landscape');
 
             $filename = "BKP_Pembantu_Tunai_{$bulan}_{$tahun}.pdf";
-
             return $pdf->download($filename);
         } catch (\Exception $e) {
-            Log::error('Error generating BKP Pembantu Tunai PDF: '.$e->getMessage());
-
-            return response()->json(['error' => 'Gagal generate PDF: '.$e->getMessage()], 500);
+            Log::error('Error generating BKP Pembantu Tunai PDF: ' . $e->getMessage());
+            return response()->json(['error' => 'Gagal generate PDF: ' . $e->getMessage()], 500);
         }
     }
 
@@ -2788,6 +2788,9 @@ class BukuKasUmumController extends Controller
     /**
      * Hitung saldo tunai sebelum bulan tertentu
      */
+    /**
+     * Hitung saldo tunai sebelum bulan tertentu
+     */
     private function hitungSaldoTunaiSebelumBulan($penganggaran_id, $bulanTarget)
     {
         try {
@@ -2816,8 +2819,7 @@ class BukuKasUmumController extends Controller
 
             return max(0, $saldoTunai);
         } catch (\Exception $e) {
-            Log::error('Error hitungSaldoTunaiSebelumBulan: '.$e->getMessage());
-
+            Log::error('Error hitungSaldoTunaiSebelumBulan: ' . $e->getMessage());
             return 0;
         }
     }

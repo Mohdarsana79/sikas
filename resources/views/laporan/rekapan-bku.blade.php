@@ -391,6 +391,12 @@
                     if (response.success) {
                         tableContainer.html(response.html);
                         updatePdfUrls(selectedBulan);
+                        
+                        // Animasi untuk feedback visual
+                        tableContainer.addClass('btn-pulse');
+                        setTimeout(function() {
+                            tableContainer.removeClass('btn-pulse');
+                        }, 500);
                     } else {
                         alert('Gagal memuat data: ' + response.message);
                     }
@@ -422,6 +428,20 @@
             
             // Update select di tab lain agar konsisten
             $('#bulanSelect').val(selectedBulan);
+        });
+
+        // Event ketika tab diubah
+        $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var target = $(e.target).attr('data-bs-target');
+            var selectedBulan = $('#bulanSelect').val();
+            
+            if (target === '#bkp-pembantu') {
+                // Load data BKP Pembantu ketika tab diaktifkan
+                loadTableData(selectedBulan, 'Pembantu');
+            } else if (target === '#bkp-bank') {
+                // Load data BKP Bank ketika tab diaktifkan
+                loadTableData(selectedBulan, 'Bank');
+            }
         });
 
         // Update URLs saat pertama kali load

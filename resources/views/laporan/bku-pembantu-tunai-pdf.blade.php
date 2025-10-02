@@ -119,7 +119,7 @@
         <p><strong>Desa/Kecamatan</strong> : {{ $sekolah->alamat ?? 'Jl. Santa No. 150, Kec. Dampal Selatan' }}</p>
         <p><strong>Kabupaten / Kota</strong> : {{ $sekolah->kabupaten_kota ?? 'Kab. Tolitoli' }}</p>
         <p><strong>Provinsi</strong> : {{ $sekolah->provinsi ?? 'Prov. Sulawesi Tengah' }}</p>
-        <p><strong>Sumber Dana</strong> : {{ $penganggaran->sumber_dana ?? 'BOSP Reguler Perubahan' }}</p>
+        <p><strong>Sumber Dana</strong> : {{ $penganggaran->sumber_dana ?? 'BOSP Reguler' }}</p>
     </div>
 
     <table>
@@ -150,6 +150,7 @@
             $saldo = $saldoAwal;
             $totalPenerimaan = $saldoAwal;
             $totalPengeluaran = 0;
+            $hasTransactions = false;
             @endphp
 
             <!-- Baris Saldo Awal -->
@@ -170,14 +171,15 @@
                     Saldo Tunai Bulan {{ $convertNumberToBulan($bulanAngka-1) }} {{ $tahun }}
                     @endif
                 </td>
-                <td class="text-right">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($saldoAwal, 0, ',', '.') }}</td>
                 <td class="text-right">0</td>
-                <td class="text-right">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($saldo, 0, ',', '.') }}</td>
             </tr>
 
             <!-- Baris Penarikan Tunai -->
             @foreach($penarikanTunais as $penarikan)
             @php
+            $hasTransactions = true;
             $totalPenerimaan += $penarikan->jumlah_penarikan;
             $saldo += $penarikan->jumlah_penarikan;
             @endphp
@@ -187,16 +189,16 @@
                 <td></td>
                 <td></td>
                 <td>Tarik Tunai</td>
-                <td class="text-right">Rp {{ number_format($penarikan->jumlah_penarikan, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($penarikan->jumlah_penarikan, 0, ',', '.') }}</td>
                 <td class="text-right">0</td>
-                <td class="text-right">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($saldo, 0, ',', '.') }}</td>
             </tr>
             @endforeach
 
             <!-- Baris Transaksi BKU Tunai -->
             @foreach($bkuData as $transaksi)
-            @if($transaksi->jenis_transaksi === 'tunai')
             @php
+            $hasTransactions = true;
             $totalPengeluaran += $transaksi->total_transaksi_kotor;
             $saldo -= $transaksi->total_transaksi_kotor;
             @endphp
@@ -206,20 +208,20 @@
                 <td>{{ $transaksi->rekeningBelanja->kode_rekening ?? '' }}</td>
                 <td>{{ $transaksi->id_transaksi }}</td>
                 @if ($transaksi->uraian_opsional)
-                    <td>{{ $transaksi->uraian_opsional }}</td>
+                <td>{{ $transaksi->uraian_opsional }}</td>
                 @else
-                    <td>{{ $transaksi->uraian }}</td>
+                <td>{{ $transaksi->uraian }}</td>
                 @endif
                 <td class="text-right">0</td>
-                <td class="text-right">Rp {{ number_format($transaksi->total_transaksi_kotor, 0, ',', '.') }}</td>
-                <td class="text-right">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($transaksi->total_transaksi_kotor, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($saldo, 0, ',', '.') }}</td>
             </tr>
-            @endif
             @endforeach
 
             <!-- Baris Setor Tunai -->
             @foreach($setorTunais as $setor)
             @php
+            $hasTransactions = true;
             $totalPengeluaran += $setor->jumlah_setor;
             $saldo -= $setor->jumlah_setor;
             @endphp
@@ -230,18 +232,29 @@
                 <td></td>
                 <td>Setor Tunai</td>
                 <td class="text-right">0</td>
-                <td class="text-right">Rp {{ number_format($setor->jumlah_setor, 0, ',', '.') }}</td>
-                <td class="text-right">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($setor->jumlah_setor, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($saldo, 0, ',', '.') }}</td>
             </tr>
             @endforeach
 
+            <!-- Baris jika tidak ada transaksi -->
+            @if(!$hasTransactions && $penarikanTunais->isEmpty() && $bkuData->isEmpty() && $setorTunais->isEmpty())
+            <tr>
+                <td colspan="8" class="text-center">
+                    Tidak ada transaksi tunai pada bulan {{ $bulan }} {{ $tahun }}
+                </td>
+            </tr>
+            @endif
+
             <!-- Baris Jumlah -->
+            @if($hasTransactions || $saldoAwal > 0)
             <tr class="table-footer">
                 <td colspan="5" class="text-center"><strong>Jumlah</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($totalPenerimaan, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($saldo, 0, ',', '.') }}</strong></td>
+                <td class="text-right"><strong>{{ number_format($totalPenerimaan, 0, ',', '.') }}</strong></td>
+                <td class="text-right"><strong>{{ number_format($totalPengeluaran, 0, ',', '.') }}</strong></td>
+                <td class="text-right"><strong>{{ number_format($saldo, 0, ',', '.') }}</strong></td>
             </tr>
+            @endif
         </tbody>
     </table>
 
@@ -259,16 +272,16 @@
             <p>Menyetujui,</p>
             <p>Kepala Sekolah</p>
             <div class="ttd-space"></div>
-            <p><strong>Dra. MASTTAH ABDULLAH</strong></p>
-            <p>NIP. 196909172007012017</p>
+            <p><strong>{{ $penganggaran->kepala_sekolah ?? 'Dra. MASTTAH ABDULLAH' }}</strong></p>
+            <p>NIP. {{ $penganggaran->nip_kepala_sekolah ?? '196909172007012017' }}</p>
         </div>
 
         <div class="ttd-box">
-            <p>Kec. Dampal Selatan, {{ $formatTanggalAkhirBulanLengkap }}</p>
+            <p>{{ $sekolah->kabupaten_kota ?? 'Tolitoli' }}, {{ $formatTanggalAkhirBulanLengkap }}</p>
             <p>Bendahara,</p>
             <div class="ttd-space"></div>
-            <p><strong>Dra. MASTTAH ABDULLAH</strong></p>
-            <p>NIP. 196909172007012017</p>
+            <p><strong>{{ $penganggaran->bendahara ?? 'Dra. MASTTAH ABDULLAH' }}</strong></p>
+            <p>NIP. {{ $penganggaran->nip_bendahara ?? '196909172007012017' }}</p>
         </div>
     </div>
 </body>

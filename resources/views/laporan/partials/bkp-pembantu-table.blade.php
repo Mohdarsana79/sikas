@@ -33,6 +33,7 @@
                     $saldo = $saldoAwalTunai ?? 0;
                     $totalPenerimaan = $saldoAwalTunai ?? 0;
                     $totalPengeluaran = 0;
+                    $hasData = false; // Flag untuk mengecek apakah ada data
                     @endphp
 
                     <!-- Baris Saldo Awal -->
@@ -60,8 +61,9 @@
                     </tr>
 
                     <!-- Baris Penarikan Tunai -->
-                    @foreach($penarikanTunais as $penarikan)
+                    @forelse($penarikanTunais as $penarikan)
                     @php
+                    $hasData = true;
                     $totalPenerimaan += $penarikan->jumlah_penarikan;
                     $saldo += $penarikan->jumlah_penarikan;
                     @endphp
@@ -75,11 +77,14 @@
                         <td class="text-end">0</td>
                         <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <!-- Tidak ada penarikan tunai -->
+                    @endforelse
 
                     <!-- Baris Transaksi BKU Tunai -->
-                    @foreach($bkuDataTunai as $transaksi)
+                    @forelse($bkuDataTunai as $transaksi)
                     @php
+                    $hasData = true;
                     $totalPengeluaran += $transaksi->total_transaksi_kotor;
                     $saldo -= $transaksi->total_transaksi_kotor;
                     @endphp
@@ -89,19 +94,22 @@
                         <td>{{ $transaksi->rekeningBelanja->kode_rekening ?? '' }}</td>
                         <td>{{ $transaksi->id_transaksi }}</td>
                         @if ($transaksi->uraian_opsional)
-                            <td>{{ $transaksi->uraian_opsional }}</td>
+                        <td>{{ $transaksi->uraian_opsional }}</td>
                         @else
-                            <td>{{ $transaksi->uraian }}</td>
+                        <td>{{ $transaksi->uraian }}</td>
                         @endif
                         <td class="text-end">0</td>
                         <td class="text-end">Rp {{ number_format($transaksi->total_transaksi_kotor, 0, ',', '.') }}</td>
                         <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <!-- Tidak ada transaksi BKU tunai -->
+                    @endforelse
 
                     <!-- Baris Setor Tunai -->
-                    @foreach($setorTunais as $setor)
+                    @forelse($setorTunais as $setor)
                     @php
+                    $hasData = true;
                     $totalPengeluaran += $setor->jumlah_setor;
                     $saldo -= $setor->jumlah_setor;
                     @endphp
@@ -115,15 +123,29 @@
                         <td class="text-end">Rp {{ number_format($setor->jumlah_setor, 0, ',', '.') }}</td>
                         <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <!-- Tidak ada setor tunai -->
+                    @endforelse
+
+                    <!-- Baris jika tidak ada data transaksi -->
+                    @if(!$hasData && $penarikanTunais->isEmpty() && $bkuDataTunai->isEmpty() && $setorTunais->isEmpty())
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-3">
+                            <i class="bi bi-inbox me-2"></i>Tidak ada transaksi tunai pada bulan {{ $bulan }} {{ $tahun
+                            }}
+                        </td>
+                    </tr>
+                    @endif
 
                     <!-- Baris Jumlah -->
+                    @if($hasData || $saldoAwalTunai > 0)
                     <tr class="table-active fw-bold">
                         <td colspan="5" class="text-center">Jumlah</td>
                         <td class="text-end">Rp {{ number_format($totalPenerimaan, 0, ',', '.') }}</td>
                         <td class="text-end">Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}</td>
                         <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                     </tr>
+                    @endif
                 </tbody>
             </table>
         </div>
