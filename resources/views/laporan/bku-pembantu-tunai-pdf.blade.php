@@ -114,159 +114,190 @@
     </div>
 
     <div class="info-sekolah">
-        <p><strong>NPSN</strong> : {{ $sekolah->npsn ?? '40202255' }}</p>
-        <p><strong>Nama Sekolah</strong> : {{ $sekolah->nama_sekolah ?? 'SMP MUHAMMADIYAH SONI' }}</p>
-        <p><strong>Desa/Kecamatan</strong> : {{ $sekolah->alamat ?? 'Jl. Santa No. 150, Kec. Dampal Selatan' }}</p>
-        <p><strong>Kabupaten / Kota</strong> : {{ $sekolah->kabupaten_kota ?? 'Kab. Tolitoli' }}</p>
-        <p><strong>Provinsi</strong> : {{ $sekolah->provinsi ?? 'Prov. Sulawesi Tengah' }}</p>
-        <p><strong>Sumber Dana</strong> : {{ $penganggaran->sumber_dana ?? 'BOSP Reguler' }}</p>
+        <p><strong>NPSN</strong> : {{ $sekolah->npsn ?? '..........' }}</p>
+        <p><strong>Nama Sekolah</strong> : {{ $sekolah->nama_sekolah ?? '..........' }}</p>
+        <p><strong>Desa/Kecamatan</strong> : {{ $sekolah->alamat ?? '..........' }}</p>
+        <p><strong>Kabupaten / Kota</strong> : {{ $sekolah->kabupaten_kota ?? '..........' }}</p>
+        <p><strong>Provinsi</strong> : {{ $sekolah->provinsi ?? '..........' }}</p>
+        <p><strong>Sumber Dana</strong> : {{ $penganggaran->sumber_dana ?? '..........' }}</p>
     </div>
 
     <table>
         <thead>
             <tr>
-                <th style="width: 10%">TANGGAL</th>
-                <th style="width: 12%">KODE KEGIATAN</th>
-                <th style="width: 12%">KODE REKENING</th>
-                <th style="width: 12%">NO. BUKTI</th>
-                <th style="width: 24%">URAIAN</th>
-                <th style="width: 10%">PENERIMAAN</th>
-                <th style="width: 10%">PENGELUARAN</th>
-                <th style="width: 10%">SALDO</th>
-            </tr>
-            <tr>
-                <th>1</th>
-                <th>2</th>
-                <th>3</th>
-                <th>4</th>
-                <th>5</th>
-                <th>6</th>
-                <th>7</th>
-                <th>8</th>
+                <th width="8%">Tanggal</th>
+                <th width="12%">Kode Rekening</th>
+                <th width="8%">No. Bukti</th>
+                <th width="30%">Uraian</th>
+                <th width="12%">Penerimaan (Kredit)</th>
+                <th width="12%">Pengeluaran (Debet)</th>
+                <th width="12%">Saldo</th>
             </tr>
         </thead>
         <tbody>
             @php
-            $saldo = $saldoAwal;
-            $totalPenerimaan = $saldoAwal;
-            $totalPengeluaran = 0;
-            $hasTransactions = false;
+            $currentSaldo = $saldoAwalTunai;
             @endphp
 
-            <!-- Baris Saldo Awal -->
+            <!-- Baris Saldo Kas Tunai -->
             <tr>
-                <td class="text-center">
-                    @php
-                    $bulanAngkaFormatted = str_pad($bulanAngka, 2, '0', STR_PAD_LEFT);
-                    @endphp
-                    01-{{ $bulanAngkaFormatted }}-{{ $tahun }}
-                </td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>
-                    @if($bulanAngka == 1)
-                    Saldo Awal Tunai {{ $tahun }}
-                    @else
-                    Saldo Tunai Bulan {{ $convertNumberToBulan($bulanAngka-1) }} {{ $tahun }}
-                    @endif
-                </td>
-                <td class="text-right">{{ number_format($saldoAwal, 0, ',', '.') }}</td>
-                <td class="text-right">0</td>
-                <td class="text-right">{{ number_format($saldo, 0, ',', '.') }}</td>
+                <td>1/{{ $bulanAngka }}/{{ $tahun }}</td>
+                <td>-</td>
+                <td>-</td>
+                <td>Saldo Kas Tunai</td>
+                <td class="text-right">{{ number_format($saldoAwalTunai, 0, ',', '.') }}</td>
+                <td class="text-right">-</td>
+                <td class="text-right">{{ number_format($currentSaldo, 0, ',', '.') }}</td>
             </tr>
 
-            <!-- Baris Penarikan Tunai -->
+            <!-- Data Penarikan Tunai -->
             @foreach($penarikanTunais as $penarikan)
-            @php
-            $hasTransactions = true;
-            $totalPenerimaan += $penarikan->jumlah_penarikan;
-            $saldo += $penarikan->jumlah_penarikan;
-            @endphp
             <tr>
-                <td class="text-center">{{ \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d-m-Y') }}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>Tarik Tunai</td>
+                <td>{{ \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d-m-Y') }}</td>
+                <td>-</td>
+                <td>-</td>
+                <td>Penarikan Tunai</td>
                 <td class="text-right">{{ number_format($penarikan->jumlah_penarikan, 0, ',', '.') }}</td>
-                <td class="text-right">0</td>
-                <td class="text-right">{{ number_format($saldo, 0, ',', '.') }}</td>
+                <td class="text-right">-</td>
+                <td class="text-right">
+                    @php
+                    $currentSaldo += $penarikan->jumlah_penarikan;
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
+                </td>
             </tr>
             @endforeach
 
-            <!-- Baris Transaksi BKU Tunai -->
-            @foreach($bkuData as $transaksi)
-            @php
-            $hasTransactions = true;
-            $totalPengeluaran += $transaksi->total_transaksi_kotor;
-            $saldo -= $transaksi->total_transaksi_kotor;
-            @endphp
-            <tr>
-                <td class="text-center">{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
-                <td>{{ $transaksi->kodeKegiatan->kode ?? '' }}</td>
-                <td>{{ $transaksi->rekeningBelanja->kode_rekening ?? '' }}</td>
-                <td>{{ $transaksi->id_transaksi }}</td>
-                @if ($transaksi->uraian_opsional)
-                <td>{{ $transaksi->uraian_opsional }}</td>
-                @else
-                <td>{{ $transaksi->uraian }}</td>
-                @endif
-                <td class="text-right">0</td>
-                <td class="text-right">{{ number_format($transaksi->total_transaksi_kotor, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($saldo, 0, ',', '.') }}</td>
-            </tr>
-            @endforeach
-
-            <!-- Baris Setor Tunai -->
+            <!-- Data Setor Tunai -->
             @foreach($setorTunais as $setor)
-            @php
-            $hasTransactions = true;
-            $totalPengeluaran += $setor->jumlah_setor;
-            $saldo -= $setor->jumlah_setor;
-            @endphp
             <tr>
-                <td class="text-center">{{ \Carbon\Carbon::parse($setor->tanggal_setor)->format('d-m-Y') }}</td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td>{{ \Carbon\Carbon::parse($setor->tanggal_setor)->format('d-m-Y') }}</td>
+                <td>-</td>
+                <td>-</td>
                 <td>Setor Tunai</td>
-                <td class="text-right">0</td>
+                <td class="text-right">-</td>
                 <td class="text-right">{{ number_format($setor->jumlah_setor, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($saldo, 0, ',', '.') }}</td>
+                <td class="text-right">
+                    @php
+                    $currentSaldo -= $setor->jumlah_setor;
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
+                </td>
             </tr>
             @endforeach
 
-            <!-- Baris jika tidak ada transaksi -->
-            @if(!$hasTransactions && $penarikanTunais->isEmpty() && $bkuData->isEmpty() && $setorTunais->isEmpty())
+            <!-- Data Transaksi BKU Tunai -->
+            @foreach($bkuDataTunai as $transaksi)
             <tr>
-                <td colspan="8" class="text-center">
-                    Tidak ada transaksi tunai pada bulan {{ $bulan }} {{ $tahun }}
+                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td>{{ $transaksi->rekeningBelanja->kode_rekening ?? '-' }}</td>
+                <td>{{ $transaksi->id_transaksi }}</td>
+                <td>{{ $transaksi->uraian_opsional }}</td>
+                <td class="text-right">-</td>
+                <td class="text-right">{{ number_format($transaksi->total_transaksi_kotor, 0, ',', '.') }}</td>
+                <td class="text-right">
+                    @php
+                    $currentSaldo -= $transaksi->total_transaksi_kotor;
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
+                </td>
+            </tr>
+
+            <!-- Baris Pajak Pusat jika ada -->
+            @if($transaksi->total_pajak > 0)
+            @if(empty($transaksi->ntpn))
+            <!-- Jika NTPN belum ada (Terima Pajak) - di kolom PENERIMAAN -->
+            <tr>
+                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td>-</td>
+                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>Terima Pajak {{ $transaksi->pajak }} {{ $transaksi->persen_pajak }}% {{ $transaksi->uraian_opsional }}
+                </td>
+                <td class="text-right">{{ number_format($transaksi->total_pajak, 0, ',', '.') }}</td>
+                <td class="text-right">-</td>
+                <td class="text-right">
+                    @php
+                    $currentSaldo += $transaksi->total_pajak;
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
+                </td>
+            </tr>
+            @else
+            <!-- Jika NTPN sudah ada (Setor Pajak) - tampil di KEDUA KOLOM -->
+            <tr>
+                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td>-</td>
+                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>Setor Pajak {{ $transaksi->pajak }} {{ $transaksi->persen_pajak }}% {{ $transaksi->uraian_opsional }}
+                </td>
+                <td class="text-right">{{ number_format($transaksi->total_pajak, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($transaksi->total_pajak, 0, ',', '.') }}</td>
+                <td class="text-right">
+                    @php
+                    // Saldo tetap karena penerimaan dan pengeluaran sama
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
                 </td>
             </tr>
             @endif
+            @endif
 
-            <!-- Baris Jumlah -->
-            @if($hasTransactions || $saldoAwal > 0)
-            <tr class="table-footer">
-                <td colspan="5" class="text-center"><strong>Jumlah</strong></td>
-                <td class="text-right"><strong>{{ number_format($totalPenerimaan, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>{{ number_format($totalPengeluaran, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>{{ number_format($saldo, 0, ',', '.') }}</strong></td>
+            <!-- Baris Pajak Daerah jika ada -->
+            @if($transaksi->total_pajak_daerah > 0)
+            @if(empty($transaksi->ntpn))
+            <!-- Jika NTPN belum ada (Terima Pajak Daerah) - di kolom PENERIMAAN -->
+            <tr>
+                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td>-</td>
+                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>Terima Pajak Daerah {{ $transaksi->pajak_daerah }} {{ $transaksi->persen_pajak_daerah }}% {{
+                    $transaksi->uraian_opsional }}</td>
+                <td class="text-right">{{ number_format($transaksi->total_pajak_daerah, 0, ',', '.') }}</td>
+                <td class="text-right">-</td>
+                <td class="text-right">
+                    @php
+                    $currentSaldo += $transaksi->total_pajak_daerah;
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
+                </td>
+            </tr>
+            @else
+            <!-- Jika NTPN sudah ada (Setor Pajak Daerah) - tampil di KEDUA KOLOM -->
+            <tr>
+                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td>-</td>
+                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>Setor Pajak Daerah {{ $transaksi->pajak_daerah }} {{ $transaksi->persen_pajak_daerah }}% {{
+                    $transaksi->uraian_opsional }}</td>
+                <td class="text-right">{{ number_format($transaksi->total_pajak_daerah, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($transaksi->total_pajak_daerah, 0, ',', '.') }}</td>
+                <td class="text-right">
+                    @php
+                    // Saldo tetap karena penerimaan dan pengeluaran sama
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
+                </td>
             </tr>
             @endif
+            @endif
+            @endforeach
+
+            <!-- Baris Jumlah Penutupan -->
+            <tr class="table-footer">
+                <td colspan="4" class="text-center">Jumlah Penutupan</td>
+                <td class="text-right">{{ number_format($totalPenerimaan, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($totalPengeluaran, 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($currentSaldo, 0, ',', '.') }}</td>
+            </tr>
         </tbody>
     </table>
 
-    <div class="footer">
-        <p>Tanggal Cetak: {{ $tanggal_cetak }}</p>
-    </div>
-
+    <!-- Informasi Penutupan -->
     <div class="ttd-section">
-        <p>Pada hari ini <strong>{{ $namaHariAkhirBulan }}</strong> tanggal <strong>{{ $formatTanggalAkhirBulanLengkap
-                }}</strong> Buku Kas Umum Ditutup dengan keadaan/posisi buku sebagai berikut:</p>
-
-        <p><strong>Saldo Buku Kas Pembantu Tunai : Rp {{ number_format($currentSaldo, 0, ',', '.') }}</strong></p>
+        <p>Pada hari ini, {{ $namaHariAkhirBulan }},
+            tanggal {{ $formatTanggalAkhirBulanLengkap }}
+            Buku Kas Pembantu Tunai ditutup dengan keadaan/posisi sebagai berikut :</p>
+        <p>Saldo Kas Tunai : <strong>{{ number_format($currentSaldo, 0, ',', '.') }}</strong></p>
 
         <div class="ttd-box">
             <p>Menyetujui,</p>
@@ -283,6 +314,11 @@
             <p><strong>{{ $penganggaran->bendahara ?? 'Dra. MASTTAH ABDULLAH' }}</strong></p>
             <p>NIP. {{ $penganggaran->nip_bendahara ?? '196909172007012017' }}</p>
         </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Tanggal Cetak: {{ $tanggal_cetak }}</p>
     </div>
 </body>
 

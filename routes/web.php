@@ -302,4 +302,16 @@ Route::middleware(['auth'])->prefix('laporan')->group(function () {
 
     Route::get('/laporan/bku-pembantu-tunai-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkuPembantuTunaiPdf'])
     ->name('laporan.bku-pembantu-tunai-pdf');
+
+    // Route untuk BKP Umum
+    Route::get('/bkp-umum/data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getBkpUmumData'])
+        ->name('bkp-umum.data');
+    Route::get('/laporan/bkp-umum-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkpUmumPdf'])
+        ->name('laporan.bkp-umum-pdf');
+
+    // Route untuk Pajak
+    Route::get('/bkp-pajak/data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getBkpPajakData'])
+        ->name('bkp-pajak.data');
+    Route::get('/bkp-pajak-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkpPajakPdf'])
+        ->name('laporan.bkp-pajak-pdf');
 });

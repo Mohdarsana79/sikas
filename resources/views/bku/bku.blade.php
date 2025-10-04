@@ -1275,6 +1275,7 @@
                         if (response.success) {
                             $('#tanggal_lapor').val(response.data.tanggal_lapor);
                             $('#ntpn').val(response.data.ntpn);
+                            $('#kode_masa_pajak').val(response.data.kode_masa_pajak);
                             
                             if (response.data.ntpn) {
                                 $('#laporPajakModalLabel').html(`<i class="bi bi-check-circle-fill text-success me-2"></i>Edit Lapor Pajak`);
@@ -1307,14 +1308,20 @@
             const formData = {
                 tanggal_lapor: $('#tanggal_lapor').val(),
                 ntpn: $('#ntpn').val(),
+                kode_masa_pajak: $('#kode_masa_pajak').val(),
                 _token: $('meta[name="csrf-token"]').attr('content')
             };
             
             let isValid = true;
-            $('#tanggal_lapor_error, #ntpn_error').text('');
+            $('#tanggal_lapor_error, #ntpn_error', '#kode_masa_pajak_error').text('');
             
             if (!formData.tanggal_lapor) {
                 $('#tanggal_lapor_error').text('Tanggal lapor wajib diisi');
+                isValid = false;
+            }
+
+            if (!formData.kode_masa_pajak) {
+                $('#kode_masa_pajak_error').text('Kode masa pajak wajib diisi');
                 isValid = false;
             }
             
@@ -1345,7 +1352,8 @@
                                 <p>${response.message}</p>
                                 <div class="mt-2 p-2 bg-light rounded">
                                     <small class="text-muted">NTPN: <strong>${formData.ntpn}</strong></small><br>
-                                    <small class="text-muted">Tanggal Lapor: <strong>${formData.tanggal_lapor}</strong></small>
+                                    <small class="text-muted">Tanggal Lapor: <strong>${formData.tanggal_lapor}</strong></small><br>
+                                    <small class="text-muted">Kode Masa Pajak: <strong>${formData.kode_masa_pajak}</strong></small>
                                 </div>
                             </div>`,
                             icon: 'success',
@@ -1382,7 +1390,7 @@
         // Reset form ketika modal ditutup
         $('#laporPajakModal').on('hidden.bs.modal', function() {
             $('#formLaporPajak')[0].reset();
-            $('#tanggal_lapor_error, #ntpn_error').text('');
+            $('#tanggal_lapor_error, #ntpn_error', '#kode_masa_pajak_error').text('');
         });
     });
 </script>

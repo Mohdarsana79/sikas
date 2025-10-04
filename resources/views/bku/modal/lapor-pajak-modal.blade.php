@@ -24,7 +24,7 @@
                     </div>
 
                     <div class="row g-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="tanggal_lapor" class="form-label fw-semibold">Tanggal Lapor Pajak *</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light text-primary">
@@ -36,7 +36,19 @@
                             <div class="form-text text-danger" id="tanggal_lapor_error"></div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label for="kode_masa_pajak" class="form-label fw-semibold">Kode Masa Pajak *</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-primary">
+                                    <i class="bi bi-code"></i>
+                                </span>
+                                <input type="text" class="form-control" name="kode_masa_pajak" id="kode_masa_pajak" placeholder="isi kode masa pajak">
+                            </div>
+                            <div class="form-text text-danger" id="kode_masa_pajak_error"></div>
+                            <div class="form-text">contoh : 411121-100</div>
+                        </div>
+
+                        <div class="col-md-4">
                             <label for="ntpn" class="form-label fw-semibold">NTPN (16 Digit) *</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light text-primary">

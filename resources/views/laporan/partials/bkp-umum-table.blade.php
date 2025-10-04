@@ -13,10 +13,22 @@
         </thead>
         <tbody>
             @php
-            $currentSaldo = $saldoAwalTunai;
+            $currentSaldo = $saldoAwal;
             @endphp
 
-            <!-- Baris Saldo Kas Tunai -->
+            <!-- Baris Saldo Awal -->
+            <tr>
+                <td>1/{{ $bulanAngka }}/{{ $tahun }}</td>
+                <td>-</td>
+                <td>-</td>
+                <td>Saldo Awal bulan</td>
+                <td class="text-end">{{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">-</td>
+                <td class="text-end">{{ number_format($currentSaldo, 0, ',', '.') }}</td>
+            </tr>
+
+            <!-- Baris Saldo Kas Tunai (jika ada) -->
+            @if($saldoAwalTunai > 0)
             <tr>
                 <td>1/{{ $bulanAngka }}/{{ $tahun }}</td>
                 <td>-</td>
@@ -24,13 +36,39 @@
                 <td>Saldo Kas Tunai</td>
                 <td class="text-end">{{ number_format($saldoAwalTunai, 0, ',', '.') }}</td>
                 <td class="text-end">-</td>
-                <td class="text-end">{{ number_format($currentSaldo, 0, ',', '.') }}</td>
+                <td class="text-end">
+                    @php
+                    $currentSaldo += $saldoAwalTunai;
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
+                </td>
             </tr>
+            @endif
+
+            <!-- Data Penerimaan Dana -->
+            @foreach($penerimaanDanas as $penerimaan)
+            @if(\Carbon\Carbon::parse($penerimaan->tanggal_terima)->month == $bulanAngka)
+            <tr>
+                <td>{{ \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('d/m/Y') }}</td>
+                <td>299</td>
+                <td>-</td>
+                <td>Terima Dana {{ $penerimaan->sumber_dana }} T.A {{ $tahun }}</td>
+                <td class="text-end">{{ number_format($penerimaan->jumlah_dana, 0, ',', '.') }}</td>
+                <td class="text-end">-</td>
+                <td class="text-end">
+                    @php
+                    $currentSaldo += $penerimaan->jumlah_dana;
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
+                </td>
+            </tr>
+            @endif
+            @endforeach
 
             <!-- Data Penarikan Tunai -->
             @foreach($penarikanTunais as $penarikan)
             <tr>
-                <td>{{ \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d-m-Y') }}</td>
+                <td>{{ \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d/m/Y') }}</td>
                 <td>-</td>
                 <td>-</td>
                 <td>Penarikan Tunai</td>
@@ -48,7 +86,7 @@
             <!-- Data Setor Tunai -->
             @foreach($setorTunais as $setor)
             <tr>
-                <td>{{ \Carbon\Carbon::parse($setor->tanggal_setor)->format('d-m-Y') }}</td>
+                <td>{{ \Carbon\Carbon::parse($setor->tanggal_setor)->format('d/m/Y') }}</td>
                 <td>-</td>
                 <td>-</td>
                 <td>Setor Tunai</td>
@@ -63,10 +101,10 @@
             </tr>
             @endforeach
 
-            <!-- Data Transaksi BKU Tunai -->
-            @foreach($bkuDataTunai as $transaksi)
+            <!-- Data Transaksi BKU -->
+            @foreach($bkuData as $transaksi)
             <tr>
-                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d/m/Y') }}</td>
                 <td>{{ $transaksi->rekeningBelanja->kode_rekening ?? '-' }}</td>
                 <td>{{ $transaksi->id_transaksi }}</td>
                 <td>{{ $transaksi->uraian_opsional }}</td>
@@ -82,7 +120,7 @@
 
             <!-- Baris Pajak Pusat jika ada -->
             @if($transaksi->total_pajak > 0)
-            @if(empty($transaksi->ntpn))
+            @if(empty($transaksi->kode_masa_pajak))
             <!-- Jika NTPN belum ada (Terima Pajak) - di kolom PENERIMAAN -->
             <tr>
                 <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d/m/Y') }}</td>
@@ -102,9 +140,9 @@
             @else
             <!-- Jika NTPN sudah ada (Setor Pajak) - tampil di KEDUA KOLOM -->
             <tr>
-                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d/m/Y') }}</td>
                 <td>-</td>
-                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>{{ $transaksi->ntpn }}</td>
                 <td>Setor Pajak {{ $transaksi->pajak }} {{ $transaksi->persen_pajak }}% {{ $transaksi->uraian_opsional }}
                 </td>
                 <td class="text-end">{{ number_format($transaksi->total_pajak, 0, ',', '.') }}</td>
@@ -124,9 +162,9 @@
             @if(empty($transaksi->ntpn))
             <!-- Jika NTPN belum ada (Terima Pajak Daerah) - di kolom PENERIMAAN -->
             <tr>
-                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d/m/Y') }}</td>
                 <td>-</td>
-                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>-</td>
                 <td>Terima Pajak Daerah {{ $transaksi->pajak_daerah }} {{ $transaksi->persen_pajak_daerah }}% {{
                     $transaksi->uraian_opsional }}</td>
                 <td class="text-end">{{ number_format($transaksi->total_pajak_daerah, 0, ',', '.') }}</td>
@@ -141,11 +179,11 @@
             @else
             <!-- Jika NTPN sudah ada (Setor Pajak Daerah) - tampil di KEDUA KOLOM -->
             <tr>
-                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d/m/Y') }}</td>
                 <td>-</td>
-                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>-</td>
                 <td>Setor Pajak Daerah {{ $transaksi->pajak_daerah }} {{ $transaksi->persen_pajak_daerah }}% {{
-                    $transaksi->uraian_opsional }}</td>
+                    $transaksi->uraian }}</td>
                 <td class="text-end">{{ number_format($transaksi->total_pajak_daerah, 0, ',', '.') }}</td>
                 <td class="text-end">{{ number_format($transaksi->total_pajak_daerah, 0, ',', '.') }}</td>
                 <td class="text-end">
@@ -158,6 +196,43 @@
             @endif
             @endif
             @endforeach
+
+            <!-- Bunga Bank -->
+            @if($bungaRecord && $bungaRecord->bunga_bank > 0)
+            <tr>
+                <td>{{ \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d/m/Y') }}</td>
+                <td>299</td>
+                <td>-</td>
+                <td>Bunga Bank</td>
+                <td class="text-end">{{ number_format($bungaRecord->bunga_bank, 0, ',', '.') }}</td>
+                <td class="text-end">-</td>
+                <td class="text-end">
+                    @php
+                    $currentSaldo += $bungaRecord->bunga_bank;
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
+                </td>
+            </tr>
+            @endif
+
+            <!-- Pajak Bunga Bank -->
+            @if($bungaRecord && $bungaRecord->pajak_bunga_bank > 0)
+            <!-- Jika NTPN belum ada (Terima Pajak Bunga) - di kolom PENERIMAAN -->
+            <tr>
+                <td>{{ \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d/m/Y') }}</td>
+                <td>199</td>
+                <td>-</td>
+                <td>Pajak Bunga Bank</td>
+                <td class="text-end">-</td>
+                <td class="text-end">{{ number_format($bungaRecord->pajak_bunga_bank, 0, ',', '.') }}</td>
+                <td class="text-end">
+                    @php
+                    $currentSaldo -= $bungaRecord->pajak_bunga_bank;
+                    echo number_format($currentSaldo, 0, ',', '.');
+                    @endphp
+                </td>
+            </tr>
+            @endif
 
             <!-- Baris Jumlah Penutupan -->
             <tr class="table-secondary fw-bold">

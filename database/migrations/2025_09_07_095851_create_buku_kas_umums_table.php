@@ -36,6 +36,7 @@ return new class extends Migration
             $table->integer('persen_pajak_daerah')->nullable();
             $table->decimal('total_pajak_daerah', 15, 2)->nullable();
             $table->date('tanggal_lapor')->nullable();
+            $table->string('kode_masa_pajak')->nullable();
             $table->string('ntpn')->nullable();
             $table->decimal('bunga_bank', 15, 2)->nullable()->default(0);
             $table->decimal('pajak_bunga_bank', 15, 2)->nullable()->default(0);

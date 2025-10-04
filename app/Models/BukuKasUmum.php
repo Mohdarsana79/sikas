@@ -43,6 +43,7 @@ class BukuKasUmum extends Model
         'persen_pajak_daerah',
         'total_pajak_daerah',
         'tanggal_lapor',
+        'kode_masa_pajak',
         'ntpn',
         'bunga_bank',
         'pajak_bunga_bank',
@@ -498,4 +499,6 @@ class BukuKasUmum extends Model
 
         return $data;
     }
+
+    
 }
