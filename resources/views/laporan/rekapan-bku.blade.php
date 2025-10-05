@@ -57,9 +57,9 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="lainnya-tab" data-bs-toggle="tab" data-bs-target="#lainnya"
+                        <button class="nav-link" id="Rob-tab" data-bs-toggle="tab" data-bs-target="#Rob"
                             type="button" role="tab">
-                            Lainnya
+                            ROB
                         </button>
                     </li>
                 </ul>
@@ -269,12 +269,43 @@
                         </div>
                     </div>
 
-                    <!-- Lainnya Tab -->
-                    <div class="tab-pane fade" id="lainnya" role="tabpanel">
+                    <!-- ROB Tab -->
+                    <div class="tab-pane fade" id="Rob" role="tabpanel">
                         <div class="p-4">
                             <div class="text-center py-5">
-                                <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
-                                <p class="text-muted mt-3">Belum ada data lainnya</p>
+                                <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}" id="bulanFormRob">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <select name="bulan" id="bulanSelectRob" class="form-select form-select-sm" style="width: 150px;">
+                                                @foreach($months as $month)
+                                                <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{ $month }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <a class="btn btn-primary btn-sm" id="cetakPdfButtonRob"
+                                                href="{{ route('laporan.bkp-rob-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}" target="_blank"
+                                                style="font-size: 9pt;">
+                                                <i class="bi bi-printer me-2"></i> Cetak Rincian Objek Belanja
+                                            </a>
+                                        </div>
+                                    </div>
+                                </form>
+
+                                <!-- Tabel ROB -->
+                                <div id="bkpRobTable">
+                                    @include('laporan.partials.bkp-rob-table', [
+                                        'robData' => $robData ?? []
+                                    ])
+                                </div>
+                                
+                                <!-- Loading Indicator -->
+                                <div id="loadingIndicatorRob" class="text-center d-none">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span class="ms-2">Memuat data...</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -432,6 +463,30 @@
         width: 1rem;
         height: 1rem;
     }
+
+    /* Tambahan style untuk ROB table */
+    .table-rob {
+    border: 1px solid #000 !important;
+    }
+    .table-rob th,
+    .table-rob td {
+    border: 1px solid #000 !important;
+    padding: 4px !important;
+    vertical-align: top !important;
+    }
+    .table-rob thead th {
+    background-color: #f0f0f0 !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    }
+    .rekening-header-row {
+    background-color: #e8f4fd !important;
+    font-weight: bold !important;
+    }
+    .total-row-rob {
+    background-color: #d0d0d0 !important;
+    font-weight: bold !important;
+    }
 </style>
 
 @push('scripts')
@@ -454,13 +509,18 @@
             umumPdfUrl = umumPdfUrl.replace(':bulan', selectedBulan);
             $('#cetakPdfButtonUmum').attr('href', umumPdfUrl);
 
-            // PERBAIKAN: Update URL cetak BKP Pajak
+            // Update URL cetak BKP Pajak
             var pajakPdfUrl = '{{ route("laporan.bkp-pajak-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
             pajakPdfUrl = pajakPdfUrl.replace(':bulan', selectedBulan);
             $('#cetakPdfButtonPajak').attr('href', pajakPdfUrl);
+
+           // Update URL cetak ROB
+            var robPdfUrl = '{{ route("laporan.bkp-rob-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
+            robPdfUrl = robPdfUrl.replace(':bulan', selectedBulan);
+            $('#cetakPdfButtonRob').attr('href', robPdfUrl);
         }
 
-        // Fungsi untuk load data via AJAX - MENGGUNAKAN getRekapanBkuAjax UNTUK SEMUA TAB
+        // Dalam fungsi loadTableData, pastikan ada case untuk 'Rob'
         function loadTableData(selectedBulan, tabType) {
             var loadingIndicator = $('#loadingIndicator' + tabType);
             var tableContainer = $('#bkp' + tabType + 'Table');
@@ -513,6 +573,7 @@
             $('#bulanSelectPembantu').val(selectedBulan);
             $('#bulanSelectUmum').val(selectedBulan);
             $('#bulanSelectPajak').val(selectedBulan);
+            $('#bulanSelectRob').val(selectedBulan);
         });
 
         // Event untuk BKP Pembantu
@@ -524,6 +585,7 @@
             $('#bulanSelect').val(selectedBulan);
             $('#bulanSelectUmum').val(selectedBulan);
             $('#bulanSelectPajak').val(selectedBulan);
+            $('#bulanSelectRob').val(selectedBulan);
         });
 
         // Event untuk BKP Umum
@@ -535,9 +597,10 @@
             $('#bulanSelect').val(selectedBulan);
             $('#bulanSelectPembantu').val(selectedBulan);
             $('#bulanSelectPajak').val(selectedBulan);
+            $('#bulanSelectRob').val(selectedBulan);
         });
 
-        // PERBAIKAN: Event untuk BKP Pajak
+        // Event untuk BKP Pajak
         $('#bulanSelectPajak').change(function() {
             var selectedBulan = $(this).val();
             loadTableData(selectedBulan, 'Pajak');
@@ -546,6 +609,19 @@
             $('#bulanSelect').val(selectedBulan);
             $('#bulanSelectPembantu').val(selectedBulan);
             $('#bulanSelectUmum').val(selectedBulan);
+            $('#bulanSelectRob').val(selectedBulan);
+        });
+
+        // PERBAIKAN: Event untuk ROB
+        $('#bulanSelectRob').change(function() {
+            var selectedBulan = $(this).val();
+            loadTableData(selectedBulan, 'Rob');
+            
+            // Update select di tab lain agar konsisten
+            $('#bulanSelect').val(selectedBulan);
+            $('#bulanSelectPembantu').val(selectedBulan);
+            $('#bulanSelectUmum').val(selectedBulan);
+            $('#bulanSelectPajak').val(selectedBulan);
         });
 
         // Event ketika tab diubah
@@ -565,8 +641,11 @@
                 // Load data BKP Umum ketika tab diaktifkan
                 loadTableData(selectedBulan, 'Umum');
             } else if (target === '#bkp-pajak') {
-                // PERBAIKAN: Load data BKP Pajak ketika tab diaktifkan
+                // Load data BKP Pajak ketika tab diaktifkan
                 loadTableData(selectedBulan, 'Pajak');
+            } else if (target === '#Rob') {
+                // PERBAIKAN: Load data ROB ketika tab diaktifkan
+                loadTableData(selectedBulan, 'Rob');
             }
         });
 
@@ -579,8 +658,10 @@
         } else if (activeTab === '#bkp-umum') {
             loadTableData(selectedBulan, 'Umum');
         } else if (activeTab === '#bkp-pajak') {
-            // PERBAIKAN: Load data BKP Pajak jika tab aktif
             loadTableData(selectedBulan, 'Pajak');
+        } else if (activeTab === '#Rob') {
+            // PERBAIKAN: Load data ROB jika tab aktif
+            loadTableData(selectedBulan, 'Rob');
         }
 
         // Update URLs saat pertama kali load

@@ -314,4 +314,10 @@ Route::middleware(['auth'])->prefix('laporan')->group(function () {
         ->name('bkp-pajak.data');
     Route::get('/bkp-pajak-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkpPajakPdf'])
         ->name('laporan.bkp-pajak-pdf');
+
+    // Route untuk ROB
+    Route::get('/bkp-rob/data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getBkpRobData'])
+        ->name('bkp-rob.data');
+    Route::get('/bkp-rob-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkpRobPdf'])
+        ->name('laporan.bkp-rob-pdf');
 });
