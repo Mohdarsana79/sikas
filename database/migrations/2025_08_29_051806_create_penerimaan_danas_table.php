@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('penganggaran_id')->constrained('penganggarans')->onDelete('cascade');
             $table->decimal('saldo_awal', 15, 2)->nullable();
-            $table->date('tanggal_saldo_awal');
+            $table->date('tanggal_saldo_awal')->nullable();
             $table->string('sumber_dana');
             $table->decimal('jumlah_dana', 15, 2);
             $table->date('tanggal_terima')->nullable();

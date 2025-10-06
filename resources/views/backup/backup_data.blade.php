@@ -1422,7 +1422,7 @@
 
                         step.classList.remove('active');
                         step.classList.add('completed');
-                        icon.className = 'bi bi-check text-success';
+                        icon.className = 'bx bx-check text-success';
                         status.className = 'badge bg-success text-white';
                         status.textContent = 'Selesai';
                     }
@@ -1434,7 +1434,7 @@
                         const status = document.getElementById(`step${stepNumber}-status`);
 
                         step.classList.remove('active');
-                        icon.className = 'bi bi-x text-danger';
+                        icon.className = 'bx bx-x text-danger';
                         status.className = 'badge bg-danger text-white';
                         status.textContent = 'Error';
                     }

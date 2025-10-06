@@ -1,5 +1,5 @@
 <div class="table-responsive">
-    <table class="table table-bordered table-sm table-rob" style="font-size: 9pt;">
+    <table class="table table-bordered table-sm" style="font-size: 9pt;">
         <thead>
             <tr>
                 <th colspan="6" class="text-center bg-light">
@@ -25,7 +25,7 @@
 
             @if(!empty($robData) && count($robData) > 0)
             @foreach($robData as $rekening)
-            <tr class="rekening-header-row">
+            <tr class="rekening-header-row text-start">
                 <td colspan="6">
                     <strong>{{ $rekening['kode'] }}</strong> - {{ $rekening['nama_rekening'] }}
                 </td>
@@ -39,37 +39,28 @@
             @php
             $totalRekening += $transaksi['realisasi'];
             $totalKeseluruhan += $transaksi['realisasi'];
-            $sisaAnggaran = ($saldoAwal ?? 0) - $totalKeseluruhan; // GUNAKAN saldoAwal
+            $sisaAnggaran = ($saldoAwal ?? 0) - $totalKeseluruhan;
             @endphp
 
             <tr>
                 <td>{{ $transaksi['tanggal'] }}</td>
                 <td>{{ $transaksi['no_bukti'] }}</td>
-                <td>{{ $transaksi['uraian'] }}</td>
+                <td class="text-start">{{ $transaksi['uraian'] }}</td>
                 <td class="text-right">Rp {{ number_format($transaksi['realisasi'], 0, ',', '.') }}</td>
                 <td class="text-right">Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</td>
                 <td class="text-right">Rp {{ number_format($sisaAnggaran, 0, ',', '.') }}</td>
             </tr>
             @endforeach
-
-            <!-- Total per rekening -->
-            <tr class="bg-light">
-                <td colspan="3" class="text-center"><strong>Total {{ $rekening['nama_rekening'] }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($totalRekening, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($sisaAnggaran, 0, ',', '.') }}</strong></td>
-            </tr>
             @endforeach
 
             <!-- Ringkasan Keseluruhan -->
             <tr class="total-row-rob">
                 <td colspan="3" class="text-center">
-                    <strong>TOTAL KESELURUHAN</strong><br>
-                    <small>Saldo Awal: Rp {{ number_format($saldoAwal ?? 0, 0, ',', '.') }}</small>
+                    <strong>Jumlah</strong><br>
                 </td>
                 <td class="text-right"><strong>Rp {{ number_format($totalRealisasi ?? 0, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($totalRealisasi ?? 0, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($sisaAnggaran, 0, ',', '.') }}</strong></td>
+                <td class="text-right bg-body-secondary"><strong>Rp {{ number_format($totalRealisasi ?? 0, 0, ',', '.') }}</strong></td>
+                <td class="text-right bg-body-secondary"><strong>Rp {{ number_format($sisaAnggaran, 0, ',', '.') }}</strong></td>
             </tr>
             @else
             <tr>

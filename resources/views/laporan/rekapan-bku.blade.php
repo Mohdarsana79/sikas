@@ -468,17 +468,7 @@
     .table-rob {
     border: 1px solid #000 !important;
     }
-    .table-rob th,
-    .table-rob td {
-    border: 1px solid #000 !important;
-    padding: 4px !important;
-    vertical-align: top !important;
-    }
-    .table-rob thead th {
-    background-color: #f0f0f0 !important;
-    font-weight: bold !important;
-    text-align: center !important;
-    }
+    
     .rekening-header-row {
     background-color: #e8f4fd !important;
     font-weight: bold !important;

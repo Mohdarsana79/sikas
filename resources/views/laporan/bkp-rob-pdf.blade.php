@@ -140,7 +140,7 @@
                 <td>{{ $sekolah->provinsi ?? 'Sulawesi Tengah' }}</td>
             </tr>
             <tr>
-                <td>Saldo Awal</td>
+                <td>Anggaran Belanja</td>
                 <td>:</td>
                 <td><strong>Rp {{ number_format($saldoAwal ?? 0, 0, ',', '.') }}</strong></td>
             </tr>
@@ -210,22 +210,12 @@
             </tr>
             @php $pageCount++; @endphp
             @endforeach
-
-            <!-- Total per rekening -->
-            <tr class="bg-light">
-                <td colspan="3" class="text-center"><strong>Total {{ $rekening['nama_rekening'] }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($totalRekening, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($sisaAnggaran, 0, ',', '.') }}</strong></td>
-            </tr>
-            @php $pageCount++; @endphp
             @endforeach
 
             <!-- Ringkasan Keseluruhan -->
             <tr class="total-row-rob">
                 <td colspan="3" class="text-center">
-                    <strong>TOTAL KESELURUHAN</strong><br>
-                    <small>Saldo Awal: Rp {{ number_format($saldoAwal ?? 0, 0, ',', '.') }}</small>
+                    <strong>Jumlah</strong><br>
                 </td>
                 <td class="text-right"><strong>Rp {{ number_format($totalRealisasi ?? 0, 0, ',', '.') }}</strong></td>
                 <td class="text-right"><strong>Rp {{ number_format($totalRealisasi ?? 0, 0, ',', '.') }}</strong></td>
