@@ -58,9 +58,9 @@
             @endforeach
             <tr>
                 <td colspan="3" class="text-end"><strong>Sub Jumlah (1)</strong></td>
-                <td class="text-end"><strong>Rp. {{ number_format($saldoKas, 0, ',', '.') }}</strong></td>
+                <td class="text-end"><strong>Rp. {{ number_format($totalUangKertas, 0, ',', '.') }}</strong></td>
             </tr>
-
+            
             <!-- Uang Logam -->
             <tr>
                 <td colspan="4"><strong>2. Keping uang logam</strong></td>
@@ -75,7 +75,7 @@
             @endforeach
             <tr>
                 <td colspan="3" class="text-end"><strong>Sub Jumlah (2)</strong></td>
-                <td class="text-end"><strong>Rp. {{ number_format(0, 0, ',', '.') }}</strong></td>
+                <td class="text-end"><strong>Rp. {{ number_format($totalUangLogam, 0, ',', '.') }}</strong></td>
             </tr>
 
             <!-- Saldo Bank -->

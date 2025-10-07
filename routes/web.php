@@ -199,6 +199,9 @@ Route::middleware(['auth'])->prefix('penatausahaan')->group(function () {
     Route::get('/penerimaan-dana/{penganggaran_id}', [PenerimaanDanaController::class, 'getByPenganggaran'])->name('penerimaan-dana.getByPenganggaran');
 
     Route::delete('/penerimaan-dana/{id}', [PenerimaanDanaController::class, 'destroy'])->name('penerimaan-dana.destroy');
+
+    Route::delete('/penerimaan-dana/saldo-awal/{id}', [PenerimaanDanaController::class, 'destroySaldoAwal'])
+        ->name('penerimaan-dana.destroy-saldo-awal');
 });
 
 // ROUTE BKU AUDIT (BARU - DIPISAHKAN)

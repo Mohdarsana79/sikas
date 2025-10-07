@@ -287,7 +287,22 @@
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">-</td>
-                                    <td class="px-4 py-3 text-center">-</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="dropdown dropstart">
+                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button" id="dropdownMenuButton{{ $penerimaan->id }}"
+                                                data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none;">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ $penerimaan->id }}">
+                                                <li>
+                                                    <a class="dropdown-item text-danger btn-hapus-saldo-awal"
+                                                        href="{{ route('penerimaan-dana.destroy-saldo-awal', $penerimaan->id ) }}" data-id="{{ $penerimaan->id }}">
+                                                        <i class="bi bi-trash me-2"></i>Hapus
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
                                 </tr>
                                 @endif
                                 @endif
@@ -1011,7 +1026,7 @@
             });
         });
 
-        // SweetAlert untuk hapus data individual
+        // SweetAlert untuk hapus data penerimaan
         $('a.btn-hapus-penerimaan').on('click', function(e) {
             e.preventDefault();
             const url = $(this).attr('href');
@@ -1020,6 +1035,55 @@
             Swal.fire({
                 title: 'Hapus Transaksi?',
                 text: "Apakah Anda yakin ingin menghapus perimaan dana ini?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                customClass: {
+                    confirmButton: 'btn btn-danger me-2',
+                    cancelButton: 'btn btn-secondary me-2'
+                },
+                buttonsStyling: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Buat form untuk submit
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = url;
+
+                    // Tambahkan CSRF token
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = $('meta[name="csrf-token"]').attr('content');
+                    form.appendChild(csrfToken);
+
+                    // Tambahkan method spoofing
+                    const method = document.createElement('input');
+                    method.type = 'hidden';
+                    method.name = '_method';
+                    method.value = 'DELETE';
+                    form.appendChild(method);
+
+                    // Submit form
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+
+        // SweetAlert untuk hapus data saldo awal
+        $('a.btn-hapus-saldo-awal').on('click', function(e) {
+            e.preventDefault();
+            const url = $(this).attr('href');
+            const id = $(this).data('id');
+
+            Swal.fire({
+                title: 'Hapus Transaksi?',
+                text: "Apakah Anda yakin ingin menghapus Saldo Awal dana ini?",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
