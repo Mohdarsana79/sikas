@@ -57,9 +57,15 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="Rob-tab" data-bs-toggle="tab" data-bs-target="#Rob"
-                            type="button" role="tab">
+                        <button class="nav-link" id="Rob-tab" data-bs-toggle="tab" data-bs-target="#Rob" type="button"
+                            role="tab">
                             ROB
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="Reg-tab" data-bs-toggle="tab" data-bs-target="#Reg" type="button"
+                            role="tab">
+                            REG
                         </button>
                     </li>
                 </ul>
@@ -222,12 +228,15 @@
                     <!-- BKP Pajak Tab -->
                     <div class="tab-pane fade" id="bkp-pajak" role="tabpanel">
                         <div class="p-4">
-                            <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}" id="bulanFormPajak">
+                            <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}"
+                                id="bulanFormPajak">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div>
-                                        <select name="bulan" id="bulanSelectPajak" class="form-select form-select-sm" style="width: 150px;">
+                                        <select name="bulan" id="bulanSelectPajak" class="form-select form-select-sm"
+                                            style="width: 150px;">
                                             @foreach($months as $month)
-                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{ $month }}</option>
+                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
+                                                $month }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -240,7 +249,7 @@
                                     </div>
                                 </div>
                             </form>
-                    
+
                             <!-- Loading Indicator -->
                             <div id="loadingIndicatorPajak" class="text-center d-none">
                                 <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -248,7 +257,7 @@
                                 </div>
                                 <span class="ms-2">Memuat data...</span>
                             </div>
-                    
+
                             <!-- Tabel BKP Pajak -->
                             <div id="bkpPajakTable">
                                 @include('laporan.partials.bkp-pajak-table', [
@@ -272,40 +281,99 @@
                     <!-- ROB Tab -->
                     <div class="tab-pane fade" id="Rob" role="tabpanel">
                         <div class="p-4">
-                            <div class="text-center py-5">
-                                <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}" id="bulanFormRob">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <div>
-                                            <select name="bulan" id="bulanSelectRob" class="form-select form-select-sm" style="width: 150px;">
-                                                @foreach($months as $month)
-                                                <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{ $month }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <a class="btn btn-primary btn-sm" id="cetakPdfButtonRob"
-                                                href="{{ route('laporan.bkp-rob-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}" target="_blank"
-                                                style="font-size: 9pt;">
-                                                <i class="bi bi-printer me-2"></i> Cetak Rincian Objek Belanja
-                                            </a>
-                                        </div>
+                            <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}"
+                                id="bulanFormRob">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <select name="bulan" id="bulanSelectRob" class="form-select form-select-sm"
+                                            style="width: 150px;">
+                                            @foreach($months as $month)
+                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
+                                                $month }}</option>
+                                            @endforeach
+                                        </select>
                                     </div>
-                                </form>
+                                    <div>
+                                        <a class="btn btn-primary btn-sm" id="cetakPdfButtonRob"
+                                            href="{{ route('laporan.bkp-rob-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}"
+                                            target="_blank" style="font-size: 9pt;">
+                                            <i class="bi bi-printer me-2"></i> Cetak Rincian Objek Belanja
+                                        </a>
+                                    </div>
+                                </div>
+                            </form>
 
-                                <!-- Tabel ROB -->
-                                <div id="bkpRobTable">
-                                    @include('laporan.partials.bkp-rob-table', [
-                                        'robData' => $robData ?? []
-                                    ])
+                            <!-- Loading Indicator -->
+                            <div id="loadingIndicatorRob" class="text-center d-none">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
                                 </div>
-                                
-                                <!-- Loading Indicator -->
-                                <div id="loadingIndicatorRob" class="text-center d-none">
-                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                        <span class="visually-hidden">Loading...</span>
+                                <span class="ms-2">Memuat data...</span>
+                            </div>
+
+                            <!-- Tabel ROB -->
+                            <div id="bkpRobTable">
+                                @include('laporan.partials.bkp-rob-table', [
+                                'robData' => $robData ?? []
+                                ])
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- REGISTRASI Tab -->
+                    <div class="tab-pane fade" id="Reg" role="tabpanel">
+                        <div class="p-4">
+                            <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}" id="bulanFormReg">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <select name="bulan" id="bulanSelectReg" class="form-select form-select-sm" style="width: 150px;">
+                                            @foreach($months as $month)
+                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{ $month }}</option>
+                                            @endforeach
+                                        </select>
                                     </div>
-                                    <span class="ms-2">Memuat data...</span>
+                                    <div>
+                                        <a class="btn btn-primary btn-sm" id="cetakPdfButtonReg"
+                                            href="{{ route('laporan.bkp-reg-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}"
+                                            target="_blank" style="font-size: 9pt;">
+                                            <i class="bi bi-printer me-2"></i> Cetak Registrasi
+                                        </a>
+                                    </div>
                                 </div>
+                            </form>
+                    
+                            <!-- Loading Indicator -->
+                            <div id="loadingIndicatorReg" class="text-center d-none">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <span class="ms-2">Memuat data...</span>
+                            </div>
+                    
+                            <!-- Tabel Registrasi -->
+                            <div id="bkpRegTable">
+                                @include('laporan.partials.bkp-registrasi-table', [
+                                'tahun' => $tahun,
+                                'bulan' => $bulan,
+                                'bulanAngka' => $bulanAngka,
+                                'penganggaran' => $penganggaran,
+                                'sekolah' => $sekolah ?? null,
+                                'totalPenerimaan' => 0,
+                                'totalPengeluaran' => 0,
+                                'saldoBuku' => 0,
+                                'saldoKas' => 0,
+                                'saldoBank' => 0,
+                                'uangKertas' => [],
+                                'uangLogam' => [],
+                                'perbedaan' => 0,
+                                'penjelasanPerbedaan' => '',
+                                'tanggalPenutupan' => \Carbon\Carbon::now()->format('d F Y'),
+                                'tanggalPenutupanLalu' => '-',
+                                'namaBendahara' => 'Dra. MASITAH ABDULLAH',
+                                'namaKepalaSekolah' => 'Dra. MASITAH ABDULLAH',
+                                'nipBendahara' => '19690917 200701 2 017',
+                                'nipKepalaSekolah' => '19690917 200701 2 017'
+                                ])
                             </div>
                         </div>
                     </div>
@@ -455,7 +523,10 @@
 
     #bkpBankTable,
     #bkpPembantuTable,
-    #bkpUmumTable {
+    #bkpUmumTable,
+    #bkpPajakTable,
+    #bkpRobTable,
+    #bkpRegTable {
         transition: all 0.3s ease;
     }
 
@@ -466,16 +537,23 @@
 
     /* Tambahan style untuk ROB table */
     .table-rob {
-    border: 1px solid #000 !important;
+        border: 1px solid #000 !important;
     }
-    
+
     .rekening-header-row {
-    background-color: #e8f4fd !important;
-    font-weight: bold !important;
+        background-color: #e8f4fd !important;
+        font-weight: bold !important;
     }
+
     .total-row-rob {
-    background-color: #d0d0d0 !important;
-    font-weight: bold !important;
+        background-color: #d0d0d0 !important;
+        font-weight: bold !important;
+    }
+
+    /* Style untuk tab Registrasi */
+    .nav-tabs .nav-link {
+        font-size: 9pt;
+        padding: 8px 12px;
     }
 </style>
 
@@ -504,13 +582,18 @@
             pajakPdfUrl = pajakPdfUrl.replace(':bulan', selectedBulan);
             $('#cetakPdfButtonPajak').attr('href', pajakPdfUrl);
 
-           // Update URL cetak ROB
+            // Update URL cetak ROB
             var robPdfUrl = '{{ route("laporan.bkp-rob-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
             robPdfUrl = robPdfUrl.replace(':bulan', selectedBulan);
             $('#cetakPdfButtonRob').attr('href', robPdfUrl);
+
+            // Update URL cetak Registrasi
+            var regPdfUrl = '{{ route("laporan.bkp-reg-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
+            regPdfUrl = regPdfUrl.replace(':bulan', selectedBulan);
+            $('#cetakPdfButtonReg').attr('href', regPdfUrl);
         }
 
-        // Dalam fungsi loadTableData, pastikan ada case untuk 'Rob'
+        // Fungsi untuk memuat data tabel
         function loadTableData(selectedBulan, tabType) {
             var loadingIndicator = $('#loadingIndicator' + tabType);
             var tableContainer = $('#bkp' + tabType + 'Table');
@@ -564,6 +647,7 @@
             $('#bulanSelectUmum').val(selectedBulan);
             $('#bulanSelectPajak').val(selectedBulan);
             $('#bulanSelectRob').val(selectedBulan);
+            $('#bulanSelectReg').val(selectedBulan);
         });
 
         // Event untuk BKP Pembantu
@@ -576,6 +660,7 @@
             $('#bulanSelectUmum').val(selectedBulan);
             $('#bulanSelectPajak').val(selectedBulan);
             $('#bulanSelectRob').val(selectedBulan);
+            $('#bulanSelectReg').val(selectedBulan);
         });
 
         // Event untuk BKP Umum
@@ -588,6 +673,7 @@
             $('#bulanSelectPembantu').val(selectedBulan);
             $('#bulanSelectPajak').val(selectedBulan);
             $('#bulanSelectRob').val(selectedBulan);
+            $('#bulanSelectReg').val(selectedBulan);
         });
 
         // Event untuk BKP Pajak
@@ -600,9 +686,10 @@
             $('#bulanSelectPembantu').val(selectedBulan);
             $('#bulanSelectUmum').val(selectedBulan);
             $('#bulanSelectRob').val(selectedBulan);
+            $('#bulanSelectReg').val(selectedBulan);
         });
 
-        // PERBAIKAN: Event untuk ROB
+        // Event untuk ROB
         $('#bulanSelectRob').change(function() {
             var selectedBulan = $(this).val();
             loadTableData(selectedBulan, 'Rob');
@@ -612,6 +699,20 @@
             $('#bulanSelectPembantu').val(selectedBulan);
             $('#bulanSelectUmum').val(selectedBulan);
             $('#bulanSelectPajak').val(selectedBulan);
+            $('#bulanSelectReg').val(selectedBulan);
+        });
+
+        // Event untuk Registrasi
+        $('#bulanSelectReg').change(function() {
+            var selectedBulan = $(this).val();
+            loadTableData(selectedBulan, 'Reg');
+            
+            // Update select di tab lain agar konsisten
+            $('#bulanSelect').val(selectedBulan);
+            $('#bulanSelectPembantu').val(selectedBulan);
+            $('#bulanSelectUmum').val(selectedBulan);
+            $('#bulanSelectPajak').val(selectedBulan);
+            $('#bulanSelectRob').val(selectedBulan);
         });
 
         // Event ketika tab diubah
@@ -634,8 +735,11 @@
                 // Load data BKP Pajak ketika tab diaktifkan
                 loadTableData(selectedBulan, 'Pajak');
             } else if (target === '#Rob') {
-                // PERBAIKAN: Load data ROB ketika tab diaktifkan
+                // Load data ROB ketika tab diaktifkan
                 loadTableData(selectedBulan, 'Rob');
+            } else if (target === '#Reg') {
+                // Load data Registrasi ketika tab diaktifkan
+                loadTableData(selectedBulan, 'Reg');
             }
         });
 
@@ -650,8 +754,9 @@
         } else if (activeTab === '#bkp-pajak') {
             loadTableData(selectedBulan, 'Pajak');
         } else if (activeTab === '#Rob') {
-            // PERBAIKAN: Load data ROB jika tab aktif
             loadTableData(selectedBulan, 'Rob');
+        } else if (activeTab === '#Reg') {
+            loadTableData(selectedBulan, 'Reg');
         }
 
         // Update URLs saat pertama kali load
