@@ -33,7 +33,8 @@
                     $saldo = $saldoAwal;
                     $totalPenerimaan = $saldoAwal; // Saldo awal termasuk dalam penerimaan
                     $totalPengeluaran = 0;
-                    $totalPenarikan = 0; // VARIABEL INI YANG DITAMBAHKAN
+                    $totalPenarikan = 0;
+                    $totalPenerimaanDana = 0;
                     @endphp
 
                     <!-- Baris Saldo Awal -->
@@ -55,15 +56,36 @@
                             $tahun }}
                             @endif
                         </td>
-                        <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                        <td class="text-end">@if($saldoAwal > 0) Rp {{ number_format($saldoAwal, 0, ',', '.') }} @else 0
+                            @endif</td>
+                        <td class="text-end">0</td>
+                        <td class="text-end">@if($saldo > 0) Rp {{ number_format($saldo, 0, ',', '.') }} @else 0 @endif
+                        </td>
+                    </tr>
+
+                    <!-- Baris Penerimaan Dana -->
+                    @foreach($penerimaanDanas as $penerimaan)
+                    @php
+                    $totalPenerimaanDana += $penerimaan->jumlah_dana;
+                    $totalPenerimaan += $penerimaan->jumlah_dana;
+                    $saldo += $penerimaan->jumlah_dana;
+                    @endphp
+                    <tr>
+                        <td>{{ \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('d-m-Y') }}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>Terima Dana {{ $penerimaan->sumber_dana }}</td>
+                        <td class="text-end">Rp {{ number_format($penerimaan->jumlah_dana, 0, ',', '.') }}</td>
                         <td class="text-end">0</td>
                         <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                     </tr>
+                    @endforeach
 
                     <!-- Baris Penarikan Tunai -->
                     @foreach($penarikanTunais as $penarikan)
                     @php
-                    $totalPenarikan += $penarikan->jumlah_penarikan; // PERHITUNGAN TOTAL PENARIKAN
+                    $totalPenarikan += $penarikan->jumlah_penarikan;
                     $totalPengeluaran += $penarikan->jumlah_penarikan;
                     $saldo -= $penarikan->jumlah_penarikan;
                     @endphp

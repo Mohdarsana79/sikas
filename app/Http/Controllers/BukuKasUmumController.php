@@ -2352,10 +2352,14 @@ class BukuKasUmumController extends Controller
         }
     }
 
-    // Method untuk mendapatkan data BKP Bank (digunakan oleh AJAX)
+    /**
+     * Get data BKP Bank (digunakan oleh AJAX) - VERSI DIPERBAIKI DENGAN PENERIMAAN DANA
+     */
     public function getBkpBankData($tahun, $bulan)
     {
         try {
+            Log::info('=== GET BKP BANK DATA DIPANGGIL ===', ['tahun' => $tahun, 'bulan' => $bulan]);
+
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
             if (! $penganggaran) {
@@ -2366,6 +2370,13 @@ class BukuKasUmumController extends Controller
             }
 
             $bulanAngka = $this->convertBulanToNumber($bulan);
+
+            // Ambil data penerimaan dana untuk bulan tersebut
+            $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran->id)
+                ->whereMonth('tanggal_terima', $bulanAngka)
+                ->whereYear('tanggal_terima', $tahun)
+                ->orderBy('tanggal_terima', 'asc')
+                ->get();
 
             // Ambil data penarikan tunai untuk bulan tersebut
             $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
@@ -2392,15 +2403,28 @@ class BukuKasUmumController extends Controller
                 }
             }
 
-            // Hitung saldo awal dengan method yang diperbaiki
+            // Hitung saldo awal dengan method yang sudah diperbaiki
             $saldoAwal = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka);
 
+            Log::info('=== DATA BKP BANK - DENGAN PENERIMAAN DANA ===', [
+                'penganggaran_id' => $penganggaran->id,
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'bulan_angka' => $bulanAngka,
+                'saldo_awal' => $saldoAwal,
+                'jumlah_penerimaan_dana' => $penerimaanDanas->count(),
+                'jumlah_penarikan' => $penarikanTunais->count(),
+                'bunga_record_exists' => !is_null($bungaRecord)
+            ]);
+
             // Hitung total untuk summary
+            $totalPenerimaanDana = $penerimaanDanas->sum('jumlah_dana');
             $totalPenarikan = $penarikanTunais->sum('jumlah_penarikan');
             $totalBunga = $bungaRecord ? $bungaRecord->bunga_bank : 0;
             $totalPajak = $bungaRecord ? $bungaRecord->pajak_bunga_bank : 0;
 
-            $totalPenerimaan = $saldoAwal + $totalBunga;
+            // Sesuai dengan rumus Excel =IF(OR(F11<>0,G11<>0),SUM(F$11:F11)-SUM(G$11:G11),0)
+            $totalPenerimaan = $saldoAwal + $totalPenerimaanDana + $totalBunga;
             $totalPengeluaran = $totalPenarikan + $totalPajak;
             $saldoAkhir = $totalPenerimaan - $totalPengeluaran;
 
@@ -2408,9 +2432,11 @@ class BukuKasUmumController extends Controller
                 'bulan' => $bulan,
                 'tahun' => $tahun,
                 'bulanAngka' => $bulanAngka,
+                'penerimaanDanas' => $penerimaanDanas,
                 'penarikanTunais' => $penarikanTunais,
                 'bungaRecord' => $bungaRecord,
                 'saldoAwal' => $saldoAwal,
+                'totalPenerimaanDana' => $totalPenerimaanDana,
                 'totalPenerimaan' => $totalPenerimaan,
                 'totalPengeluaran' => $totalPengeluaran,
                 'saldoAkhir' => $saldoAkhir,
@@ -2421,19 +2447,20 @@ class BukuKasUmumController extends Controller
                 'html' => $html,
                 'data' => [
                     'saldo_awal' => $saldoAwal,
+                    'total_penerimaan_dana' => $totalPenerimaanDana,
                     'total_penarikan' => $totalPenarikan,
                     'total_bunga' => $totalBunga,
                     'total_pajak' => $totalPajak,
                     'saldo_akhir' => $saldoAkhir,
                 ],
             ]);
-
         } catch (\Exception $e) {
-            Log::error('Error get BKP Bank data: '.$e->getMessage());
+            Log::error('Error get BKP Bank data: ' . $e->getMessage());
+            Log::error('Error trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat data BKP Bank: '.$e->getMessage(),
+                'message' => 'Gagal memuat data BKP Bank: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -2462,12 +2489,20 @@ class BukuKasUmumController extends Controller
 
             $bulanAngka = $this->convertBulanToNumber($bulan);
 
+            // Di dalam method getRekapanBkuAjax, bagian untuk tab Bank
             if ($tabType === 'Bank') {
                 // Data untuk BKP Bank
                 $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
                     ->whereMonth('tanggal_penarikan', $bulanAngka)
                     ->whereYear('tanggal_penarikan', $tahun)
                     ->orderBy('tanggal_penarikan', 'asc')
+                    ->get();
+
+                // TAMBAHKAN: Ambil data penerimaan dana untuk bulan tersebut
+                $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran->id)
+                    ->whereMonth('tanggal_terima', $bulanAngka)
+                    ->whereYear('tanggal_terima', $tahun)
+                    ->orderBy('tanggal_terima', 'asc')
                     ->get();
 
                 $bungaRecord = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
@@ -2480,11 +2515,12 @@ class BukuKasUmumController extends Controller
                 $saldoAwal = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka);
 
                 // Hitung total untuk summary
+                $totalPenerimaanDana = $penerimaanDanas->sum('jumlah_dana');
                 $totalPenarikan = $penarikanTunais->sum('jumlah_penarikan');
                 $totalBunga = $bungaRecord ? $bungaRecord->bunga_bank : 0;
                 $totalPajak = $bungaRecord ? $bungaRecord->pajak_bunga_bank : 0;
 
-                $totalPenerimaan = $saldoAwal + $totalBunga;
+                $totalPenerimaan = $saldoAwal + $totalPenerimaanDana + $totalBunga;
                 $totalPengeluaran = $totalPenarikan + $totalPajak;
                 $currentSaldo = $totalPenerimaan - $totalPengeluaran;
 
@@ -2493,8 +2529,10 @@ class BukuKasUmumController extends Controller
                     'tahun' => $tahun,
                     'bulanAngka' => $bulanAngka,
                     'penarikanTunais' => $penarikanTunais,
+                    'penerimaanDanas' => $penerimaanDanas, // TAMBAHKAN INI
                     'bungaRecord' => $bungaRecord,
                     'saldoAwal' => $saldoAwal,
+                    'totalPenerimaanDana' => $totalPenerimaanDana, // TAMBAHKAN INI
                     'totalPenerimaan' => $totalPenerimaan,
                     'totalPengeluaran' => $totalPengeluaran,
                     'currentSaldo' => $currentSaldo
@@ -2573,129 +2611,177 @@ class BukuKasUmumController extends Controller
                     'currentSaldo' => $currentSaldo,
                 ])->render();
             } else if ($tabType === 'Umum') {
-                // Data untuk BKP Umum
-                $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
-                    ->whereMonth('tanggal_penarikan', $bulanAngka)
-                    ->whereYear('tanggal_penarikan', $tahun)
-                    ->orderBy('tanggal_penarikan', 'asc')
-                    ->get();
+                try {
+                    Log::info('=== MEMUAT DATA BKP UMUM ===', ['bulan' => $bulan, 'tahun' => $tahun]);
 
-                $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran->id)
-                    ->whereMonth('tanggal_setor', $bulanAngka)
-                    ->whereYear('tanggal_setor', $tahun)
-                    ->orderBy('tanggal_setor', 'asc')
-                    ->get();
+                    // Data untuk BKP Umum
+                    $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
+                        ->whereMonth('tanggal_penarikan', $bulanAngka)
+                        ->whereYear('tanggal_penarikan', $tahun)
+                        ->orderBy('tanggal_penarikan', 'asc')
+                        ->get();
 
-                // Ambil semua data BKU (tunai dan non-tunai) untuk BKP Umum
-                $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-                    ->whereMonth('tanggal_transaksi', $bulanAngka)
-                    ->whereYear('tanggal_transaksi', $tahun)
-                    ->where('is_bunga_record', false)
-                    ->with(['kodeKegiatan', 'rekeningBelanja'])
-                    ->orderBy('tanggal_transaksi', 'asc')
-                    ->get();
+                    Log::info('Data penarikan tunai ditemukan:', ['count' => $penarikanTunais->count()]);
 
-                $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran->id)
-                    ->orderBy('tanggal_terima', 'asc')
-                    ->get();
+                    $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran->id)
+                        ->whereMonth('tanggal_setor', $bulanAngka)
+                        ->whereYear('tanggal_setor', $tahun)
+                        ->orderBy('tanggal_setor', 'asc')
+                        ->get();
 
-                $bungaRecord = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
-                    ->whereMonth('tanggal_transaksi', $bulanAngka)
-                    ->whereYear('tanggal_transaksi', $tahun)
-                    ->where('is_bunga_record', true)
-                    ->first();
+                    Log::info('Data setor tunai ditemukan:', ['count' => $setorTunais->count()]);
 
-                // Pastikan tanggal bunga adalah akhir bulan
-                if ($bungaRecord) {
-                    $tanggalAkhirBulan = Carbon::create($tahun, $bulanAngka, 1)->endOfMonth();
-                    if ($bungaRecord->tanggal_transaksi->format('Y-m-d') !== $tanggalAkhirBulan->format('Y-m-d')) {
-                        $bungaRecord->update([
-                            'tanggal_transaksi' => $tanggalAkhirBulan,
-                        ]);
-                        $bungaRecord->refresh();
-                    }
-                }
+                    // Ambil semua data BKU (tunai dan non-tunai) untuk BKP Umum
+                    $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
+                        ->whereMonth('tanggal_transaksi', $bulanAngka)
+                        ->whereYear('tanggal_transaksi', $tahun)
+                        ->where('is_bunga_record', false)
+                        ->with(['kodeKegiatan', 'rekeningBelanja'])
+                        ->orderBy('tanggal_transaksi', 'asc')
+                        ->get();
 
-                // Hitung saldo untuk BKP Umum
-                $saldoAwal = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka);
-                $saldoAwalTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran->id, $bulanAngka);
+                    Log::info('Data BKU ditemukan:', ['count' => $bkuData->count()]);
 
-                // Hitung total penerimaan dasar
-                $totalPenerimaan = $saldoAwal + $saldoAwalTunai;
+                    $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran->id)
+                        ->orderBy('tanggal_terima', 'asc')
+                        ->get();
 
-                // Tambahkan penerimaan dana di bulan ini
-                $penerimaanBulanIni = $penerimaanDanas->filter(function ($penerimaan) use ($bulanAngka) {
-                    return \Carbon\Carbon::parse($penerimaan->tanggal_terima)->month == $bulanAngka;
-                });
-                $totalPenerimaan += $penerimaanBulanIni->sum('jumlah_dana');
+                    Log::info('Data penerimaan dana ditemukan:', ['count' => $penerimaanDanas->count()]);
 
-                // Tambahkan penarikan tunai
-                $totalPenerimaan += $penarikanTunais->sum('jumlah_penarikan');
+                    $bungaRecord = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
+                        ->whereMonth('tanggal_transaksi', $bulanAngka)
+                        ->whereYear('tanggal_transaksi', $tahun)
+                        ->where('is_bunga_record', true)
+                        ->first();
 
-                // Tambahkan bunga bank
-                $totalPenerimaan += ($bungaRecord ? $bungaRecord->bunga_bank : 0);
+                    Log::info('Data bunga bank:', ['exists' => !is_null($bungaRecord)]);
 
-                // Hitung pajak untuk BKP Umum (SEMUA dihitung di kedua kolom)
-                $pajakPenerimaan = 0;
-                $pajakPengeluaran = 0;
-                $pajakDaerahPenerimaan = 0;
-                $pajakDaerahPengeluaran = 0;
-
-                foreach ($bkuData as $transaksi) {
-                    // Pajak Pusat - SEMUA dihitung di kedua kolom
-                    if ($transaksi->total_pajak > 0) {
-                        $pajakPenerimaan += $transaksi->total_pajak; // Selalu tambah ke penerimaan
-                        if (!empty($transaksi->ntpn)) {
-                            $pajakPengeluaran += $transaksi->total_pajak; // Hanya tambah ke pengeluaran jika NTPN ada
+                    // Pastikan tanggal bunga adalah akhir bulan
+                    if ($bungaRecord) {
+                        $tanggalAkhirBulan = Carbon::create($tahun, $bulanAngka, 1)->endOfMonth();
+                        if ($bungaRecord->tanggal_transaksi->format('Y-m-d') !== $tanggalAkhirBulan->format('Y-m-d')) {
+                            $bungaRecord->update([
+                                'tanggal_transaksi' => $tanggalAkhirBulan,
+                            ]);
+                            $bungaRecord->refresh();
                         }
                     }
 
-                    // Pajak Daerah - SEMUA dihitung di kedua kolom
-                    if ($transaksi->total_pajak_daerah > 0) {
-                        $pajakDaerahPenerimaan += $transaksi->total_pajak_daerah; // Selalu tambah ke penerimaan
-                        if (!empty($transaksi->ntpn)) {
-                            $pajakDaerahPengeluaran += $transaksi->total_pajak_daerah; // Hanya tambah ke pengeluaran jika NTPN ada
+                    // PERBAIKAN PENTING: Ambil saldo awal dari SALDO AKHIR BKP BANK BULAN SEBELUMNYA
+                    $saldoAwal = $this->hitungSaldoAwalBkpUmum($penganggaran->id, $tahun, $bulan);
+                    $saldoAwalTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran->id, $bulanAngka);
+
+                    Log::info('=== SALDO AWAL BKP UMUM DARI BKP BANK ===', [
+                        'bulan' => $bulan,
+                        'bulan_angka' => $bulanAngka,
+                        'saldo_awal_dari_bkp_bank' => $saldoAwal,
+                        'saldo_awal_tunai' => $saldoAwalTunai
+                    ]);
+
+                    // Hitung total penerimaan - DIMULAI DARI SALDO AWAL BKP BANK
+                    $totalPenerimaan = $saldoAwal + $saldoAwalTunai;
+
+                    // Tambahkan penerimaan dana di bulan ini
+                    $penerimaanBulanIni = $penerimaanDanas->filter(function ($penerimaan) use ($bulanAngka) {
+                        return \Carbon\Carbon::parse($penerimaan->tanggal_terima)->month == $bulanAngka;
+                    });
+                    $totalPenerimaan += $penerimaanBulanIni->sum('jumlah_dana');
+
+                    // Tambahkan penarikan tunai di bulan ini
+                    $totalPenerimaan += $penarikanTunais->sum('jumlah_penarikan');
+
+                    // Tambahkan bunga bank di bulan ini
+                    $totalPenerimaan += ($bungaRecord ? $bungaRecord->bunga_bank : 0);
+
+                    // Hitung pajak untuk BKP Umum
+                    $pajakPenerimaan = 0;
+                    $pajakPengeluaran = 0;
+                    $pajakDaerahPenerimaan = 0;
+                    $pajakDaerahPengeluaran = 0;
+
+                    foreach ($bkuData as $transaksi) {
+                        // Pajak Pusat
+                        if ($transaksi->total_pajak > 0) {
+                            $pajakPenerimaan += $transaksi->total_pajak;
+                            if (!empty($transaksi->ntpn)) {
+                                $pajakPengeluaran += $transaksi->total_pajak;
+                            }
+                        }
+
+                        // Pajak Daerah
+                        if ($transaksi->total_pajak_daerah > 0) {
+                            $pajakDaerahPenerimaan += $transaksi->total_pajak_daerah;
+                            if (!empty($transaksi->ntpn)) {
+                                $pajakDaerahPengeluaran += $transaksi->total_pajak_daerah;
+                            }
                         }
                     }
+
+                    // Tambahkan SEMUA pajak ke total
+                    $totalPenerimaan += $pajakPenerimaan + $pajakDaerahPenerimaan;
+                    $totalPengeluaran = $setorTunais->sum('jumlah_setor')
+                        + $bkuData->sum('total_transaksi_kotor')
+                        + $pajakPengeluaran + $pajakDaerahPengeluaran;
+
+                    $currentSaldo = $totalPenerimaan - $totalPengeluaran;
+
+                    // Hitung saldo bank dan tunai akhir bulan
+                    $saldoBank = $this->hitungSaldoAkhirBkpBank($penganggaran->id, $tahun, $bulan);
+                    $saldoTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran->id, $bulanAngka + 1);
+
+                    // Asumsi untuk dana sekolah dan BOSP
+                    $danaSekolah = 0;
+                    $danaBosp = $saldoBank;
+
+                    Log::info('=== DATA READY FOR VIEW ===', [
+                        'total_penerimaan' => $totalPenerimaan,
+                        'total_pengeluaran' => $totalPengeluaran,
+                        'current_saldo' => $currentSaldo
+                    ]);
+
+                    $html = view('laporan.partials.bkp-umum-table', [
+                        'bulan' => $bulan,
+                        'tahun' => $tahun,
+                        'bulanAngka' => $bulanAngka,
+                        'penerimaanDanas' => $penerimaanDanas,
+                        'penarikanTunais' => $penarikanTunais,
+                        'setorTunais' => $setorTunais,
+                        'bkuData' => $bkuData,
+                        'bungaRecord' => $bungaRecord,
+                        'saldoAwal' => $saldoAwal,
+                        'saldoAwalTunai' => $saldoAwalTunai,
+                        'totalPenerimaan' => $totalPenerimaan,
+                        'totalPengeluaran' => $totalPengeluaran,
+                        'currentSaldo' => $currentSaldo,
+                        'saldoBank' => $saldoBank,
+                        'saldoTunai' => $saldoTunai,
+                        'danaSekolah' => $danaSekolah,
+                        'danaBosp' => $danaBosp,
+                    ])->render();
+
+                    Log::info('=== VIEW RENDERED SUCCESSFULLY ===');
+
+                    return response()->json([
+                        'success' => true,
+                        'html' => $html,
+                        'bulan' => $bulan,
+                        'tahun' => $tahun,
+                        'tab_type' => $tabType
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('ERROR IN BKP UMUM TAB: ' . $e->getMessage());
+                    Log::error('Stack trace: ' . $e->getTraceAsString());
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                        'debug' => [
+                            'file' => $e->getFile(),
+                            'line' => $e->getLine()
+                        ]
+                    ], 500);
                 }
-
-
-                // Tambahkan SEMUA pajak ke total
-                $totalPenerimaan += $pajakPenerimaan + $pajakDaerahPenerimaan;
-                $totalPengeluaran = $setorTunais->sum('jumlah_setor')
-                    + $bkuData->sum('total_transaksi_kotor')
-                    + $pajakPengeluaran + $pajakDaerahPengeluaran;
-
-                $currentSaldo = $totalPenerimaan - $totalPengeluaran;
-
-                // Hitung saldo bank dan tunai akhir bulan
-                $saldoBank = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka + 1);
-                $saldoTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran->id, $bulanAngka + 1);
-
-                // Asumsi untuk dana sekolah dan BOSP
-                $danaSekolah = 0;
-                $danaBosp = $saldoBank;
-
-                $html = view('laporan.partials.bkp-umum-table', [
-                    'bulan' => $bulan,
-                    'tahun' => $tahun,
-                    'bulanAngka' => $bulanAngka,
-                    'penerimaanDanas' => $penerimaanDanas,
-                    'penarikanTunais' => $penarikanTunais,
-                    'setorTunais' => $setorTunais,
-                    'bkuData' => $bkuData,
-                    'bungaRecord' => $bungaRecord,
-                    'saldoAwal' => $saldoAwal,
-                    'saldoAwalTunai' => $saldoAwalTunai,
-                    'totalPenerimaan' => $totalPenerimaan,
-                    'totalPengeluaran' => $totalPengeluaran,
-                    'currentSaldo' => $currentSaldo,
-                    'saldoBank' => $saldoBank,
-                    'saldoTunai' => $saldoTunai,
-                    'danaSekolah' => $danaSekolah,
-                    'danaBosp' => $danaBosp,
-                ])->render();
-            } else if ($tabType === 'Pajak') {
+            }else if ($tabType === 'Pajak') {
                 // DATA UNTUK BKP PAJAK - PERBAIKAN UNTUK MULTI PAJAK
                 $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
                     ->whereMonth('tanggal_transaksi', $bulanAngka)
@@ -2889,13 +2975,14 @@ class BukuKasUmumController extends Controller
             // Ambil data sekolah
             $sekolah = \App\Models\Sekolah::first();
 
+            // Ambil total penerimaan dan pengeluaran dari tab Umum
+            $dataUmum = $this->getDataFromUmum($penganggaran->id, $tahun, $bulan, $bulanAngka);
+            $totalPenerimaan = $dataUmum['totalPenerimaan'];
+            $totalPengeluaran = $dataUmum['totalPengeluaran'];
+            $saldoBuku = $totalPenerimaan - $totalPengeluaran;
+
             // Hitung saldo kas B dari currentSaldo di tab Pembantu
             $saldoKas = $this->getSaldoKasFromPembantu($penganggaran->id, $tahun, $bulan, $bulanAngka);
-
-            // Hitung total penerimaan dan pengeluaran untuk perhitungan saldo buku
-            $totalPenerimaan = $this->hitungTotalPenerimaanRegistrasi($penganggaran->id, $bulanAngka, $tahun);
-            $totalPengeluaran = $this->hitungTotalPengeluaranRegistrasi($penganggaran->id, $bulanAngka, $tahun);
-            $saldoBuku = $totalPenerimaan - $totalPengeluaran;
 
             // Hitung saldo bank
             $saldoBank = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka + 1);
@@ -2903,7 +2990,7 @@ class BukuKasUmumController extends Controller
             // Data uang kertas berdasarkan saldo kas dari Pembantu
             $uangKertas = $this->getDenominasiUangKertas($saldoKas);
             $totalUangKertas = $this->hitungTotalUangKertas($uangKertas);
-            
+
             // Hitung sisa untuk uang logam
             $sisaUntukLogam = $saldoKas - $totalUangKertas;
             $uangLogam = $this->getDenominasiUangLogam($sisaUntukLogam);
@@ -3089,7 +3176,7 @@ class BukuKasUmumController extends Controller
     }
 
     /**
-     * Generate PDF BKP Bank
+     * Generate PDF BKP Bank - VERSI DIPERBAIKI DENGAN PENERIMAAN DANA
      */
     public function generateBkpBankPdf($tahun, $bulan)
     {
@@ -3104,6 +3191,13 @@ class BukuKasUmumController extends Controller
             $sekolah = \App\Models\Sekolah::first();
 
             $bulanAngka = $this->convertBulanToNumber($bulan);
+
+            // Ambil data penerimaan dana untuk bulan tersebut
+            $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran->id)
+                ->whereMonth('tanggal_terima', $bulanAngka)
+                ->whereYear('tanggal_terima', $tahun)
+                ->orderBy('tanggal_terima', 'asc')
+                ->get();
 
             // Ambil data penarikan tunai untuk bulan tersebut
             $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
@@ -3134,11 +3228,12 @@ class BukuKasUmumController extends Controller
             $saldoAwal = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka);
 
             // Hitung total untuk footer
+            $totalPenerimaanDana = $penerimaanDanas->sum('jumlah_dana');
             $totalPenarikan = $penarikanTunais->sum('jumlah_penarikan');
             $totalBunga = $bungaRecord ? $bungaRecord->bunga_bank : 0;
             $totalPajak = $bungaRecord ? $bungaRecord->pajak_bunga_bank : 0;
 
-            $totalPenerimaan = $saldoAwal + $totalBunga;
+            $totalPenerimaan = $saldoAwal + $totalPenerimaanDana + $totalBunga;
             $totalPengeluaran = $totalPenarikan + $totalPajak;
             $currentSaldo = $totalPenerimaan - $totalPengeluaran;
 
@@ -3148,13 +3243,15 @@ class BukuKasUmumController extends Controller
                 'bulanAngka' => $bulanAngka,
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
+                'penerimaanDanas' => $penerimaanDanas,
                 'penarikanTunais' => $penarikanTunais,
                 'bungaRecord' => $bungaRecord,
                 'saldoAwal' => $saldoAwal,
+                'totalPenerimaanDana' => $totalPenerimaanDana,
                 'totalPenerimaan' => $totalPenerimaan,
                 'totalPengeluaran' => $totalPengeluaran,
                 'currentSaldo' => $currentSaldo,
-                'totalPenarikan' => $totalPenarikan, // VARIABEL INI DITAMBAHKAN
+                'totalPenarikan' => $totalPenarikan,
                 'tanggalAkhirBulan' => BukuKasUmum::getTanggalAkhirBulan($tahun, $bulan),
                 'namaHariAkhirBulan' => BukuKasUmum::getHariAkhirBulan($tahun, $bulan),
                 'formatAkhirBulanLengkapHari' => BukuKasUmum::formatAkhirBulanLengkapHari($tahun, $bulan),
@@ -3173,9 +3270,9 @@ class BukuKasUmumController extends Controller
 
             return $pdf->download($filename);
         } catch (\Exception $e) {
-            Log::error('Error generating BKP Bank PDF: '.$e->getMessage());
+            Log::error('Error generating BKP Bank PDF: ' . $e->getMessage());
 
-            return response()->json(['error' => 'Gagal generate PDF: '.$e->getMessage()], 500);
+            return response()->json(['error' => 'Gagal generate PDF: ' . $e->getMessage()], 500);
         }
     }
 
@@ -3408,6 +3505,113 @@ class BukuKasUmumController extends Controller
         }
     }
 
+    /**
+     * Hitung total penerimaan dan pengeluaran untuk BKP Umum dengan cara yang konsisten
+     */
+    private function hitungTotalBkpUmum($penganggaran_id, $tahun, $bulan, $bulanAngka)
+    {
+        try {
+            // Data yang sama seperti di getRekapanBkuAjax
+            $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran_id)
+                ->orderBy('tanggal_terima', 'asc')
+                ->get();
+
+            $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_penarikan', $bulanAngka)
+                ->whereYear('tanggal_penarikan', $tahun)
+                ->orderBy('tanggal_penarikan', 'asc')
+                ->get();
+
+            $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_setor', $bulanAngka)
+                ->whereYear('tanggal_setor', $tahun)
+                ->orderBy('tanggal_setor', 'asc')
+                ->get();
+
+            $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_transaksi', $bulanAngka)
+                ->whereYear('tanggal_transaksi', $tahun)
+                ->where('is_bunga_record', false)
+                ->with(['kodeKegiatan', 'rekeningBelanja'])
+                ->orderBy('tanggal_transaksi', 'asc')
+                ->get();
+
+            $bungaRecord = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_transaksi', $bulanAngka)
+                ->whereYear('tanggal_transaksi', $tahun)
+                ->where('is_bunga_record', true)
+                ->first();
+
+            // Hitung dengan cara yang sama seperti di blade template
+            $totalPenerimaan = 0;
+            $totalPengeluaran = 0;
+
+            // Saldo Awal
+            $totalPenerimaan += $this->hitungSaldoAwalBkpUmum($penganggaran_id, $tahun, $bulan);
+
+            // Saldo Tunai Awal
+            $saldoAwalTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran_id, $bulanAngka);
+            $totalPenerimaan += $saldoAwalTunai;
+
+            // Penerimaan Dana bulan ini
+            $penerimaanBulanIni = $penerimaanDanas->filter(function ($penerimaan) use ($bulanAngka) {
+                return \Carbon\Carbon::parse($penerimaan->tanggal_terima)->month == $bulanAngka;
+            });
+            $totalPenerimaan += $penerimaanBulanIni->sum('jumlah_dana');
+
+            // Penarikan Tunai
+            $totalPenerimaan += $penarikanTunais->sum('jumlah_penarikan');
+
+            // Setor Tunai
+            $totalPengeluaran += $setorTunais->sum('jumlah_setor');
+
+            // Transaksi BKU
+            $totalPengeluaran += $bkuData->sum('total_transaksi_kotor');
+
+            // Pajak (dihitung sesuai logika blade)
+            foreach ($bkuData as $transaksi) {
+                // Pajak Pusat - untuk penerimaan
+                if ($transaksi->total_pajak > 0) {
+                    $totalPenerimaan += $transaksi->total_pajak;
+                    if (!empty($transaksi->ntpn)) {
+                        $totalPengeluaran += $transaksi->total_pajak;
+                    }
+                }
+
+                // Pajak Daerah - untuk penerimaan
+                if ($transaksi->total_pajak_daerah > 0) {
+                    $totalPenerimaan += $transaksi->total_pajak_daerah;
+                    if (!empty($transaksi->ntpn)) {
+                        $totalPengeluaran += $transaksi->total_pajak_daerah;
+                    }
+                }
+            }
+
+            // Bunga Bank
+            if ($bungaRecord && $bungaRecord->bunga_bank > 0) {
+                $totalPenerimaan += $bungaRecord->bunga_bank;
+            }
+
+            // Pajak Bunga Bank
+            if ($bungaRecord && $bungaRecord->pajak_bunga_bank > 0) {
+                $totalPengeluaran += $bungaRecord->pajak_bunga_bank;
+            }
+
+            return [
+                'totalPenerimaan' => $totalPenerimaan,
+                'totalPengeluaran' => $totalPengeluaran,
+                'currentSaldo' => $totalPenerimaan - $totalPengeluaran
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error hitungTotalBkpUmum: ' . $e->getMessage());
+            return [
+                'totalPenerimaan' => 0,
+                'totalPengeluaran' => 0,
+                'currentSaldo' => 0
+            ];
+        }
+    }
+
     // Method untuk generate PDF BKP Umum
     /**
      * Generate PDF BKP Umum - VERSI DIPERBAIKI
@@ -3580,31 +3784,43 @@ class BukuKasUmumController extends Controller
     }
 
     /**
-     * Hitung saldo bank sebelum bulan tertentu
+     * Hitung saldo bank sebelum bulan tertentu - VERSI DIPERBAIKI
      */
     private function hitungSaldoBankSebelumBulan($penganggaran_id, $bulanTarget)
     {
         try {
-            // Hitung total penerimaan dana
-            $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran_id)->get();
+            Log::info('=== HITUNG SALDO BANK SEBELUM BULAN - VERSI DIPERBAIKI ===', [
+                'penganggaran_id' => $penganggaran_id,
+                'bulan_target' => $bulanTarget
+            ]);
+
+            // Jika bulan target adalah Januari (1), maka saldo awal adalah 0
+            if ($bulanTarget == 1) {
+                Log::info('Saldo awal Januari = 0');
+                return 0;
+            }
+
+            // Hitung total penerimaan dana sampai bulan sebelumnya
+            $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran_id)
+                ->whereRaw('EXTRACT(MONTH FROM tanggal_terima) < ?', [$bulanTarget])
+                ->get();
+
             $totalPenerimaan = $penerimaanDanas->sum(function ($penerimaan) {
                 $total = $penerimaan->jumlah_dana;
                 if ($penerimaan->sumber_dana === 'Bosp Reguler Tahap 1' && $penerimaan->saldo_awal) {
                     $total += $penerimaan->saldo_awal;
                 }
-
                 return $total;
             });
 
-            // Jika bulan target adalah Januari (1), maka saldo awal adalah total penerimaan
-            if ($bulanTarget == 1) {
-                return $totalPenerimaan;
-            }
+            Log::info('Total Penerimaan Dana sampai bulan sebelumnya:', ['total' => $totalPenerimaan]);
 
             // Hitung total penarikan tunai sampai bulan sebelumnya
             $totalPenarikanSampaiBulanSebelumnya = PenarikanTunai::where('penganggaran_id', $penganggaran_id)
                 ->whereRaw('EXTRACT(MONTH FROM tanggal_penarikan) < ?', [$bulanTarget])
                 ->sum('jumlah_penarikan');
+
+            Log::info('Total Penarikan sampai bulan sebelumnya:', ['total' => $totalPenarikanSampaiBulanSebelumnya]);
 
             // Hitung bunga bank sampai bulan sebelumnya
             $totalBungaSampaiBulanSebelumnya = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
@@ -3612,29 +3828,275 @@ class BukuKasUmumController extends Controller
                 ->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) < ?', [$bulanTarget])
                 ->sum('bunga_bank');
 
+            Log::info('Total Bunga sampai bulan sebelumnya:', ['total' => $totalBungaSampaiBulanSebelumnya]);
+
             // Hitung pajak bunga sampai bulan sebelumnya
             $totalPajakBungaSampaiBulanSebelumnya = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
                 ->where('is_bunga_record', true)
                 ->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) < ?', [$bulanTarget])
                 ->sum('pajak_bunga_bank');
 
-            // PERBAIKAN: Saldo bank = Penerimaan - Penarikan + Bunga - Pajak Bunga
-            $saldoBank = $totalPenerimaan - $totalPenarikanSampaiBulanSebelumnya
-                + $totalBungaSampaiBulanSebelumnya - $totalPajakBungaSampaiBulanSebelumnya;
+            Log::info('Total Pajak Bunga sampai bulan sebelumnya:', ['total' => $totalPajakBungaSampaiBulanSebelumnya]);
+
+            // PERBAIKAN: Hitung total belanja NON-TUNAI sampai bulan sebelumnya
+            $totalBelanjaNonTunaiSampaiBulanSebelumnya = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
+                ->where('is_bunga_record', false)
+                ->where('jenis_transaksi', 'non-tunai') // HANYA belanja non-tunai yang mempengaruhi saldo bank
+                ->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) < ?', [$bulanTarget])
+                ->sum('total_transaksi_kotor');
+
+            Log::info('Total Belanja Non-Tunai sampai bulan sebelumnya:', ['total' => $totalBelanjaNonTunaiSampaiBulanSebelumnya]);
+
+            // PERBAIKAN: Rumus saldo bank yang benar
+            // Saldo Bank = Total Penerimaan - Total Penarikan + Total Bunga - Total Pajak Bunga - Total Belanja Non-Tunai
+            $saldoBank = $totalPenerimaan
+                - $totalPenarikanSampaiBulanSebelumnya
+                + $totalBungaSampaiBulanSebelumnya
+                - $totalPajakBungaSampaiBulanSebelumnya
+                - $totalBelanjaNonTunaiSampaiBulanSebelumnya;
+
+            Log::info('Perhitungan Saldo Bank Sebelum Bulan - VERSI DIPERBAIKI', [
+                'penganggaran_id' => $penganggaran_id,
+                'bulan_target' => $bulanTarget,
+                'total_penerimaan' => $totalPenerimaan,
+                'total_penarikan_sampai_bulan_sebelumnya' => $totalPenarikanSampaiBulanSebelumnya,
+                'total_bunga_sampai_bulan_sebelumnya' => $totalBungaSampaiBulanSebelumnya,
+                'total_pajak_bunga_sampai_bulan_sebelumnya' => $totalPajakBungaSampaiBulanSebelumnya,
+                'total_belanja_non_tunai_sampai_bulan_sebelumnya' => $totalBelanjaNonTunaiSampaiBulanSebelumnya,
+                'saldo_bank' => $saldoBank
+            ]);
 
             return max(0, $saldoBank);
         } catch (\Exception $e) {
-            Log::error('Error hitungSaldoBankSebelumBulan: '.$e->getMessage());
-
+            Log::error('Error hitungSaldoBankSebelumBulan: ' . $e->getMessage());
             return 0;
         }
     }
 
     /**
-     * Hitung saldo tunai sebelum bulan tertentu
+     * Debug method untuk melihat data BKP Bank
      */
+    public function debugBkpBank($tahun, $bulan)
+    {
+        try {
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json(['error' => 'Penganggaran tidak ditemukan'], 404);
+            }
+
+            $bulanAngka = $this->convertBulanToNumber($bulan);
+
+            // Data penarikan tunai
+            $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
+                ->whereYear('tanggal_penarikan', $tahun)
+                ->whereMonth('tanggal_penarikan', $bulanAngka)
+                ->get();
+
+            // Data bunga bank
+            $bungaRecord = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
+                ->where('is_bunga_record', true)
+                ->whereYear('tanggal_transaksi', $tahun)
+                ->whereMonth('tanggal_transaksi', $bulanAngka)
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'penganggaran_id' => $penganggaran->id,
+                    'tahun' => $tahun,
+                    'bulan' => $bulan,
+                    'bulan_angka' => $bulanAngka,
+                    'penarikan_tunai' => [
+                        'count' => $penarikanTunais->count(),
+                        'total' => $penarikanTunais->sum('jumlah_penarikan'),
+                        'data' => $penarikanTunais->map(function ($item) {
+                            return [
+                                'tanggal' => $item->tanggal_penarikan->format('Y-m-d'),
+                                'jumlah' => $item->jumlah_penarikan
+                            ];
+                        })
+                    ],
+                    'bunga_bank' => $bungaRecord ? [
+                        'tanggal' => $bungaRecord->tanggal_transaksi->format('Y-m-d'),
+                        'bunga' => $bungaRecord->bunga_bank,
+                        'pajak' => $bungaRecord->pajak_bunga_bank
+                    ] : null,
+                    'saldo_akhir_bkp_bank' => $this->hitungSaldoAkhirBkpBank($penganggaran->id, $tahun, $bulan)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error debug BKP Bank: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     /**
-     * Hitung saldo tunai sebelum bulan tertentu
+     * Hitung saldo akhir BKP Bank untuk bulan tertentu - DIPERBAIKI LAGI
+     */
+    private function hitungSaldoAkhirBkpBank($penganggaran_id, $tahun, $bulan)
+    {
+        try {
+            $bulanAngka = $this->convertBulanToNumber($bulan);
+
+            Log::info('=== HITUNG SALDO AKHIR BKP BANK - DIPERBAIKI ===', [
+                'penganggaran_id' => $penganggaran_id,
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'bulan_angka' => $bulanAngka
+            ]);
+
+            // Hitung saldo awal BKP Bank untuk bulan ini
+            $saldoAwalBank = 0;
+            if ($bulanAngka > 1) {
+                // Ambil saldo akhir dari bulan sebelumnya
+                $bulanSebelumnyaAngka = $bulanAngka - 1;
+                $bulanSebelumnyaNama = array_search($bulanSebelumnyaAngka, [
+                    'Januari' => 1,
+                    'Februari' => 2,
+                    'Maret' => 3,
+                    'April' => 4,
+                    'Mei' => 5,
+                    'Juni' => 6,
+                    'Juli' => 7,
+                    'Agustus' => 8,
+                    'September' => 9,
+                    'Oktober' => 10,
+                    'November' => 11,
+                    'Desember' => 12
+                ]);
+
+                if ($bulanSebelumnyaNama) {
+                    $saldoAwalBank = $this->hitungSaldoAkhirBkpBank($penganggaran_id, $tahun, $bulanSebelumnyaNama);
+                }
+            } else {
+                // Untuk bulan Januari, hitung penerimaan dana di bulan Januari
+                $penerimaanJanuari = PenerimaanDana::where('penganggaran_id', $penganggaran_id)
+                    ->whereYear('tanggal_terima', $tahun)
+                    ->whereMonth('tanggal_terima', 1)
+                    ->sum('jumlah_dana');
+
+                $saldoAwalBank = $penerimaanJanuari;
+                Log::info('Penerimaan Dana Januari:', ['total' => $penerimaanJanuari]);
+            }
+
+            // Data untuk bulan ini dari BKP Bank
+            $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran_id)
+                ->whereYear('tanggal_penarikan', $tahun)
+                ->whereMonth('tanggal_penarikan', $bulanAngka)
+                ->get();
+
+            $bungaRecord = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
+                ->where('is_bunga_record', true)
+                ->whereYear('tanggal_transaksi', $tahun)
+                ->whereMonth('tanggal_transaksi', $bulanAngka)
+                ->first();
+
+            $totalPenarikan = $penarikanTunais->sum('jumlah_penarikan');
+            $totalBunga = $bungaRecord ? $bungaRecord->bunga_bank : 0;
+            $totalPajakBunga = $bungaRecord ? $bungaRecord->pajak_bunga_bank : 0;
+
+            // PERBAIKAN: Untuk bulan selain Januari, tambahkan penerimaan dana di bulan tersebut
+            if ($bulanAngka > 1) {
+                $penerimaanBulanIni = PenerimaanDana::where('penganggaran_id', $penganggaran_id)
+                    ->whereYear('tanggal_terima', $tahun)
+                    ->whereMonth('tanggal_terima', $bulanAngka)
+                    ->sum('jumlah_dana');
+
+                $saldoAwalBank += $penerimaanBulanIni;
+                Log::info('Penerimaan Dana Bulan Ini:', [
+                    'bulan' => $bulan,
+                    'penerimaan' => $penerimaanBulanIni
+                ]);
+            }
+
+            // Rumus: Saldo Awal + Bunga - Penarikan - Pajak Bunga
+            $saldoAkhir = $saldoAwalBank + $totalBunga - $totalPenarikan - $totalPajakBunga;
+
+            Log::info('Perhitungan Saldo Akhir BKP Bank - DIPERBAIKI:', [
+                'penganggaran_id' => $penganggaran_id,
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'saldo_awal_bank' => $saldoAwalBank,
+                'total_penarikan' => $totalPenarikan,
+                'total_bunga' => $totalBunga,
+                'total_pajak_bunga' => $totalPajakBunga,
+                'saldo_akhir_bank' => $saldoAkhir
+            ]);
+
+            return max(0, $saldoAkhir);
+        } catch (\Exception $e) {
+            Log::error('Error hitungSaldoAkhirBkpBank: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Hitung saldo awal BKP Umum berdasarkan saldo akhir BKP Bank bulan sebelumnya - DIPERBAIKI
+     */
+    private function hitungSaldoAwalBkpUmum($penganggaran_id, $tahun, $bulan)
+    {
+        try {
+            $bulanList = [
+                'Januari' => 1,
+                'Februari' => 2,
+                'Maret' => 3,
+                'April' => 4,
+                'Mei' => 5,
+                'Juni' => 6,
+                'Juli' => 7,
+                'Agustus' => 8,
+                'September' => 9,
+                'Oktober' => 10,
+                'November' => 11,
+                'Desember' => 12
+            ];
+
+            $bulanAngka = $bulanList[$bulan] ?? 1;
+
+            Log::info('=== HITUNG SALDO AWAL BKP UMUM ===', [
+                'penganggaran_id' => $penganggaran_id,
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'bulan_angka' => $bulanAngka
+            ]);
+
+            // Jika bulan Januari, saldo awal adalah 0
+            if ($bulanAngka == 1) {
+                Log::info('Saldo Awal BKP Umum - Januari = 0');
+                return 0;
+            }
+
+            // Ambil saldo akhir dari BKP Bank bulan sebelumnya
+            $bulanSebelumnyaAngka = $bulanAngka - 1;
+            $bulanSebelumnyaNama = array_search($bulanSebelumnyaAngka, $bulanList);
+
+            if (!$bulanSebelumnyaNama) {
+                Log::warning('Bulan sebelumnya tidak ditemukan', ['bulan_sebelumnya_angka' => $bulanSebelumnyaAngka]);
+                return 0;
+            }
+
+            // Hitung saldo akhir BKP Bank bulan sebelumnya
+            $saldoAkhirBank = $this->hitungSaldoAkhirBkpBank($penganggaran_id, $tahun, $bulanSebelumnyaNama);
+
+            Log::info('Saldo Awal BKP Umum - Ambil dari BKP Bank bulan sebelumnya:', [
+                'penganggaran_id' => $penganggaran_id,
+                'tahun' => $tahun,
+                'bulan_sekarang' => $bulan,
+                'bulan_sebelumnya' => $bulanSebelumnyaNama,
+                'saldo_akhir_bank_bulan_sebelumnya' => $saldoAkhirBank,
+                'saldo_awal_bkp_umum' => $saldoAkhirBank
+            ]);
+
+            return $saldoAkhirBank;
+        } catch (\Exception $e) {
+            Log::error('Error hitungSaldoAwalBkpUmum: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Hitung saldo tunai sebelum bulan tertentu - DIPERBAIKI
      */
     private function hitungSaldoTunaiSebelumBulan($penganggaran_id, $bulanTarget)
     {
@@ -3646,21 +4108,30 @@ class BukuKasUmumController extends Controller
 
             // Hitung total penarikan tunai sampai bulan sebelumnya
             $totalPenarikanSampaiBulanSebelumnya = PenarikanTunai::where('penganggaran_id', $penganggaran_id)
-                ->whereRaw('EXTRACT(MONTH FROM tanggal_penarikan) < ?', [$bulanTarget])
+                ->whereRaw('EXTRACT(MONTH FROM tanggal_penarikan) <= ?', [$bulanTarget - 1])
                 ->sum('jumlah_penarikan');
 
             // Hitung total setor tunai sampai bulan sebelumnya
             $totalSetorSampaiBulanSebelumnya = SetorTunai::where('penganggaran_id', $penganggaran_id)
-                ->whereRaw('EXTRACT(MONTH FROM tanggal_setor) < ?', [$bulanTarget])
+                ->whereRaw('EXTRACT(MONTH FROM tanggal_setor) <= ?', [$bulanTarget - 1])
                 ->sum('jumlah_setor');
 
             // Hitung total belanja tunai sampai bulan sebelumnya
             $belanjaTunaiSampaiBulanSebelumnya = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
                 ->where('jenis_transaksi', 'tunai')
-                ->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) < ?', [$bulanTarget])
+                ->whereRaw('EXTRACT(MONTH FROM tanggal_transaksi) <= ?', [$bulanTarget - 1])
                 ->sum('total_transaksi_kotor');
 
             $saldoTunai = ($totalPenarikanSampaiBulanSebelumnya - $totalSetorSampaiBulanSebelumnya) - $belanjaTunaiSampaiBulanSebelumnya;
+
+            Log::info('Perhitungan Saldo Tunai Sebelum Bulan - DIPERBAIKI', [
+                'penganggaran_id' => $penganggaran_id,
+                'bulan_target' => $bulanTarget,
+                'total_penarikan' => $totalPenarikanSampaiBulanSebelumnya,
+                'total_setor' => $totalSetorSampaiBulanSebelumnya,
+                'belanja_tunai' => $belanjaTunaiSampaiBulanSebelumnya,
+                'saldo_tunai' => $saldoTunai
+            ]);
 
             return max(0, $saldoTunai);
         } catch (\Exception $e) {
@@ -4167,13 +4638,14 @@ class BukuKasUmumController extends Controller
             // Ambil data sekolah
             $sekolah = \App\Models\Sekolah::first();
 
+            // Ambil total penerimaan dan pengeluaran dari tab Umum
+            $dataUmum = $this->getDataFromUmum($penganggaran->id, $tahun, $bulan, $bulanAngka);
+            $totalPenerimaan = $dataUmum['totalPenerimaan'];
+            $totalPengeluaran = $dataUmum['totalPengeluaran'];
+            $saldoBuku = $totalPenerimaan - $totalPengeluaran;
+
             // Hitung saldo kas B dari currentSaldo di tab Pembantu
             $saldoKas = $this->getSaldoKasFromPembantu($penganggaran->id, $tahun, $bulan, $bulanAngka);
-
-            // Hitung total penerimaan dan pengeluaran untuk perhitungan saldo buku
-            $totalPenerimaan = $this->hitungTotalPenerimaanRegistrasi($penganggaran->id, $bulanAngka, $tahun);
-            $totalPengeluaran = $this->hitungTotalPengeluaranRegistrasi($penganggaran->id, $bulanAngka, $tahun);
-            $saldoBuku = $totalPenerimaan - $totalPengeluaran;
 
             // Hitung saldo bank
             $saldoBank = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka + 1);
@@ -4233,153 +4705,84 @@ class BukuKasUmumController extends Controller
      * Generate PDF BKP Registrasi
      */
     public function generateBkpRegPdf($tahun, $bulan)
-{
-    try {
-        $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
-
-        if (!$penganggaran) {
-            return response()->json(['error' => 'Data penganggaran tidak ditemukan'], 404);
-        }
-
-        // Ambil data sekolah
-        $sekolah = \App\Models\Sekolah::first();
-
-        $bulanAngka = $this->convertBulanToNumber($bulan);
-
-        // Hitung saldo kas B dari currentSaldo di tab Pembantu
-        $saldoKas = $this->getSaldoKasFromPembantu($penganggaran->id, $tahun, $bulan, $bulanAngka);
-
-        // Hitung total penerimaan dan pengeluaran untuk perhitungan saldo buku
-        $totalPenerimaan = $this->hitungTotalPenerimaanRegistrasi($penganggaran->id, $bulanAngka, $tahun);
-        $totalPengeluaran = $this->hitungTotalPengeluaranRegistrasi($penganggaran->id, $bulanAngka, $tahun);
-        $saldoBuku = $totalPenerimaan - $totalPengeluaran;
-
-        // Hitung saldo bank
-        $saldoBank = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka + 1);
-
-        // Data uang kertas berdasarkan saldo kas dari Pembantu
-        $uangKertas = $this->getDenominasiUangKertas($saldoKas);
-        $totalUangKertas = $this->hitungTotalUangKertas($uangKertas);
-        
-        // Hitung sisa untuk uang logam
-        $sisaUntukLogam = $saldoKas - $totalUangKertas;
-        $uangLogam = $this->getDenominasiUangLogam($sisaUntukLogam);
-        $totalUangLogam = $this->hitungTotalUangLogam($uangLogam);
-
-        $data = [
-            'tahun' => $tahun,
-            'bulan' => $bulan,
-            'bulanAngka' => $bulanAngka,
-            'penganggaran' => $penganggaran,
-            'sekolah' => $sekolah,
-            'totalPenerimaan' => $totalPenerimaan,
-            'totalPengeluaran' => $totalPengeluaran,
-            'saldoBuku' => $saldoBuku,
-            'saldoKas' => $saldoKas,
-            'saldoBank' => $saldoBank,
-            'uangKertas' => $uangKertas,
-            'uangLogam' => $uangLogam,
-            'totalUangKertas' => $totalUangKertas,
-            'totalUangLogam' => $totalUangLogam,
-            'perbedaan' => $saldoBuku - $saldoKas,
-            'penjelasanPerbedaan' => 'Masih ada sebagian dana BOS yang belum diambil di rekening bank. Masih ada sisa tunai yang disimpan bendahara.',
-            'tanggalPenutupan' => Carbon::create($tahun, $bulanAngka, 1)->endOfMonth()->format('d F Y'),
-            'tanggalPenutupanLalu' => '-',
-            'namaBendahara' => $sekolah->bendahara ?? 'Dra. MASITAH ABDULLAH',
-            'namaKepalaSekolah' => $sekolah->kepala_sekolah ?? 'Dra. MASITAH ABDULLAH',
-            'nipBendahara' => $sekolah->nip_bendahara ?? '19690917 200701 2 017',
-            'nipKepalaSekolah' => $sekolah->nip_kepala_sekolah ?? '19690917 200701 2 017',
-            'tanggalAkhirBulan' => BukuKasUmum::getTanggalAkhirBulan($tahun, $bulan),
-            'namaHariAkhirBulan' => BukuKasUmum::getHariAkhirBulan($tahun, $bulan),
-            'formatAkhirBulanLengkapHari' => BukuKasUmum::formatAkhirBulanLengkapHari($tahun, $bulan),
-            'formatAkhirBulanSingkat' => BukuKasUmum::formatAkhirBulanSingkat($tahun, $bulan),
-            'formatTanggalAkhirBulanLengkap' => BukuKasUmum::formatTanggalAkhirBulanLengkap($tahun, $bulan),
-            'convertNumberToBulan' => function ($angka) {
-                return $this->convertNumberToBulan($angka);
-            },
-            'tanggal_cetak' => now()->format('d/m/Y'),
-        ];
-
-        $pdf = PDF::loadView('laporan.bkp-registrasi-pdf', $data);
-        $pdf->setPaper('A4', 'portrait');
-
-        $filename = "BKP_Registrasi_{$bulan}_{$tahun}.pdf";
-
-        return $pdf->download($filename);
-    } catch (\Exception $e) {
-        Log::error('Error generating BKP Registrasi PDF: ' . $e->getMessage());
-
-        return response()->json(['error' => 'Gagal generate PDF: ' . $e->getMessage()], 500);
-    }
-}
-
-    /**
-     * Helper methods untuk perhitungan registrasi
-     */
-    private function hitungTotalPenerimaanRegistrasi($penganggaran_id, $bulanAngka, $tahun)
     {
         try {
-            // Total penerimaan = saldo awal + penerimaan dana bulan ini + penarikan tunai
-            $saldoAwal = $this->hitungSaldoBankSebelumBulan($penganggaran_id, $bulanAngka);
-            // $penerimaanDanaBulanIni = PenerimaanDana::where('penganggaran_id', $penganggaran_id)
-            //     ->whereMonth('tanggal_terima', $bulanAngka)
-            //     ->whereYear('tanggal_terima', $tahun)
-            //     ->sum('jumlah_dana');
-            // $penarikanTunaiBulanIni = PenarikanTunai::where('penganggaran_id', $penganggaran_id)
-            //     ->whereMonth('tanggal_penarikan', $bulanAngka)
-            //     ->whereYear('tanggal_penarikan', $tahun)
-            //     ->sum('jumlah_penarikan');
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
-            return $saldoAwal;
+            if (!$penganggaran) {
+                return response()->json(['error' => 'Data penganggaran tidak ditemukan'], 404);
+            }
+
+            // Ambil data sekolah
+            $sekolah = \App\Models\Sekolah::first();
+
+            $bulanAngka = $this->convertBulanToNumber($bulan);
+
+            // Ambil total penerimaan dan pengeluaran dari tab Umum
+            $dataUmum = $this->getDataFromUmum($penganggaran->id, $tahun, $bulan, $bulanAngka);
+            $totalPenerimaan = $dataUmum['totalPenerimaan'];
+            $totalPengeluaran = $dataUmum['totalPengeluaran'];
+            $saldoBuku = $totalPenerimaan - $totalPengeluaran;
+
+            // Hitung saldo kas B dari currentSaldo di tab Pembantu
+            $saldoKas = $this->getSaldoKasFromPembantu($penganggaran->id, $tahun, $bulan, $bulanAngka);
+
+            // Hitung saldo bank
+            $saldoBank = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka + 1);
+
+            // Data uang kertas berdasarkan saldo kas dari Pembantu
+            $uangKertas = $this->getDenominasiUangKertas($saldoKas);
+            $totalUangKertas = $this->hitungTotalUangKertas($uangKertas);
+
+            // Hitung sisa untuk uang logam
+            $sisaUntukLogam = $saldoKas - $totalUangKertas;
+            $uangLogam = $this->getDenominasiUangLogam($sisaUntukLogam);
+            $totalUangLogam = $this->hitungTotalUangLogam($uangLogam);
+
+            $data = [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'bulanAngka' => $bulanAngka,
+                'penganggaran' => $penganggaran,
+                'sekolah' => $sekolah,
+                'totalPenerimaan' => $totalPenerimaan,
+                'totalPengeluaran' => $totalPengeluaran,
+                'saldoBuku' => $saldoBuku,
+                'saldoKas' => $saldoKas,
+                'saldoBank' => $saldoBank,
+                'uangKertas' => $uangKertas,
+                'uangLogam' => $uangLogam,
+                'totalUangKertas' => $totalUangKertas,
+                'totalUangLogam' => $totalUangLogam,
+                'perbedaan' => $saldoBuku - $saldoKas,
+                'penjelasanPerbedaan' => 'Masih ada sebagian dana BOS yang belum diambil di rekening bank. Masih ada sisa tunai yang disimpan bendahara.',
+                'tanggalPenutupan' => Carbon::create($tahun, $bulanAngka, 1)->endOfMonth()->format('d F Y'),
+                'tanggalPenutupanLalu' => '-',
+                'namaBendahara' => $sekolah->bendahara ?? 'Dra. MASITAH ABDULLAH',
+                'namaKepalaSekolah' => $sekolah->kepala_sekolah ?? 'Dra. MASITAH ABDULLAH',
+                'nipBendahara' => $sekolah->nip_bendahara ?? '19690917 200701 2 017',
+                'nipKepalaSekolah' => $sekolah->nip_kepala_sekolah ?? '19690917 200701 2 017',
+                'tanggalAkhirBulan' => BukuKasUmum::getTanggalAkhirBulan($tahun, $bulan),
+                'namaHariAkhirBulan' => BukuKasUmum::getHariAkhirBulan($tahun, $bulan),
+                'formatAkhirBulanLengkapHari' => BukuKasUmum::formatAkhirBulanLengkapHari($tahun, $bulan),
+                'formatAkhirBulanSingkat' => BukuKasUmum::formatAkhirBulanSingkat($tahun, $bulan),
+                'formatTanggalAkhirBulanLengkap' => BukuKasUmum::formatTanggalAkhirBulanLengkap($tahun, $bulan),
+                'convertNumberToBulan' => function ($angka) {
+                    return $this->convertNumberToBulan($angka);
+                },
+                'tanggal_cetak' => now()->format('d/m/Y'),
+            ];
+
+            $pdf = PDF::loadView('laporan.bkp-registrasi-pdf', $data);
+            $pdf->setPaper('A4', 'portrait');
+
+            $filename = "BKP_Registrasi_{$bulan}_{$tahun}.pdf";
+
+            return $pdf->download($filename);
         } catch (\Exception $e) {
-            Log::error('Error hitungTotalPenerimaanRegistrasi: ' . $e->getMessage());
-            return 0;
-        }
-    }
+            Log::error('Error generating BKP Registrasi PDF: ' . $e->getMessage());
 
-    private function hitungTotalPengeluaranRegistrasi($penganggaran_id, $bulanAngka, $tahun)
-    {
-        try {
-            // Total pengeluaran = setor tunai + belanja tunai
-            // $tarikTunaiBulanIni = PenarikanTunai::where('penganggaran_id', $penganggaran_id)
-            //     ->whereMonth('tanggal_setor', $bulanAngka)
-            //     ->whereYear('tanggal_setor', $tahun)
-            //     ->sum('jumlah_setor');
-            $belanjaTunaiBulanIni = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
-                ->whereMonth('tanggal_transaksi', $bulanAngka)
-                ->whereYear('tanggal_transaksi', $tahun)
-                ->where('jenis_transaksi', 'tunai')
-                ->sum('total_transaksi_kotor');
-
-            return $belanjaTunaiBulanIni;
-        } catch (\Exception $e) {
-            Log::error('Error hitungTotalPengeluaranRegistrasi: ' . $e->getMessage());
-            return 0;
-        }
-    }
-
-    private function hitungSaldoKas($penganggaran_id, $bulanAngka, $tahun)
-    {
-        try {
-            // // Saldo kas = penarikan tunai - setor tunai - belanja tunai
-            // $penarikanTunai = PenarikanTunai::where('penganggaran_id', $penganggaran_id)
-            //     ->whereMonth('tanggal_penarikan', $bulanAngka)
-            //     ->whereYear('tanggal_penarikan', $tahun)
-            //     ->sum('jumlah_penarikan');
-            // $setorTunai = SetorTunai::where('penganggaran_id', $penganggaran_id)
-            //     ->whereMonth('tanggal_setor', $bulanAngka)
-            //     ->whereYear('tanggal_setor', $tahun)
-            //     ->sum('jumlah_setor');
-            $belanjaTunai = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
-                ->whereMonth('tanggal_transaksi', $bulanAngka)
-                ->whereYear('tanggal_transaksi', $tahun)
-                ->where('jenis_transaksi', 'tunai')
-                ->sum('total_transaksi_kotor');
-
-            return $belanjaTunai;
-        } catch (\Exception $e) {
-            Log::error('Error hitungSaldoKas: ' . $e->getMessage());
-            return 0;
+            return response()->json(['error' => 'Gagal generate PDF: ' . $e->getMessage()], 500);
         }
     }
 
@@ -4467,88 +4870,219 @@ class BukuKasUmumController extends Controller
     }
 
     /**
- * Ambil saldo kas dari currentSaldo di tab Pembantu
- */
-private function getSaldoKasFromPembantu($penganggaran_id, $tahun, $bulan, $bulanAngka)
-{
-    try {
-        // Ambil data penarikan tunai untuk bulan tersebut
-        $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran_id)
-            ->whereMonth('tanggal_penarikan', $bulanAngka)
-            ->whereYear('tanggal_penarikan', $tahun)
-            ->orderBy('tanggal_penarikan', 'asc')
-            ->get();
+     * Ambil saldo kas dari currentSaldo di tab Pembantu
+     */
+    private function getSaldoKasFromPembantu($penganggaran_id, $tahun, $bulan, $bulanAngka)
+    {
+        try {
+            // Ambil data penarikan tunai untuk bulan tersebut
+            $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_penarikan', $bulanAngka)
+                ->whereYear('tanggal_penarikan', $tahun)
+                ->orderBy('tanggal_penarikan', 'asc')
+                ->get();
 
-        $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran_id)
-            ->whereMonth('tanggal_setor', $bulanAngka)
-            ->whereYear('tanggal_setor', $tahun)
-            ->orderBy('tanggal_setor', 'asc')
-            ->get();
+            $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_setor', $bulanAngka)
+                ->whereYear('tanggal_setor', $tahun)
+                ->orderBy('tanggal_setor', 'asc')
+                ->get();
 
-        $bkuDataTunai = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
-            ->whereMonth('tanggal_transaksi', $bulanAngka)
-            ->whereYear('tanggal_transaksi', $tahun)
-            ->where('is_bunga_record', false)
-            ->where('jenis_transaksi', 'tunai')
-            ->with(['kodeKegiatan', 'rekeningBelanja'])
-            ->orderBy('tanggal_transaksi', 'asc')
-            ->get();
+            $bkuDataTunai = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_transaksi', $bulanAngka)
+                ->whereYear('tanggal_transaksi', $tahun)
+                ->where('is_bunga_record', false)
+                ->where('jenis_transaksi', 'tunai')
+                ->with(['kodeKegiatan', 'rekeningBelanja'])
+                ->orderBy('tanggal_transaksi', 'asc')
+                ->get();
 
-        // Hitung saldo awal tunai (sama seperti di tab Pembantu)
-        $saldoAwalTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran_id, $bulanAngka);
+            // Hitung saldo awal tunai (sama seperti di tab Pembantu)
+            $saldoAwalTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran_id, $bulanAngka);
 
-        // Hitung total untuk BKP Pembantu (sama seperti di tab Pembantu)
-        $totalPenerimaan = $saldoAwalTunai + $penarikanTunais->sum('jumlah_penarikan');
+            // Hitung total untuk BKP Pembantu (sama seperti di tab Pembantu)
+            $totalPenerimaan = $saldoAwalTunai + $penarikanTunais->sum('jumlah_penarikan');
 
-        // Hitung pajak untuk pembantu (sama seperti di tab Pembantu)
-        $pajakPenerimaan = 0;
-        $pajakPengeluaran = 0;
-        $pajakDaerahPenerimaan = 0;
-        $pajakDaerahPengeluaran = 0;
+            // Hitung pajak untuk pembantu (sama seperti di tab Pembantu)
+            $pajakPenerimaan = 0;
+            $pajakPengeluaran = 0;
+            $pajakDaerahPenerimaan = 0;
+            $pajakDaerahPengeluaran = 0;
 
-        foreach ($bkuDataTunai as $transaksi) {
-            // Pajak Pusat
-            if ($transaksi->total_pajak > 0) {
-                $pajakPenerimaan += $transaksi->total_pajak;
-                if (!empty($transaksi->ntpn)) {
-                    $pajakPengeluaran += $transaksi->total_pajak;
+            foreach ($bkuDataTunai as $transaksi) {
+                // Pajak Pusat
+                if ($transaksi->total_pajak > 0) {
+                    $pajakPenerimaan += $transaksi->total_pajak;
+                    if (!empty($transaksi->ntpn)) {
+                        $pajakPengeluaran += $transaksi->total_pajak;
+                    }
+                }
+
+                // Pajak Daerah
+                if ($transaksi->total_pajak_daerah > 0) {
+                    $pajakDaerahPenerimaan += $transaksi->total_pajak_daerah;
+                    if (!empty($transaksi->ntpn)) {
+                        $pajakDaerahPengeluaran += $transaksi->total_pajak_daerah;
+                    }
                 }
             }
 
-            // Pajak Daerah
-            if ($transaksi->total_pajak_daerah > 0) {
-                $pajakDaerahPenerimaan += $transaksi->total_pajak_daerah;
-                if (!empty($transaksi->ntpn)) {
-                    $pajakDaerahPengeluaran += $transaksi->total_pajak_daerah;
-                }
-            }
+            // Tambahkan SEMUA pajak ke total (sama seperti di tab Pembantu)
+            $totalPenerimaan += $pajakPenerimaan + $pajakDaerahPenerimaan;
+            $totalPengeluaran = $setorTunais->sum('jumlah_setor')
+                + $bkuDataTunai->sum('total_transaksi_kotor')
+                + $pajakPengeluaran + $pajakDaerahPengeluaran;
+
+            // CurrentSaldo dari tab Pembantu
+            $currentSaldo = $totalPenerimaan - $totalPengeluaran;
+
+            Log::info('Saldo Kas dari Pembantu', [
+                'penganggaran_id' => $penganggaran_id,
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+                'saldo_awal_tunai' => $saldoAwalTunai,
+                'total_penarikan' => $penarikanTunais->sum('jumlah_penarikan'),
+                'total_setor' => $setorTunais->sum('jumlah_setor'),
+                'total_belanja_tunai' => $bkuDataTunai->sum('total_transaksi_kotor'),
+                'current_saldo' => $currentSaldo
+            ]);
+
+            return max(0, $currentSaldo);
+        } catch (\Exception $e) {
+            Log::error('Error getSaldoKasFromPembantu: ' . $e->getMessage());
+            return 0;
         }
-
-        // Tambahkan SEMUA pajak ke total (sama seperti di tab Pembantu)
-        $totalPenerimaan += $pajakPenerimaan + $pajakDaerahPenerimaan;
-        $totalPengeluaran = $setorTunais->sum('jumlah_setor')
-            + $bkuDataTunai->sum('total_transaksi_kotor')
-            + $pajakPengeluaran + $pajakDaerahPengeluaran;
-
-        // CurrentSaldo dari tab Pembantu
-        $currentSaldo = $totalPenerimaan - $totalPengeluaran;
-
-        Log::info('Saldo Kas dari Pembantu', [
-            'penganggaran_id' => $penganggaran_id,
-            'bulan' => $bulan,
-            'tahun' => $tahun,
-            'saldo_awal_tunai' => $saldoAwalTunai,
-            'total_penarikan' => $penarikanTunais->sum('jumlah_penarikan'),
-            'total_setor' => $setorTunais->sum('jumlah_setor'),
-            'total_belanja_tunai' => $bkuDataTunai->sum('total_transaksi_kotor'),
-            'current_saldo' => $currentSaldo
-        ]);
-
-        return max(0, $currentSaldo);
-    } catch (\Exception $e) {
-        Log::error('Error getSaldoKasFromPembantu: ' . $e->getMessage());
-        return 0;
     }
-}
+
+    /**
+     * Ambil total penerimaan dan pengeluaran dari tab Umum
+     */
+    private function getDataFromUmum($penganggaran_id, $tahun, $bulan, $bulanAngka)
+    {
+        try {
+            // Ambil semua data yang diperlukan (sama seperti di tab Umum)
+            $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran_id)
+                ->orderBy('tanggal_terima', 'asc')
+                ->get();
+
+            $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_penarikan', $bulanAngka)
+                ->whereYear('tanggal_penarikan', $tahun)
+                ->orderBy('tanggal_penarikan', 'asc')
+                ->get();
+
+            $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_setor', $bulanAngka)
+                ->whereYear('tanggal_setor', $tahun)
+                ->orderBy('tanggal_setor', 'asc')
+                ->get();
+
+            $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_transaksi', $bulanAngka)
+                ->whereYear('tanggal_transaksi', $tahun)
+                ->where('is_bunga_record', false)
+                ->with(['kodeKegiatan', 'rekeningBelanja'])
+                ->orderBy('tanggal_transaksi', 'asc')
+                ->get();
+
+            $bungaRecord = BukuKasUmum::where('penganggaran_id', $penganggaran_id)
+                ->whereMonth('tanggal_transaksi', $bulanAngka)
+                ->whereYear('tanggal_transaksi', $tahun)
+                ->where('is_bunga_record', true)
+                ->first();
+
+            // Pastikan tanggal bunga adalah akhir bulan
+            if ($bungaRecord) {
+                $tanggalAkhirBulan = Carbon::create($tahun, $bulanAngka, 1)->endOfMonth();
+                if ($bungaRecord->tanggal_transaksi->format('Y-m-d') !== $tanggalAkhirBulan->format('Y-m-d')) {
+                    $bungaRecord->update([
+                        'tanggal_transaksi' => $tanggalAkhirBulan,
+                    ]);
+                    $bungaRecord->refresh();
+                }
+            }
+
+            // Hitung saldo untuk BKP Umum (sama seperti di tab Umum)
+            $saldoAwal = $this->hitungSaldoBankSebelumBulan($penganggaran_id, $bulanAngka);
+            $saldoAwalTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran_id, $bulanAngka);
+
+            // Hitung total penerimaan dasar (sama seperti di tab Umum)
+            $totalPenerimaan = $saldoAwal + $saldoAwalTunai;
+
+            // Tambahkan penerimaan dana di bulan ini
+            $penerimaanBulanIni = $penerimaanDanas->filter(function ($penerimaan) use ($bulanAngka) {
+                return \Carbon\Carbon::parse($penerimaan->tanggal_terima)->month == $bulanAngka;
+            });
+            $totalPenerimaan += $penerimaanBulanIni->sum('jumlah_dana');
+
+            // Tambahkan penarikan tunai
+            $totalPenerimaan += $penarikanTunais->sum('jumlah_penarikan');
+
+            // Tambahkan bunga bank
+            $totalPenerimaan += ($bungaRecord ? $bungaRecord->bunga_bank : 0);
+
+            // Hitung pajak untuk BKP Umum (sama seperti di tab Umum)
+            $pajakPenerimaan = 0;
+            $pajakPengeluaran = 0;
+            $pajakDaerahPenerimaan = 0;
+            $pajakDaerahPengeluaran = 0;
+
+            foreach ($bkuData as $transaksi) {
+                // Pajak Pusat
+                if ($transaksi->total_pajak > 0) {
+                    $pajakPenerimaan += $transaksi->total_pajak;
+                    if (!empty($transaksi->ntpn)) {
+                        $pajakPengeluaran += $transaksi->total_pajak;
+                    }
+                }
+
+                // Pajak Daerah
+                if ($transaksi->total_pajak_daerah > 0) {
+                    $pajakDaerahPenerimaan += $transaksi->total_pajak_daerah;
+                    if (!empty($transaksi->ntpn)) {
+                        $pajakDaerahPengeluaran += $transaksi->total_pajak_daerah;
+                    }
+                }
+            }
+
+            // Hitung pajak bunga bank
+            if ($bungaRecord && $bungaRecord->pajak_bunga_bank > 0) {
+                $pajakPenerimaan += $bungaRecord->pajak_bunga_bank;
+                if (!empty($bungaRecord->ntpn)) {
+                    $pajakPengeluaran += $bungaRecord->pajak_bunga_bank;
+                }
+            }
+
+            // Tambahkan SEMUA pajak ke total (sama seperti di tab Umum)
+            $totalPenerimaan += $pajakPenerimaan + $pajakDaerahPenerimaan;
+            $totalPengeluaran = $setorTunais->sum('jumlah_setor')
+                + $bkuData->sum('total_transaksi_kotor')
+                + $pajakPengeluaran + $pajakDaerahPengeluaran;
+
+            Log::info('Data dari Tab Umum', [
+                'penganggaran_id' => $penganggaran_id,
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+                'total_penerimaan' => $totalPenerimaan,
+                'total_pengeluaran' => $totalPengeluaran,
+                'saldo_awal' => $saldoAwal,
+                'saldo_awal_tunai' => $saldoAwalTunai,
+                'penerimaan_dana_bulan_ini' => $penerimaanBulanIni->sum('jumlah_dana'),
+                'penarikan_tunai' => $penarikanTunais->sum('jumlah_penarikan'),
+                'bunga_bank' => $bungaRecord ? $bungaRecord->bunga_bank : 0
+            ]);
+
+            return [
+                'totalPenerimaan' => $totalPenerimaan,
+                'totalPengeluaran' => $totalPengeluaran
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error getDataFromUmum: ' . $e->getMessage());
+            return [
+                'totalPenerimaan' => 0,
+                'totalPengeluaran' => 0
+            ];
+        }
+    }
 
 }

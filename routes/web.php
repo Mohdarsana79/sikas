@@ -308,6 +308,10 @@ Route::middleware(['auth'])->prefix('laporan')->group(function () {
     Route::get('/laporan/bku-pembantu-tunai-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkuPembantuTunaiPdf'])
     ->name('laporan.bku-pembantu-tunai-pdf');
 
+    // Route debug
+    Route::get('/debug/bkp-bank/{tahun}/{bulan}', [BukuKasUmumController::class, 'debugBkpBank'])
+        ->name('debug.bkp-bank');
+
     // Route untuk BKP Umum
     Route::get('/bkp-umum/data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getBkpUmumData'])
         ->name('bkp-umum.data');
