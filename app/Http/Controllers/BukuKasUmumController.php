@@ -2975,8 +2975,8 @@ class BukuKasUmumController extends Controller
             // Ambil data sekolah
             $sekolah = \App\Models\Sekolah::first();
 
-            // Ambil total penerimaan dan pengeluaran dari tab Umum
-            $dataUmum = $this->getDataFromUmum($penganggaran->id, $tahun, $bulan, $bulanAngka);
+            // PERBAIKAN: Gunakan data langsung dari perhitungan BKP Umum
+            $dataUmum = $this->getDataFromBkpUmumCalculation($penganggaran->id, $tahun, $bulan, $bulanAngka);
             $totalPenerimaan = $dataUmum['totalPenerimaan'];
             $totalPengeluaran = $dataUmum['totalPengeluaran'];
             $saldoBuku = $totalPenerimaan - $totalPengeluaran;
@@ -2996,6 +2996,8 @@ class BukuKasUmumController extends Controller
             $uangLogam = $this->getDenominasiUangLogam($sisaUntukLogam);
             $totalUangLogam = $this->hitungTotalUangLogam($uangLogam);
 
+            $saldoAkhirBuku = $totalUangKertas + $totalUangLogam + $saldoBank;
+
             $data = [
                 'tahun' => $tahun,
                 'bulan' => $bulan,
@@ -3011,6 +3013,7 @@ class BukuKasUmumController extends Controller
                 'uangLogam' => $uangLogam,
                 'totalUangKertas' => $totalUangKertas,
                 'totalUangLogam' => $totalUangLogam,
+                'saldoAkhirBuku' => $saldoAkhirBuku,
                 'perbedaan' => $saldoBuku - $saldoKas,
                 'penjelasanPerbedaan' => 'Masih ada sebagian dana BOS yang belum diambil di rekening bank. Masih ada sisa tunai yang disimpan bendahara.',
                 'tanggalPenutupan' => Carbon::create($tahun, $bulanAngka, 1)->endOfMonth()->format('d F Y'),
@@ -4639,10 +4642,11 @@ class BukuKasUmumController extends Controller
             $sekolah = \App\Models\Sekolah::first();
 
             // Ambil total penerimaan dan pengeluaran dari tab Umum
-            $dataUmum = $this->getDataFromUmum($penganggaran->id, $tahun, $bulan, $bulanAngka);
+            $dataUmum = $this->getDataFromBkpUmumCalculation($penganggaran->id, $tahun, $bulan, $bulanAngka);
             $totalPenerimaan = $dataUmum['totalPenerimaan'];
             $totalPengeluaran = $dataUmum['totalPengeluaran'];
             $saldoBuku = $totalPenerimaan - $totalPengeluaran;
+
 
             // Hitung saldo kas B dari currentSaldo di tab Pembantu
             $saldoKas = $this->getSaldoKasFromPembantu($penganggaran->id, $tahun, $bulan, $bulanAngka);
@@ -4659,6 +4663,8 @@ class BukuKasUmumController extends Controller
             $uangLogam = $this->getDenominasiUangLogam($sisaUntukLogam);
             $totalUangLogam = $this->hitungTotalUangLogam($uangLogam);
 
+            $saldoAkhirBuku = $totalUangKertas + $totalUangLogam + $saldoBank;
+
             $data = [
                 'tahun' => $tahun,
                 'bulan' => $bulan,
@@ -4674,6 +4680,7 @@ class BukuKasUmumController extends Controller
                 'uangLogam' => $uangLogam,
                 'totalUangKertas' => $totalUangKertas,
                 'totalUangLogam' => $totalUangLogam,
+                'saldoAkhirBuku' => $saldoAkhirBuku,
                 'perbedaan' => $saldoBuku - $saldoKas,
                 'penjelasanPerbedaan' => 'Masih ada sebagian dana BOS yang belum diambil di rekening bank. Masih ada sisa tunai yang disimpan bendahara.',
                 'tanggalPenutupan' => Carbon::create($tahun, $bulanAngka, 1)->endOfMonth()->format('d F Y'),
@@ -4719,7 +4726,7 @@ class BukuKasUmumController extends Controller
             $bulanAngka = $this->convertBulanToNumber($bulan);
 
             // Ambil total penerimaan dan pengeluaran dari tab Umum
-            $dataUmum = $this->getDataFromUmum($penganggaran->id, $tahun, $bulan, $bulanAngka);
+            $dataUmum = $this->getDataFromBkpUmumCalculation($penganggaran->id, $tahun, $bulan, $bulanAngka);
             $totalPenerimaan = $dataUmum['totalPenerimaan'];
             $totalPengeluaran = $dataUmum['totalPengeluaran'];
             $saldoBuku = $totalPenerimaan - $totalPengeluaran;
@@ -4738,6 +4745,7 @@ class BukuKasUmumController extends Controller
             $sisaUntukLogam = $saldoKas - $totalUangKertas;
             $uangLogam = $this->getDenominasiUangLogam($sisaUntukLogam);
             $totalUangLogam = $this->hitungTotalUangLogam($uangLogam);
+            $saldoAkhirBuku = $totalUangKertas + $totalUangLogam + $saldoBank;
 
             $data = [
                 'tahun' => $tahun,
@@ -4754,6 +4762,7 @@ class BukuKasUmumController extends Controller
                 'uangLogam' => $uangLogam,
                 'totalUangKertas' => $totalUangKertas,
                 'totalUangLogam' => $totalUangLogam,
+                'saldoAkhirBuku' => $saldoAkhirBuku,
                 'perbedaan' => $saldoBuku - $saldoKas,
                 'penjelasanPerbedaan' => 'Masih ada sebagian dana BOS yang belum diambil di rekening bank. Masih ada sisa tunai yang disimpan bendahara.',
                 'tanggalPenutupan' => Carbon::create($tahun, $bulanAngka, 1)->endOfMonth()->format('d F Y'),
@@ -4955,7 +4964,7 @@ class BukuKasUmumController extends Controller
     }
 
     /**
-     * Ambil total penerimaan dan pengeluaran dari tab Umum
+     * Ambil total penerimaan dan pengeluaran dari tab Umum - VERSI DIPERBAIKI
      */
     private function getDataFromUmum($penganggaran_id, $tahun, $bulan, $bulanAngka)
     {
@@ -4991,17 +5000,6 @@ class BukuKasUmumController extends Controller
                 ->where('is_bunga_record', true)
                 ->first();
 
-            // Pastikan tanggal bunga adalah akhir bulan
-            if ($bungaRecord) {
-                $tanggalAkhirBulan = Carbon::create($tahun, $bulanAngka, 1)->endOfMonth();
-                if ($bungaRecord->tanggal_transaksi->format('Y-m-d') !== $tanggalAkhirBulan->format('Y-m-d')) {
-                    $bungaRecord->update([
-                        'tanggal_transaksi' => $tanggalAkhirBulan,
-                    ]);
-                    $bungaRecord->refresh();
-                }
-            }
-
             // Hitung saldo untuk BKP Umum (sama seperti di tab Umum)
             $saldoAwal = $this->hitungSaldoBankSebelumBulan($penganggaran_id, $bulanAngka);
             $saldoAwalTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran_id, $bulanAngka);
@@ -5028,7 +5026,7 @@ class BukuKasUmumController extends Controller
             $pajakDaerahPengeluaran = 0;
 
             foreach ($bkuData as $transaksi) {
-                // Pajak Pusat
+                // Pajak Pusat - SEMUA dihitung di penerimaan
                 if ($transaksi->total_pajak > 0) {
                     $pajakPenerimaan += $transaksi->total_pajak;
                     if (!empty($transaksi->ntpn)) {
@@ -5036,7 +5034,7 @@ class BukuKasUmumController extends Controller
                     }
                 }
 
-                // Pajak Daerah
+                // Pajak Daerah - SEMUA dihitung di penerimaan
                 if ($transaksi->total_pajak_daerah > 0) {
                     $pajakDaerahPenerimaan += $transaksi->total_pajak_daerah;
                     if (!empty($transaksi->ntpn)) {
@@ -5045,7 +5043,7 @@ class BukuKasUmumController extends Controller
                 }
             }
 
-            // Hitung pajak bunga bank
+            // Hitung pajak bunga bank - SEMUA dihitung di penerimaan
             if ($bungaRecord && $bungaRecord->pajak_bunga_bank > 0) {
                 $pajakPenerimaan += $bungaRecord->pajak_bunga_bank;
                 if (!empty($bungaRecord->ntpn)) {
@@ -5053,13 +5051,15 @@ class BukuKasUmumController extends Controller
                 }
             }
 
-            // Tambahkan SEMUA pajak ke total (sama seperti di tab Umum)
+            // PERBAIKAN PENTING: Tambahkan SEMUA pajak ke total penerimaan
             $totalPenerimaan += $pajakPenerimaan + $pajakDaerahPenerimaan;
+
+            // Hitung total pengeluaran
             $totalPengeluaran = $setorTunais->sum('jumlah_setor')
                 + $bkuData->sum('total_transaksi_kotor')
                 + $pajakPengeluaran + $pajakDaerahPengeluaran;
 
-            Log::info('Data dari Tab Umum', [
+            Log::info('Data dari Tab Umum - VERSI DIPERBAIKI', [
                 'penganggaran_id' => $penganggaran_id,
                 'bulan' => $bulan,
                 'tahun' => $tahun,
@@ -5069,7 +5069,10 @@ class BukuKasUmumController extends Controller
                 'saldo_awal_tunai' => $saldoAwalTunai,
                 'penerimaan_dana_bulan_ini' => $penerimaanBulanIni->sum('jumlah_dana'),
                 'penarikan_tunai' => $penarikanTunais->sum('jumlah_penarikan'),
-                'bunga_bank' => $bungaRecord ? $bungaRecord->bunga_bank : 0
+                'bunga_bank' => $bungaRecord ? $bungaRecord->bunga_bank : 0,
+                'pajak_penerimaan' => $pajakPenerimaan,
+                'pajak_daerah_penerimaan' => $pajakDaerahPenerimaan,
+                'total_pajak_penerimaan' => $pajakPenerimaan + $pajakDaerahPenerimaan
             ]);
 
             return [
@@ -5082,6 +5085,25 @@ class BukuKasUmumController extends Controller
                 'totalPenerimaan' => 0,
                 'totalPengeluaran' => 0
             ];
+        }
+    }
+
+    /**
+     * Ambil data langsung dari perhitungan BKP Umum untuk konsistensi
+     */
+    private function getDataFromBkpUmumCalculation($penganggaran_id, $tahun, $bulan, $bulanAngka)
+    {
+        try {
+            // Gunakan method yang sama seperti di getRekapanBkuAjax untuk tab Umum
+            $data = $this->hitungTotalBkpUmum($penganggaran_id, $tahun, $bulan, $bulanAngka);
+
+            return [
+                'totalPenerimaan' => $data['totalPenerimaan'],
+                'totalPengeluaran' => $data['totalPengeluaran']
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error getDataFromBkpUmumCalculation: ' . $e->getMessage());
+            return $this->getDataFromUmum($penganggaran_id, $tahun, $bulan, $bulanAngka);
         }
     }
 

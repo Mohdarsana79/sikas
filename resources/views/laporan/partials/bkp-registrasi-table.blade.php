@@ -90,7 +90,7 @@
             <!-- Total -->
             <tr>
                 <td colspan="3" class="text-end"><strong>Jumlah (1 + 2 + 3)</strong></td>
-                <td class="text-end"><strong>Rp. {{ number_format($saldoBuku, 0, ',', '.') }}</strong></td>
+                <td class="text-end"><strong>Rp. {{ number_format($saldoAkhirBuku, 0, ',', '.') }}</strong></td>
             </tr>
 
             <!-- Perbedaan -->

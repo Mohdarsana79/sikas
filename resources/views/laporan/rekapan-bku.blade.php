@@ -367,6 +367,7 @@
                                 'uangLogam' => $uangLogam ?? [],
                                 'totalUangKertas' => $totalUangKertas ?? 0,
                                 'totalUangLogam' => $totalUangLogam ?? 0,
+                                'saldoAkhirBuku' => $saldoAkhirBuku ?? 0,
                                 'perbedaan' => 0,
                                 'penjelasanPerbedaan' => '',
                                 'tanggalPenutupan' => \Carbon\Carbon::now()->format('d F Y'),
