@@ -439,6 +439,46 @@ class RkasPerubahanController extends Controller
         }
     }
 
+    public function sisipkan(Request $request)
+    {
+        try {
+            $request->validate([
+                'kode_id' => 'required|exists:kode_kegiatans,id',
+                'kode_rekening_id' => 'required|exists:rekening_belanjas,id',
+                'uraian' => 'required|string',
+                'harga_satuan' => 'required|numeric|min:0',
+                'jumlah' => 'required|integer|min:1',
+                'satuan' => 'required|string',
+                'tahun_anggaran' => 'required',
+                'bulan' => 'required|string',
+            ]);
+
+            $penganggaran = Penganggaran::where('tahun_anggaran', $request->tahun_anggaran)->firstOrFail();
+
+            RkasPerubahan::create([
+                'penganggaran_id' => $penganggaran->id,
+                'kode_id' => $request->kode_id,
+                'kode_rekening_id' => $request->kode_rekening_id,
+                'uraian' => $request->uraian,
+                'harga_satuan' => $request->harga_satuan,
+                'jumlah' => $request->jumlah,
+                'satuan' => $request->satuan,
+                'bulan' => $request->bulan,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil disisipkan ke bulan ' . $request->bulan,
+                'bulan' => $request->bulan
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function destroy($id)
     {
         try {

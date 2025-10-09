@@ -4,13 +4,13 @@
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="tambahRkasModalLabel">
-                    <i class="bi bi-plus-circle me-2"></i>Tambah Data RKAS
+                    <i class="bi bi-plus-circle me-2"></i>Tambah Data RKAS Perubahan
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Close"></button>
             </div>
 
-            <form id="tambahRkasForm" method="POST" action="{{ route('rkas.store') }}">
+            <form id="tambahRkasForm" method="POST" action="{{ route('rkas-perubahan.store') }}">
                 @csrf
                 <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
                 <!-- Hidden field untuk harga satuan numeric -->

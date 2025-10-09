@@ -18,19 +18,22 @@
             <!-- Title and Status -->
             <div class="d-flex justify-content-between align-items-start mb-4">
                 <div>
-                    <h6 class="rkas-title fs-5" style="font-size: 9pt;">Rencana Kegiatan Anggaran Sekolah (RKAS) Perubahan</h6>
+                    <h6 class="rkas-title fs-5" style="font-size: 9pt;">Rencana Kegiatan Anggaran Sekolah (RKAS)
+                        Perubahan</h6>
                     <p class="rkas-subtitle">BOSP REGULER {{ $penganggaran->tahun_anggaran }}</p>
                 </div>
                 <!-- Action Buttons -->
                 <div class="rkas-actions mb-4 fs-6 btn btn-sm">
-                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#tambahRkasModal"
-                        style="font-size: 9pt;">
+                    <button class="btn btn-success" id="btnTambah" data-bs-toggle="modal"
+                        data-bs-target="#tambahRkasModal" style="font-size: 9pt;">
                         <i class="bi bi-plus me-2"></i>Tambah
                     </button>
-                    <a href="{{ route('rekaman-perubahan.index', ['tahun' => $tahun]) }}" class="btn btn-warning" style="font-size: 9pt;">
+                    <a href="{{ route('rekaman-perubahan.index', ['tahun' => $tahun]) }}" class="btn btn-warning"
+                        style="font-size: 9pt;">
                         <i class="bi bi-plus me-2"></i>Rekaman Perubahan
                     </a>
-                    <a class="btn btn-primary" href="{{ route('rkas-perubahan.rekapan-perubahan', ['tahun' => $tahun]) }}"
+                    <a class="btn btn-primary"
+                        href="{{ route('rkas-perubahan.rekapan-perubahan', ['tahun' => $tahun]) }}"
                         style="font-size: 9pt;">
                         <i class="bi bi-printer"></i> Cetak
                     </a>
@@ -115,37 +118,6 @@
                                 </div>
                             </div>
 
-                            {{-- <div class="budget-details mb-3">
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <div class="detail-item p-3"
-                                            style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; transition: all 0.2s ease;">
-                                            <small class="text-muted"
-                                                style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Pagu
-                                                Anggaran</small>
-                                            <div class="text-dark"
-                                                style="font-size: 13px; font-weight: 700; margin-top: 4px;">Rp
-                                                {{ isset($paguAnggaranTahap1) ? number_format($paguAnggaranTahap1, 0,
-                                                ',', '.') : '0' }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="detail-item p-3"
-                                            style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; transition: all 0.2s ease;">
-                                            <small class="text-muted"
-                                                style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Dianggaran</small>
-                                            <div class="text-dark"
-                                                style="font-size: 13px; font-weight: 700; margin-top: 4px;"
-                                                id="totalTahap1">Rp
-                                                {{ isset($totalTahap1) ? number_format($totalTahap1, 0, ',', '.') : '0'
-                                                }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> --}}
-
                             <div class="sisa-anggaran mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="text-dark" style="font-size: 14px; font-weight: 600;">Sisa
@@ -156,8 +128,8 @@
                                         number_format($paguAnggaranTahap1 - $totalTahap1, 0, ',', '.') : '0' }}</span>
                                 </div>
                                 @php
-                                $persentaseTahap1 =
-                                isset($paguAnggaranTahap1) && $paguAnggaranTahap1 > 0 && isset($totalTahap1)
+                                $persentaseTahap1 = isset($paguAnggaranTahap1) && $paguAnggaranTahap1 > 0 &&
+                                isset($totalTahap1)
                                 ? ($totalTahap1 / $paguAnggaranTahap1) * 100
                                 : 0;
                                 @endphp
@@ -214,37 +186,6 @@
                                         $paguAnggaranTahap2) * 100 : 0, 0) }}%</span>
                                 </div>
                             </div>
-                            
-                            {{-- <div class="budget-details mb-3">
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <div class="detail-item p-3"
-                                            style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; transition: all 0.2s ease;">
-                                            <small class="text-muted"
-                                                style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Pagu
-                                                Anggaran</small>
-                                            <div class="text-dark"
-                                                style="font-size: 13px; font-weight: 700; margin-top: 4px;">Rp
-                                                {{ isset($paguAnggaranTahap2) ? number_format($paguAnggaranTahap2, 0,
-                                                ',', '.') : '0' }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="detail-item p-3"
-                                            style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; transition: all 0.2s ease;">
-                                            <small class="text-muted"
-                                                style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Dianggaran</small>
-                                            <div class="text-dark"
-                                                style="font-size: 13px; font-weight: 700; margin-top: 4px;"
-                                                id="totalTahap2">Rp
-                                                {{ isset($totalTahap2) ? number_format($totalTahap2, 0, ',', '.') : '0'
-                                                }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> --}}
 
                             <div class="sisa-anggaran mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -256,8 +197,8 @@
                                         number_format($paguAnggaranTahap2 - $totalTahap2, 0, ',', '.') : '0' }}</span>
                                 </div>
                                 @php
-                                $persentaseTahap2 =
-                                isset($paguAnggaranTahap2) && $paguAnggaranTahap2 > 0 && isset($totalTahap2)
+                                $persentaseTahap2 = isset($paguAnggaranTahap2) && $paguAnggaranTahap2 > 0 &&
+                                isset($totalTahap2)
                                 ? ($totalTahap2 / $paguAnggaranTahap2) * 100
                                 : 0;
                                 @endphp
@@ -321,7 +262,6 @@
             {{-- end locked --}}
 
             @foreach ($months as $index => $month)
-
             {{-- locked --}}
             @php
             $isLocked = in_array($month, $lockedMonths);
@@ -329,9 +269,9 @@
             {{-- end locked --}}
 
             <li class="nav-item" role="presentation">
-                <button class="nav-link {{ $index === 0 ? 'active' : '' }} {{ $isLocked ? 'text-muted' : '' }}" id="{{ strtolower($month) }}-tab"
-                    data-bs-toggle="tab" data-bs-target="#{{ strtolower($month) }}" type="button" role="tab"
-                    data-month="{{ $month }}" @if($isLocked) title="Bulan terkunci" @endif>
+                <button class="nav-link {{ $index === 0 ? 'active' : '' }} {{ $isLocked ? 'text-muted' : '' }}"
+                    id="{{ strtolower($month) }}-tab" data-bs-toggle="tab" data-bs-target="#{{ strtolower($month) }}"
+                    type="button" role="tab" data-month="{{ $month }}" @if($isLocked) title="Bulan terkunci" @endif>
                     {{ $month }}
                     @if (isset($rkasData[$month]) && $rkasData[$month]->count() > 0)
                     <span class="badge bg-success ms-2">{{ $rkasData[$month]->count() }}</span>
@@ -375,12 +315,11 @@
                             <tbody id="table-body-{{ strtolower($month) }}">
                                 @if (isset($rkasData[$month]) && $rkasData[$month]->count() > 0)
                                 @foreach ($rkasData[$month] as $key => $rkas)
-                                <tr data-id="{{ $rkas->id }}" data-kode-id="{{ $rkas->kode_id }}" data-rekening-id="{{ $rkas->kode_rekening_id }}">
+                                <tr data-id="{{ $rkas->id }}" data-kode-id="{{ $rkas->kode_id }}"
+                                    data-rekening-id="{{ $rkas->kode_rekening_id }}">
                                     <td>{{ $key + 1 }}</td>
-                                    <td>{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->program : '-' }}
-                                    </td>
-                                    <td>{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->sub_program : '-' }}
-                                    </td>
+                                    <td>{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->program : '-' }}</td>
+                                    <td>{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->sub_program : '-' }}</td>
                                     <td>
                                         @if ($rkas->rekeningBelanja)
                                         {{ $rkas->rekeningBelanja->rincian_objek }}
@@ -397,33 +336,48 @@
                                             {{ number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.')
                                             }}</strong>
                                     </td>
-                                    
+
                                     <td style="font-size: 8pt; position: relative;">
                                         <!-- Dropdown Action Button -->
                                         <div class="dropdown" style="position: relative; z-index: 1050;">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                                                id="actionDropdown{{ $rkas->id }}" data-bs-toggle="dropdown" aria-expanded="false"
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                                type="button" id="actionDropdown{{ $rkas->id }}"
+                                                data-bs-toggle="dropdown" aria-expanded="false"
                                                 style="border: 1px solid #dee2e6; background: white; color: #6c757d; font-size: 8pt; padding: 4px 8px; min-width: 40px;">
                                                 <i class="bi bi-three-dots-vertical"></i>
                                             </button>
                                             @if(!$isLocked)
-                                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="actionDropdown{{ $rkas->id }}"
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
+                                                aria-labelledby="actionDropdown{{ $rkas->id }}"
                                                 style="z-index: 1060; min-width: 120px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;">
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showDetailModal({{ $rkas->id }})"
+                                                    <a class="dropdown-item d-flex align-items-center" href="#"
+                                                        onclick="showDetailModal({{ $rkas->id }})"
                                                         style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                         <i class="bi bi-eye me-2 text-primary"></i>Detail
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showEditModal({{ $rkas->id }})"
+                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showSisipkanModal(
+                                                           {{ $rkas->kode_id }},
+                                                           '{{ $rkas->kodeKegiatan ? addslashes($rkas->kodeKegiatan->program) : '-' }}',
+                                                           '{{ $rkas->kodeKegiatan ? addslashes($rkas->kodeKegiatan->sub_program) : '-' }}',
+                                                           {{ $rkas->kode_rekening_id }},
+                                                           '{{ $rkas->rekeningBelanja ? addslashes($rkas->rekeningBelanja->kode_rekening . ' - ' . $rkas->rekeningBelanja->rincian_objek) : '-' }}')"
+                                                        style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
+                                                        <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center" href="#"
+                                                        onclick="showEditModal({{ $rkas->id }})"
                                                         style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                         <i class="bi bi-pencil me-2 text-warning"></i>Edit
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center text-danger" href="#"
-                                                        onclick="showDeleteModal({{ $rkas->id }})"
+                                                    <a class="dropdown-item d-flex align-items-center text-danger"
+                                                        href="#" onclick="showDeleteModal({{ $rkas->id }})"
                                                         style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                         <i class="bi bi-trash me-2"></i>Hapus
                                                     </a>
@@ -451,7 +405,8 @@
                                             <p class="mt-2">Belum ada data untuk bulan
                                                 {{ $month }}</p>
                                             @if(!$isLocked)
-                                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#tambahRkasModal">
+                                            <button class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                                data-bs-target="#tambahRkasModal">
                                                 <i class="bi bi-plus me-2"></i>Tambah Data
                                             </button>
                                             @else
@@ -472,430 +427,11 @@
 </div>
 </div>
 
-<!-- Modal Tambah RKAS -->
-<div class="modal fade" id="tambahRkasModal" tabindex="-1" aria-labelledby="tambahRkasModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="tambahRkasModalLabel">
-                    <i class="bi bi-plus-circle me-2"></i>Tambah Data RKAS
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-
-            <!-- Display Success/Error Messages -->
-            @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
-                <i class="bi bi-check-circle me-2"></i>
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            @endif
-
-            @if ($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                <ul class="mb-0">
-                    @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            @endif
-
-            <form id="tambahRkasForm" method="POST" action="{{ route('rkas-perubahan.store') }}">
-                @csrf
-                <div class="modal-body">
-                    <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
-                    <!-- Progress Steps -->
-                    <div class="progress-steps mb-4">
-                        <div class="step-indicator">
-                            <div class="step active" id="step-1">
-                                <span class="step-number">1</span>
-                                <span class="step-title">Kegiatan</span>
-                            </div>
-                            <div class="step-line"></div>
-                            <div class="step" id="step-2">
-                                <span class="step-number">2</span>
-                                <span class="step-title">Detail</span>
-                            </div>
-                            <div class="step-line"></div>
-                            <div class="step" id="step-3">
-                                <span class="step-number">3</span>
-                                <span class="step-title">Anggaran</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 1: Kegiatan Selection -->
-                    <div class="form-step" id="form-step-1">
-                        <h6 class="mb-3"><i class="bi bi-bookmark me-2"></i>Pilih Kegiatan dan Rekening</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="kegiatan" class="form-label">Kegiatan <span
-                                            class="text-danger">*</span></label>
-                                    <select class="form-select select2-kegiatan" id="kegiatan" name="kode_id" required>
-                                        <option value="">-- Pilih Kegiatan --</option>
-                                        @foreach ($kodeKegiatans as $kode)
-                                        <option value="{{ $kode->id }}" data-kode="{{ $kode->kode }}"
-                                            data-program="{{ $kode->program }}"
-                                            data-sub-program="{{ $kode->sub_program }}"
-                                            data-uraian="{{ $kode->uraian }}" {{ old('kode_id')==$kode->id ? 'selected'
-                                            : '' }}>
-                                            {{ $kode->kode }} - {{ $kode->uraian }}
-                                        </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="rekening_belanja" class="form-label">Rekening Belanja <span
-                                            class="text-danger">*</span></label>
-                                    <select class="form-select select2-rekening" id="rekening_belanja"
-                                        name="kode_rekening_id" required>
-                                        <option value="">-- Pilih Rekening Belanja --</option>
-                                        @foreach ($rekeningBelanjas as $rekening)
-                                        <option value="{{ $rekening->id }}"
-                                            data-kode-rekening="{{ $rekening->kode_rekening }}"
-                                            data-rincian-objek="{{ $rekening->rincian_objek }}" {{
-                                            old('kode_rekening_id')==$rekening->id ? 'selected' : '' }}>
-                                            {{ $rekening->kode_rekening }} - {{ $rekening->rincian_objek }}
-                                        </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 2: Detail Information -->
-                    <div class="form-step" id="form-step-2" style="display: none;">
-                        <h6 class="mb-3"><i class="bi bi-file-text me-2"></i>Detail Uraian dan Harga</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="uraian" class="form-label">Uraian <span
-                                            class="text-danger">*</span></label>
-                                    <textarea class="form-control" id="uraian" name="uraian" rows="4"
-                                        placeholder="Jelaskan detail barang atau jasa yang akan diadakan..."
-                                        required>{{ old('uraian') }}</textarea>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="harga_satuan" class="form-label">Harga Satuan <span
-                                            class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">Rp</span>
-                                        <input type="number" class="form-control" id="harga_satuan" name="harga_satuan"
-                                            placeholder="0" step="0.01" min="0" value="{{ old('harga_satuan') }}"
-                                            required>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 3: Budget Planning -->
-                    <div class="form-step" id="form-step-3" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Perencanaan Anggaran Bulanan
-                            </h6>
-                            <span class="badge bg-success fs-6" id="totalAnggaranDisplay">Total: Rp 0</span>
-                        </div>
-
-                        <!-- Dynamic Month Entries -->
-                        <div id="bulanContainer">
-                            <div class="month-entry border rounded p-3 mb-3" data-index="0">
-                                <div class="row align-items-center mb-2">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Bulan <span class="text-danger">*</span></label>
-                                        <select class="form-select month-select" name="bulan[]" required>
-                                            <option value="">Pilih Bulan</option>
-                                            @foreach (['Juli','Agustus','September', 'Oktober', 'November', 'Desember'] as $month)
-                                            <option value="{{ $month }}">{{ $month }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Jumlah <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control jumlah-input" name="jumlah[]"
-                                            placeholder="0" min="1" required>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Satuan <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control satuan-input" name="satuan[]"
-                                            placeholder="pcs, unit, buah" required>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Total</label>
-                                        <div class="month-total badge bg-info w-100">Rp 0</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Add Month Button -->
-                        <div class="text-center mt-3">
-                            <button type="button" class="btn btn-outline-primary" id="addMonthBtn">
-                                <i class="bi bi-plus-circle me-2"></i>Tambah Bulan
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="prevStepBtn" style="display: none;">
-                        <i class="bi bi-arrow-left me-2"></i>Sebelumnya
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-primary" id="nextStepBtn">
-                        Selanjutnya<i class="bi bi-arrow-right ms-2"></i>
-                    </button>
-                    <button type="submit" class="btn btn-success" id="submitBtn" style="display: none;">
-                        <i class="bi bi-check-circle me-2"></i>Simpan Data
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Detail RKAS -->
-<div class="modal fade" id="detailRkasModal" tabindex="-1" aria-labelledby="detailRkasModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="detailRkasModalLabel">
-                    <i class="bi bi-eye me-2"></i>Detail Data RKAS
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="detail-group mb-3">
-                            <label class="detail-label">Program Kegiatan:</label>
-                            <div class="detail-value" id="detail-program"></div>
-                        </div>
-                        <div class="detail-group mb-3">
-                            <label class="detail-label">Kegiatan:</label>
-                            <div class="detail-value" id="detail-kegiatan"></div>
-                        </div>
-                        <div class="detail-group mb-3">
-                            <label class="detail-label">Rekening Belanja:</label>
-                            <div class="detail-value" id="detail-rekening"></div>
-                        </div>
-                        <div class="detail-group mb-3">
-                            <label class="detail-label">Bulan:</label>
-                            <div class="detail-value" id="detail-bulan"></div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="detail-group mb-3">
-                            <label class="detail-label">Uraian:</label>
-                            <div class="detail-value" id="detail-uraian"></div>
-                        </div>
-                        <div class="detail-group mb-3">
-                            <label class="detail-label">Jumlah:</label>
-                            <div class="detail-value" id="detail-jumlah"></div>
-                        </div>
-                        <div class="detail-group mb-3">
-                            <label class="detail-label">Satuan:</label>
-                            <div class="detail-value" id="detail-satuan"></div>
-                        </div>
-                        <div class="detail-group mb-3">
-                            <label class="detail-label">Harga Satuan:</label>
-                            <div class="detail-value" id="detail-harga-satuan"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-12">
-                        <div class="detail-group mb-3">
-                            <label class="detail-label">Total Anggaran:</label>
-                            <div class="detail-value text-success fw-bold fs-5" id="detail-total"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Edit RKAS -->
-<div class="modal fade" id="editRkasModal" tabindex="-1" aria-labelledby="editRkasModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title" id="editRkasModalLabel">
-                    <i class="bi bi-pencil me-2"></i>Edit Data RKAS
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="editRkasForm" method="POST">
-                @csrf
-                @method('PUT')
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit-kegiatan" class="form-label">Kegiatan <span
-                                        class="text-danger">*</span></label>
-                                <select class="form-select select2-kegiatan-edit" id="edit-kegiatan" name="kode_id"
-                                    required>
-                                    <option value="">-- Pilih Kegiatan --</option>
-                                    @foreach ($kodeKegiatans as $kode)
-                                    <option value="{{ $kode->id }}" data-kode="{{ $kode->kode }}"
-                                        data-program="{{ $kode->program }}" data-sub-program="{{ $kode->sub_program }}"
-                                        data-uraian="{{ $kode->uraian }}">
-                                        {{ $kode->kode }} - {{ $kode->uraian }}
-                                    </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit-rekening-belanja" class="form-label">Rekening Belanja <span
-                                        class="text-danger">*</span></label>
-                                <select class="form-select select2-rekening-edit" id="edit-rekening-belanja"
-                                    name="kode_rekening_id" required>
-                                    <option value="">-- Pilih Rekening Belanja --</option>
-                                    @foreach ($rekeningBelanjas as $rekening)
-                                    <option value="{{ $rekening->id }}"
-                                        data-kode-rekening="{{ $rekening->kode_rekening }}"
-                                        data-rincian-objek="{{ $rekening->rincian_objek }}">
-                                        {{ $rekening->kode_rekening }} - {{ $rekening->rincian_objek }}
-                                    </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit-uraian" class="form-label">Uraian <span
-                                        class="text-danger">*</span></label>
-                                <textarea class="form-control" id="edit-uraian" name="uraian" rows="4"
-                                    required></textarea>
-
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit-bulan" class="form-label">Bulan <span
-                                        class="text-danger">*</span></label>
-                                <select class="form-select" id="edit-bulan" name="bulan" required>
-                                    <option value="">-- Pilih Bulan --</option>
-                                    @foreach (['Juli','Agustus','September', 'Oktober', 'November', 'Desember'] as $month)
-                                    <option value="{{ $month }}">{{ $month }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit-harga-satuan" class="form-label">Harga Satuan <span
-                                        class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rp</span>
-                                    <input type="number" class="form-control" id="edit-harga-satuan" name="harga_satuan"
-                                        placeholder="0" step="0.01" min="0" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit-jumlah" class="form-label">Jumlah <span
-                                        class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="edit-jumlah" name="jumlah" placeholder="0"
-                                    min="1" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="edit-satuan" class="form-label">Satuan <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="edit-satuan" name="satuan"
-                                    placeholder="pcs, unit, buah" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="alert alert-info">
-                                <strong>Total Anggaran:</strong> <span id="edit-total-display">Rp 0</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="bi bi-check-circle me-2"></i>Update Data
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Hapus RKAS -->
-<div class="modal fade" id="deleteRkasModal" tabindex="-1" aria-labelledby="deleteRkasModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteRkasModalLabel">
-                    <i class="bi bi-trash me-2"></i>Konfirmasi Hapus
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-center">
-                    <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
-                    <h4 class="mt-3">Apakah Anda yakin?</h4>
-                    <p class="text-muted">Data RKAS yang dihapus tidak dapat dikembalikan!</p>
-
-                    <div class="card bg-body-secondary border mt-3">
-                        <div class="row ms-2 me-2">
-                            <div class="col-6 text-start">
-                                <strong>Kegiatan:</strong><br>
-                                <span id="delete-kegiatan-info"></span>
-                            </div>
-                            <div class="col-6 text-start">
-                                <strong>Bulan:</strong><br>
-                                <span id="delete-bulan-info"></span>
-                            </div>
-                        </div>
-                        <div class="row ms-2 me-2 mt-2">
-                            <div class="col-12 text-start">
-                                <strong>Total Anggaran:</strong><br>
-                                <span class="text-danger fw-bold" id="delete-total-info"></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-                    <i class="bi bi-trash me-2"></i>Ya, Hapus Data
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+@include('rkas-perubahan.modal.tambah-rkas-perubahan')
+@include('rkas-perubahan.modal.edit-rkas-perubahan')
+@include('rkas-perubahan.modal.detail-rkas-perubahan')
+@include('rkas-perubahan.modal.sisipkan-rkas-perubahan')
+@include('rkas-perubahan.modal.delete-rkas-perubahan')
 
 <!-- CSS Styles -->
 <style>
@@ -923,7 +459,6 @@
         border: none;
         padding: 8px 12px;
         font-size: 8pt;
-
     }
 
     .rkas-table tbody td {
@@ -1093,7 +628,6 @@
 
     /* Budget Card Styling */
     .budget-card {
-        /* background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); */
         color: white;
         padding: 1rem;
         border-radius: 8px;
@@ -1104,7 +638,6 @@
 
     .budget-label {
         font-size: 0.9rem;
-        /* opacity: 0.9; */
     }
 
     .budget-amount {
@@ -1402,30 +935,30 @@
 
     /* Style untuk tabel terkunci */
     .table-locked {
-    opacity: 0.7;
-    pointer-events: none;
+        opacity: 0.7;
+        pointer-events: none;
     }
-    
+
     .locked-action {
-    opacity: 0.5;
-    cursor: not-allowed !important;
+        opacity: 0.5;
+        cursor: not-allowed !important;
     }
-    
+
     .lock-indicator {
-    background-color: #f8f9fa;
-    border-left: 4px solid #6c757d;
+        background-color: #f8f9fa;
+        border-left: 4px solid #6c757d;
     }
 
     .satuan-input:read-only {
-    background-color: #f8f9fa;
-    border-color: #e9ecef;
-    color: #6c757d;
-    cursor: not-allowed;
+        background-color: #f8f9fa;
+        border-color: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
     }
-    
+
     .satuan-input:read-only:focus {
-    border-color: #e9ecef;
-    box-shadow: none;
+        border-color: #e9ecef;
+        box-shadow: none;
     }
 </style>
 <!-- JavaScript -->

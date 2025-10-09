@@ -1,14 +1,15 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Inisialisasi variabel global
-    let currentRkasId = null;
+    let currentStep = 1;
     let monthIndex = 1;
+    let currentRkasId = null;
     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    let firstSatuanValue = '';
+    let firstSatuanValue = ''; // Variabel untuk menyimpan satuan pertama
 
     // Inisialisasi komponen
     initializeSelect2();
     setupEventListeners();
-    initializeAnggaranList();
+    showStep(1);
     updateTahapCards();
 
     // Fungsi inisialisasi Select2
@@ -80,12 +81,64 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Panggil fungsi saat halaman dimuat dan saat tab diubah
+    document.addEventListener('DOMContentLoaded', function() {
+        lockTahap1Actions();
+        
+        // Juga panggil saat tab diubah
+        document.querySelectorAll('.nav-link[data-month]').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                setTimeout(lockTahap1Actions, 300);
+            });
+        });
+    });
+
     // Fungsi setup event listeners
     function setupEventListeners() {
+        // Next button
+        document.getElementById('nextStepBtn')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (validateCurrentStep()) {
+                if (currentStep < 3) {
+                    currentStep++;
+                    showStep(currentStep);
+                }
+            }
+        });
+
+        // Previous button
+        document.getElementById('prevStepBtn')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        });
+
+        // Add month button
+        document.getElementById('addMonthBtn')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            addMonthEntry();
+        });
+
+        // Remove month functionality
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('btn-remove-month') || e.target.closest('.btn-remove-month')) {
+                e.preventDefault();
+                const monthEntry = e.target.closest('.month-entry');
+                if (monthEntry) {
+                    monthEntry.remove();
+                    updateTotalAnggaran();
+                }
+            }
+        });
+
         // Input changes
         document.addEventListener('input', function (e) {
-            if (e.target.classList.contains('satuan-input')) {
-                updateSatuanOtomatis(e.target.value);
+            if (e.target.classList.contains('satuan-input')) {updateSatuanOtomatis(e.target.value);
+            }
+            if (e.target.classList.contains('satuan-input') || e.target.id === 'satuan') {
+                updateTotalAnggaran();
             }
             if (e.target.classList.contains('jumlah-input') || e.target.id === 'harga_satuan') {
                 updateTotalAnggaran();
@@ -93,18 +146,24 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target.id === 'edit-jumlah' || e.target.id === 'edit-harga-satuan') {
                 updateEditTotal();
             }
-            if (e.target.id === 'sisipkan_harga_satuan' || e.target.id === 'sisipkan_jumlah') {
-                updateSisipkanTotal();
-            }
+        });
+
+        // Month tab click handler
+        document.querySelectorAll('.nav-link[data-month]').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                const month = this.getAttribute('data-month');
+                refreshMonthData(month);
+            });
         });
 
         // Form submission
         document.getElementById('tambahRkasForm')?.addEventListener('submit', function(e) {
-            if (!validateForm()) {
+            if (!validateAllSteps()) {
                 e.preventDefault();
                 return false;
             }
-            const submitBtn = this.querySelector('button[type="submit"]');
+
+            const submitBtn = document.getElementById('submitBtn');
             if (submitBtn) {
                 submitBtn.innerHTML = '<span class="loading-spinner me-2"></span>Menyimpan...';
                 submitBtn.disabled = true;
@@ -129,10 +188,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw err; });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
-                        Swal.fire('Berhasil!', 'Data berhasil diupdate', 'success').then(() => {
+                        Swal.fire('Berhasil!', 'Data Rkas Perubahan berhasil diupdate', 'success').then(() => {
                             location.reload();
                         });
                     } else {
@@ -154,71 +218,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 deleteRkas(currentRkasId);
             }
         });
-
+        
         // Modal reset on close
         document.getElementById('tambahRkasModal')?.addEventListener('hidden.bs.modal', function() {
             resetModal();
         });
 
-        // Month tab click handler
-        document.querySelectorAll('.nav-link[data-month]').forEach(function(tab) {
-            tab.addEventListener('click', function() {
-                const month = this.getAttribute('data-month');
-                refreshMonthData(month);
-                setTimeout(lockTahap1Actions, 300);
-            });
-        });
-
-        // Sisipkan form submission
-        document.getElementById('sisipkanRkasForm')?.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = this;
-            const submitButton = form.querySelector('button[type="submit"]');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('sisipkanRkasModal'));
-            const currentMonth = getActiveTab();
-
-            submitButton.innerHTML = '<span class="loading-spinner me-2"></span>Menyimpan...';
-            submitButton.disabled = true;
-
-            fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        modal.hide();
-                        localStorage.setItem('activeRkasTab', currentMonth);
-                        Swal.fire('Berhasil!', data.message, 'success').then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        throw new Error(data.message || 'Gagal menyimpan data');
-                    }
-                })
-                .catch(error => {
-                    Swal.fire('Error', error.message, 'error');
-                })
-                .finally(() => {
-                    submitButton.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Data';
-                    submitButton.disabled = false;
-                });
-        });
-
-        // Event listener untuk tombol tambah bulan di modal tambah
-        document.getElementById('btn-tambah-bulan')?.addEventListener('click', handleTambahBulanClick);
+        
     }
 
     function updateSatuanOtomatis(satuanValue) {
+        // Simpan nilai satuan pertama
         firstSatuanValue = satuanValue;
         
+        // Update semua input satuan kecuali yang pertama
         const allSatuanInputs = document.querySelectorAll('.satuan-input');
         allSatuanInputs.forEach((input, index) => {
             if (index > 0 && satuanValue) {
@@ -233,14 +246,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     }
 
-    function escapeHtml(unsafe) {
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
 
     function getActiveTab() {
         const activeTab = document.querySelector('#monthTabs .nav-link.active');
@@ -255,146 +260,64 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function createAnggaranCard() {
-        const card = document.createElement('div');
-        card.className = 'anggaran-bulan-card';
-        card.innerHTML = `
-            <button type="button" class="delete-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash"><path d="M3 6h18"/><path d="M19 6v14c0 1.1-0.9 2-2 2H7c-1.1 0-2-0.9-2-2V6"/><path d="M8 6V4c0-1.1 0.9-2 2-2h4c1.1 0 2 0.9 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-            </button>
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                <select class="form-control bulan-input" name="bulan[]" required>
-                    <option value="">Pilih Bulan</option>
-                    ${months.map(b => `<option value="${b}">${b}</option>`).join('')}
-                </select>
-                <span class="uang-display month-total" style="flex: 1; text-align: right; font-weight: 500;">Rp 0</span>
-            </div>
-            <div class="jumlah-satuan-group form-row">
-                <div class="form-col">
-                    <div class="input-icon-left">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        <input type="number" class="form-control jumlah-input" name="jumlah[]" placeholder="Jumlah" min="1" required>
-                    </div>
-                </div>
-                <div class="form-col">
-                    <input type="text" class="form-control satuan-input" name="satuan[]" placeholder="Satuan" required>
-                </div>
-            </div>
-        `;
-        
-        const deleteBtn = card.querySelector('.delete-btn');
-        deleteBtn.addEventListener('click', () => {
-            card.remove();
-            checkTambahButtonVisibility();
-            updateTotalAnggaran();
+    // Fungsi-fungsi utama
+    function showStep(step) {
+        // Update progress indicator
+        document.querySelectorAll('.step').forEach(function(stepEl) {
+            stepEl.classList.remove('active', 'completed');
         });
 
-        // Add event listeners for inputs
-        const jumlahInput = card.querySelector('.jumlah-input');
-        const bulanSelect = card.querySelector('.bulan-input');
-        
-        jumlahInput.addEventListener('input', updateTotalAnggaran);
-        bulanSelect.addEventListener('change', updateTotalAnggaran);
-
-        return card;
-    }
-
-    function createTambahButtonCard() {
-        const btnCard = document.createElement('div');
-        btnCard.className = 'btn-tambah-card';
-        btnCard.innerHTML = `
-            <button type="button" class="btn-tambah" id="btn-tambah-bulan">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                Tambah Bulan
-            </button>
-        `;
-        
-        const tambahBtn = btnCard.querySelector('#btn-tambah-bulan');
-        tambahBtn.addEventListener('click', handleTambahBulanClick);
-        
-        return btnCard;
-    }
-
-    function checkTambahButtonVisibility() {
-        const cards = document.querySelectorAll('.anggaran-bulan-card');
-        const tambahBtnCard = document.querySelector('.btn-tambah-card');
-        if (cards.length >= 12) {
-            if (tambahBtnCard) tambahBtnCard.style.display = 'none';
-        } else {
-            if (tambahBtnCard) tambahBtnCard.style.display = 'flex';
-        }
-    }
-
-    function initializeAnggaranList() {
-        const container = document.getElementById('bulanContainer');
-        if (!container) return;
-
-        container.innerHTML = '';
-        const initialCard = createAnggaranCard();
-        const tambahBtnCard = createTambahButtonCard();
-        container.appendChild(initialCard);
-        container.appendChild(tambahBtnCard);
-        
-        checkTambahButtonVisibility();
-        updateTotalAnggaran();
-    }
-
-    function handleTambahBulanClick() {
-        const cards = document.querySelectorAll('.anggaran-bulan-card');
-        if (cards.length >= 12) {
-            return;
+        for (let i = 1; i < step; i++) {
+            const stepEl = document.getElementById(`step-${i}`);
+            if (stepEl) stepEl.classList.add('completed');
         }
 
-        const container = document.getElementById('bulanContainer');
-        const tambahBtnCard = document.querySelector('.btn-tambah-card');
-        const newCard = createAnggaranCard();
-        
-        container.insertBefore(newCard, tambahBtnCard);
-        checkTambahButtonVisibility();
-        updateTotalAnggaran();
-    }
+        const activeStepEl = document.getElementById(`step-${step}`);
+        if (activeStepEl) activeStepEl.classList.add('active');
 
-    function updateTotalAnggaran() {
-        let total = 0;
-        const hargaSatuan = parseFloat(document.getElementById('harga_satuan')?.value) || 0;
-
-        document.querySelectorAll('.anggaran-bulan-card').forEach(function(card) {
-            const jumlah = parseFloat(card.querySelector('.jumlah-input')?.value) || 0;
-            const monthTotal = hargaSatuan * jumlah;
-
-            const monthTotalEl = card.querySelector('.month-total');
-            if (monthTotalEl) {
-                monthTotalEl.textContent = 'Rp ' + formatNumber(monthTotal);
-            }
-            total += monthTotal;
+        // Show/hide form steps
+        document.querySelectorAll('.form-step').forEach(function(formStep) {
+            formStep.style.display = 'none';
         });
 
-        const totalDisplay = document.getElementById('total-anggaran');
-        if (totalDisplay) {
-            totalDisplay.textContent = 'Rp ' + formatNumber(total);
+        const currentFormStep = document.getElementById(`form-step-${step}`);
+        if (currentFormStep) currentFormStep.style.display = 'block';
+
+        // Update buttons
+        const prevBtn = document.getElementById('prevStepBtn');
+        const nextBtn = document.getElementById('nextStepBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        if (prevBtn) prevBtn.style.display = step > 1 ? 'inline-block' : 'none';
+        if (nextBtn) nextBtn.style.display = step < 3 ? 'inline-block' : 'none';
+        if (submitBtn) submitBtn.style.display = step === 3 ? 'inline-block' : 'none';
+    }
+
+    function validateCurrentStep() {
+        let isValid = true;
+        const currentStepElement = document.getElementById(`form-step-${currentStep}`);
+
+        if (currentStepElement) {
+            const requiredFields = currentStepElement.querySelectorAll(
+                'select[required], textarea[required]');
+
+            requiredFields.forEach(function(field) {
+                field.classList.remove('is-invalid');
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                }
+            });
         }
-    }
 
-    function updateEditTotal() {
-        const jumlah = parseFloat(document.getElementById('edit-jumlah')?.value) || 0;
-        const hargaSatuan = parseFloat(document.getElementById('edit-harga-satuan')?.value) || 0;
-        const total = jumlah * hargaSatuan;
-
-        const totalDisplay = document.getElementById('edit-total-display');
-        if (totalDisplay) {
-            totalDisplay.textContent = 'Rp ' + formatNumber(total);
+        if (!isValid) {
+            Swal.fire('Error', 'Mohon lengkapi semua field yang diperlukan.', 'error');
         }
+
+        return isValid;
     }
 
-    function updateSisipkanTotal() {
-        const hargaSatuan = parseFloat(document.getElementById('sisipkan_harga_satuan')?.value) || 0;
-        const jumlah = parseFloat(document.getElementById('sisipkan_jumlah')?.value) || 0;
-        const total = hargaSatuan * jumlah;
-
-        document.getElementById('sisipkan_total_display').textContent = 'Rp ' + formatNumber(total);
-    }
-
-    function validateForm() {
+    function validateAllSteps() {
         let isValid = true;
         const requiredFields = document.querySelectorAll(
             '#tambahRkasForm input[required], #tambahRkasForm select[required], #tambahRkasForm textarea[required]'
@@ -410,14 +333,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Validate month uniqueness
         const selectedMonths = [];
-        const monthSelects = document.querySelectorAll('.bulan-input');
+        const monthSelects = document.querySelectorAll('.month-select');
 
         monthSelects.forEach(function(select) {
             const month = select.value;
             if (month) {
                 if (selectedMonths.includes(month)) {
                     isValid = false;
-                    select.classList.add('is-invalid');
                     Swal.fire('Error', 'Tidak boleh ada bulan yang sama dalam satu kegiatan.', 'error');
                     return false;
                 }
@@ -425,15 +347,90 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        if (!isValid) {
-            Swal.fire('Error', 'Mohon lengkapi semua field yang diperlukan.', 'error');
-        }
-
         return isValid;
     }
 
+    function addMonthEntry() {
+        // Ambil nilai satuan pertama jika ada
+        const firstSatuan = document.querySelector('.satuan-input')?.value || '';
+        // batas bulan yang diizinkan
+        const allowedMonths = ['Juli','Agustus','September', 'Oktober', 'November', 'Desember'];
+        const monthTemplate = `
+            <div class="month-entry border rounded p-3 mb-3" data-index="${monthIndex}">
+                <div class="row align-items-center mb-2">
+                    <div class="col-md-3">
+                        <label class="form-label">Bulan <span class="text-danger">*</span></label>
+                        <select class="form-select month-select" name="bulan[]" required>
+                            <option value="">Pilih Bulan</option>
+                            ${allowedMonths.map(month => `<option value="${month}">${month}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Jumlah <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control jumlah-input"
+                            name="jumlah[]" placeholder="0" min="1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Satuan <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control satuan-input"
+                            name="satuan[]" placeholder="pcs, unit, buah" value="${firstSatuan}" ${firstSatuan ? 'readonly' : ''} required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Total</label>
+                        <div class="month-total badge bg-info w-100 mb-2">Rp 0</div>
+                        <button type="button" class="btn btn-outline-danger btn-sm btn-remove-month">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const container = document.getElementById('bulanContainer');
+        if (container) {
+            container.insertAdjacentHTML('beforeend', monthTemplate);
+            monthIndex++;
+
+            updateTotalAnggaran();
+        }
+    }
+
+    function updateTotalAnggaran() {
+        let total = 0;
+        const hargaSatuan = parseFloat(document.getElementById('harga_satuan')?.value) || 0;
+
+        document.querySelectorAll('.month-entry').forEach(function(entry) {
+            const jumlah = parseFloat(entry.querySelector('.jumlah-input')?.value) || 0;
+            const monthTotal = hargaSatuan * jumlah;
+
+            const monthTotalEl = entry.querySelector('.month-total');
+            if (monthTotalEl) {
+                monthTotalEl.textContent = 'Rp ' + formatNumber(monthTotal);
+            }
+            total += monthTotal;
+        });
+
+        const totalDisplay = document.getElementById('totalAnggaranDisplay');
+        if (totalDisplay) {
+            totalDisplay.textContent = 'Total: Rp ' + formatNumber(total);
+        }
+    }
+
+    function updateEditTotal() {
+        const jumlah = parseFloat(document.getElementById('edit-jumlah')?.value) || 0;
+        const hargaSatuan = parseFloat(document.getElementById('edit-harga-satuan')?.value) || 0;
+        const total = jumlah * hargaSatuan;
+
+        const totalDisplay = document.getElementById('edit-total-display');
+        if (totalDisplay) {
+            totalDisplay.textContent = 'Rp ' + formatNumber(total);
+        }
+    }
+
     function resetModal() {
-        firstSatuanValue = '';
+        currentStep = 1;
+        showStep(1);
+        firstSatuanValue = ''; // Reset nilai satuan pertama
 
         const form = document.getElementById('tambahRkasForm');
         if (form) form.reset();
@@ -445,10 +442,43 @@ document.addEventListener('DOMContentLoaded', function() {
             field.classList.remove('is-invalid');
         });
 
-        const submitBtn = document.querySelector('#tambahRkasForm button[type="submit"]');
+        const submitBtn = document.getElementById('submitBtn');
         if (submitBtn) {
             submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Data';
             submitBtn.disabled = false;
+        }
+
+        const allowedMonths = ['Juli','Agustus','September', 'Oktober', 'November', 'Desember'];
+        // Reset to single month entry
+        const container = document.getElementById('bulanContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="month-entry border rounded p-3 mb-3" data-index="0">
+                    <div class="row align-items-center mb-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Bulan <span class="text-danger">*</span></label>
+                            <select class="form-select month-select" name="bulan[]" required>
+                                <option value="">Pilih Bulan</option>
+                                ${months.map(month => `<option value="${month}">${month}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Jumlah <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control jumlah-input"
+                                name="jumlah[]" placeholder="0" min="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Satuan <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control satuan-input"
+                                name="satuan[]" placeholder="pcs, unit, buah">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Total</label>
+                            <div class="month-total badge bg-info w-100">Rp 0</div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // Reset semua input satuan menjadi editable
@@ -456,7 +486,8 @@ document.addEventListener('DOMContentLoaded', function() {
             input.readOnly = false;
         });
 
-        initializeAnggaranList();
+        monthIndex = 1;
+        updateTotalAnggaran();
     }
 
     function refreshMonthData(month) {
@@ -554,17 +585,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="#" onclick="showSisipkanModal(
-                                    ${item.kode_id},
-                                    '${escapeHtml(item.program_kegiatan)}',
-                                    '${escapeHtml(item.kegiatan)}',
-                                    ${item.kode_rekening_id},
-                                    '${escapeHtml(item.rekening_belanja)}'
-                                )">
-                                    <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
-                                </a>
-                            </li>
-                            <li>
                                 <a class="dropdown-item" href="#" onclick="showEditModal(${item.id})">
                                     <i class="bi bi-pencil me-2"></i>Edit
                                 </a>
@@ -614,7 +634,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tahunAnggaran = document.querySelector('input[name="tahun_anggaran"]').value;
 
         // Update Tahap 1
-        fetch(`/rkas-perubahan/total-tahap1?tahun=${tahunAnggaran}`)
+        fetch(`/total-tahap1?tahun=${tahunAnggaran}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -645,7 +665,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => console.error('Error updating Tahap 1:', error));
 
         // Update Tahap 2
-        fetch(`/rkas-perubahan/total-tahap2?tahun=${tahunAnggaran}`)
+        fetch(`/total-tahap2?tahun=${tahunAnggaran}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -834,7 +854,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     };
 
-    window.showDeleteModal = function(id) {
+    window.showDeleteModal = function (id) {
         currentRkasId = id;
 
         fetch(`/rkas-perubahan/${id}`, {
@@ -1025,29 +1045,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     };
 
-    window.showSisipkanModal = function(kodeId, program, kegiatan, rekeningId, rekeningDisplay) {
-        const activeTab = document.querySelector('#monthTabs .nav-link.active');
-        const bulan = activeTab ? activeTab.getAttribute('data-month') : '';
-
-        // Set nilai form
-        document.getElementById('sisipkan_kode_id').value = kodeId;
-        document.getElementById('sisipkan_kode_rekening_id').value = rekeningId;
-        document.getElementById('sisipkan_bulan').value = bulan;
-        document.getElementById('sisipkan_program').value = program;
-        document.getElementById('sisipkan_kegiatan').value = kegiatan;
-        document.getElementById('sisipkan_rekening_belanja_display').value = rekeningDisplay;
-
-        // Reset form lainnya
-        document.getElementById('sisipkan_uraian').value = '';
-        document.getElementById('sisipkan_harga_satuan').value = '';
-        document.getElementById('sisipkan_jumlah').value = '';
-        document.getElementById('sisipkan_satuan').value = '';
-        document.getElementById('sisipkan_total_display').textContent = 'Rp 0';
-
-        // Tampilkan modal
-        new bootstrap.Modal(document.getElementById('sisipkanRkasModal')).show();
-    };
-
     // Setelah halaman dimuat, aktifkan tab yang sesuai
     document.addEventListener('DOMContentLoaded', function() {
         const savedTab = localStorage.getItem('activeRkasTab');
@@ -1055,9 +1052,20 @@ document.addEventListener('DOMContentLoaded', function() {
             setActiveTab(savedTab);
             localStorage.removeItem('activeRkasTab');
         }
-
-        // Panggil lockTahap1Actions saat halaman dimuat
-        lockTahap1Actions();
+    
+    // Juga panggil saat tab diubah
+    document.querySelectorAll('.nav-link[data-month]').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            setTimeout(hideTahap1Actions, 300);
+        });
+    });
+    
+    // Juga panggil saat tab diubah
+    document.querySelectorAll('.nav-link[data-month]').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            setTimeout(lockTahap1Actions, 300);
+        });
+    });
 
         // Simpan tab aktif saat berpindah tab
         document.querySelectorAll('#monthTabs .nav-link').forEach(tab => {
@@ -1065,6 +1073,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('activeRkasTab', this.getAttribute('data-month'));
             });
         });
+
+        
     });
 });
 
@@ -1075,4 +1085,6 @@ function refreshCurrentMonthData() {
         const month = activeTab.getAttribute('data-month');
         refreshMonthData(month.toLowerCase());
     }
+
+    
 }

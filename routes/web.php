@@ -90,6 +90,8 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
     Route::put('/{id}', [RkasPerubahanController::class, 'update'])->name('rkas-perubahan.update');
     Route::put('/{id}/update-tanggal-perubahan', [PenganggaranController::class, 'updateTanggalPerubahan'])
         ->name('penganggaran.update-tanggal-perubahan');
+    Route::post('/sisipkan', [RkasPerubahanController::class, 'sisipkan'])
+        ->name('rkas-perubahan.sisipkan');
     Route::get('/{id}', [RkasPerubahanController::class, 'show'])->name('rkas-perubahan.show');
     Route::delete('/{id}', [RkasPerubahanController::class, 'destroy'])->name('rkas-perubahan.destroy');
     Route::get('/total/per-bulan', [RkasPerubahanController::class, 'getTotalPerBulan'])->name('rkas-perubahan.getTotalPerBulan');
