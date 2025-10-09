@@ -3615,9 +3615,8 @@ class BukuKasUmumController extends Controller
         }
     }
 
-    // Method untuk generate PDF BKP Umum
     /**
-     * Generate PDF BKP Umum - VERSI DIPERBAIKI
+     * Generate PDF BKP Umum - VERSI DIPERBAIKI DENGAN PERHITUNGAN SALDO YANG BENAR
      */
     public function generateBkpUmumPdf($tahun, $bulan)
     {
@@ -3676,66 +3675,50 @@ class BukuKasUmumController extends Controller
             }
 
             // Hitung saldo untuk BKP Umum
-            $saldoAwal = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka);
+            $saldoAwal = $this->hitungSaldoAwalBkpUmum($penganggaran->id, $tahun, $bulan);
             $saldoAwalTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran->id, $bulanAngka);
 
-            // Hitung total penerimaan dasar
-            $totalPenerimaan = $saldoAwal + $saldoAwalTunai;
+            Log::info('=== DATA UNTUK PDF BKP UMUM ===', [
+                'penganggaran_id' => $penganggaran->id,
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'saldo_awal' => $saldoAwal,
+                'saldo_awal_tunai' => $saldoAwalTunai,
+                'jumlah_penerimaan_dana' => $penerimaanDanas->count(),
+                'jumlah_penarikan' => $penarikanTunais->count(),
+                'jumlah_setor' => $setorTunais->count(),
+                'jumlah_bku' => $bkuData->count(),
+                'bunga_record_exists' => !is_null($bungaRecord)
+            ]);
 
-            // Tambahkan penerimaan dana di bulan ini
-            $penerimaanBulanIni = $penerimaanDanas->filter(function ($penerimaan) use ($bulanAngka) {
-                return \Carbon\Carbon::parse($penerimaan->tanggal_terima)->month == $bulanAngka;
-            });
-            $totalPenerimaan += $penerimaanBulanIni->sum('jumlah_dana');
+            // Siapkan data rows untuk perhitungan saldo yang benar
+            $rowsData = $this->siapkanDataRowsBkpUmum(
+                $penganggaran->id,
+                $tahun,
+                $bulan,
+                $bulanAngka,
+                $saldoAwal,
+                $saldoAwalTunai,
+                $penerimaanDanas,
+                $penarikanTunais,
+                $setorTunais,
+                $bkuData,
+                $bungaRecord
+            );
 
-            // Tambahkan penarikan tunai
-            $totalPenerimaan += $penarikanTunais->sum('jumlah_penarikan');
+            // Hitung total akhir dari rows data
+            $totalPenerimaan = 0;
+            $totalPengeluaran = 0;
+            $currentSaldo = 0;
 
-            // Tambahkan bunga bank
-            $totalPenerimaan += ($bungaRecord ? $bungaRecord->bunga_bank : 0);
-
-            // Hitung pajak untuk BKP Umum (SEMUA dihitung di kedua kolom)
-            $pajakPenerimaan = 0;
-            $pajakPengeluaran = 0;
-            $pajakDaerahPenerimaan = 0;
-            $pajakDaerahPengeluaran = 0;
-
-            foreach ($bkuData as $transaksi) {
-                // Pajak Pusat - SEMUA dihitung di kedua kolom
-                if ($transaksi->total_pajak > 0) {
-                    $pajakPenerimaan += $transaksi->total_pajak; // Selalu tambah ke penerimaan
-                    if (!empty($transaksi->ntpn)) {
-                        $pajakPengeluaran += $transaksi->total_pajak; // Hanya tambah ke pengeluaran jika NTPN ada
-                    }
-                }
-
-                // Pajak Daerah - SEMUA dihitung di kedua kolom
-                if ($transaksi->total_pajak_daerah > 0) {
-                    $pajakDaerahPenerimaan += $transaksi->total_pajak_daerah; // Selalu tambah ke penerimaan
-                    if (!empty($transaksi->ntpn)) {
-                        $pajakDaerahPengeluaran += $transaksi->total_pajak_daerah; // Hanya tambah ke pengeluaran jika NTPN ada
-                    }
-                }
+            foreach ($rowsData as $row) {
+                $totalPenerimaan += $row['penerimaan'];
+                $totalPengeluaran += $row['pengeluaran'];
             }
-
-            // Hitung pajak bunga bank - SEMUA dihitung di kedua kolom
-            if ($bungaRecord && $bungaRecord->pajak_bunga_bank > 0) {
-                $pajakPenerimaan += $bungaRecord->pajak_bunga_bank; // Selalu tambah ke penerimaan
-                if (!empty($bungaRecord->ntpn)) {
-                    $pajakPengeluaran += $bungaRecord->pajak_bunga_bank; // Hanya tambah ke pengeluaran jika NTPN ada
-                }
-            }
-
-            // Tambahkan SEMUA pajak ke total
-            $totalPenerimaan += $pajakPenerimaan + $pajakDaerahPenerimaan;
-            $totalPengeluaran = $setorTunais->sum('jumlah_setor')
-                + $bkuData->sum('total_transaksi_kotor')
-                + $pajakPengeluaran + $pajakDaerahPengeluaran;
-
             $currentSaldo = $totalPenerimaan - $totalPengeluaran;
 
             // Hitung saldo bank dan tunai akhir bulan
-            $saldoBank = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka + 1);
+            $saldoBank = $this->hitungSaldoAkhirBkpBank($penganggaran->id, $tahun, $bulan);
             $saldoTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran->id, $bulanAngka + 1);
 
             // Asumsi untuk dana sekolah dan BOSP
@@ -3748,11 +3731,7 @@ class BukuKasUmumController extends Controller
                 'bulanAngka' => $bulanAngka,
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
-                'penerimaanDanas' => $penerimaanDanas,
-                'penarikanTunais' => $penarikanTunais,
-                'setorTunais' => $setorTunais,
-                'bkuData' => $bkuData,
-                'bungaRecord' => $bungaRecord,
+                'rowsData' => $rowsData, // Data rows yang sudah disiapkan
                 'saldoAwal' => $saldoAwal,
                 'saldoAwalTunai' => $saldoAwalTunai,
                 'totalPenerimaan' => $totalPenerimaan,
@@ -3781,9 +3760,168 @@ class BukuKasUmumController extends Controller
             return $pdf->download($filename);
         } catch (\Exception $e) {
             Log::error('Error generating BKP Umum PDF: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
 
             return response()->json(['error' => 'Gagal generate PDF: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Siapkan data rows untuk BKP Umum dengan struktur yang konsisten
+     */
+    private function siapkanDataRowsBkpUmum($penganggaran_id, $tahun, $bulan, $bulanAngka, $saldoAwal, $saldoAwalTunai, $penerimaanDanas, $penarikanTunais, $setorTunais, $bkuData, $bungaRecord)
+    {
+        $rowsData = [];
+
+        // BARIS 1: Saldo Awal
+        $rowsData[] = [
+            'tanggal' => '1/' . $bulanAngka . '/' . $tahun,
+            'kode_rekening' => '-',
+            'no_bukti' => '-',
+            'uraian' => 'Saldo Awal bulan',
+            'penerimaan' => $saldoAwal,
+            'pengeluaran' => 0,
+            'is_saldo_awal' => true
+        ];
+
+        // BARIS 2: Saldo Kas Tunai (jika ada)
+        if ($saldoAwalTunai > 0) {
+            $rowsData[] = [
+                'tanggal' => '01-' . $bulanAngka . '-' . $tahun,
+                'kode_rekening' => '-',
+                'no_bukti' => '-',
+                'uraian' => 'Saldo Kas Tunai',
+                'penerimaan' => $saldoAwalTunai,
+                'pengeluaran' => 0
+            ];
+        }
+
+        // DATA PENERIMAAN DANA
+        foreach ($penerimaanDanas as $penerimaan) {
+            if (\Carbon\Carbon::parse($penerimaan->tanggal_terima)->month == $bulanAngka) {
+                $rowsData[] = [
+                    'tanggal' => \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('d-m-Y'),
+                    'kode_rekening' => '299',
+                    'no_bukti' => '-',
+                    'uraian' => 'Terima Dana ' . $penerimaan->sumber_dana . ' T.A ' . $tahun,
+                    'penerimaan' => $penerimaan->jumlah_dana,
+                    'pengeluaran' => 0
+                ];
+            }
+        }
+
+        // DATA PENARIKAN TUNAI
+        foreach ($penarikanTunais as $penarikan) {
+            $rowsData[] = [
+                'tanggal' => \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d-m-Y'),
+                'kode_rekening' => '-',
+                'no_bukti' => '-',
+                'uraian' => 'Penarikan Tunai',
+                'penerimaan' => $penarikan->jumlah_penarikan,
+                'pengeluaran' => 0
+            ];
+        }
+
+        // DATA SETOR TUNAI
+        foreach ($setorTunais as $setor) {
+            $rowsData[] = [
+                'tanggal' => \Carbon\Carbon::parse($setor->tanggal_setor)->format('d-m-Y'),
+                'kode_rekening' => '-',
+                'no_bukti' => '-',
+                'uraian' => 'Setor Tunai',
+                'penerimaan' => 0,
+                'pengeluaran' => $setor->jumlah_setor
+            ];
+        }
+
+        // DATA TRANSAKSI BKU
+        foreach ($bkuData as $transaksi) {
+            // Baris transaksi utama
+            $rowsData[] = [
+                'tanggal' => \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y'),
+                'kode_rekening' => $transaksi->rekeningBelanja->kode_rekening ?? '-',
+                'no_bukti' => $transaksi->id_transaksi,
+                'uraian' => $transaksi->uraian_opsional ?? $transaksi->uraian,
+                'penerimaan' => 0,
+                'pengeluaran' => $transaksi->total_transaksi_kotor
+            ];
+
+            // Baris Pajak Pusat jika ada
+            if ($transaksi->total_pajak > 0) {
+                if (empty($transaksi->ntpn)) {
+                    // Jika NTPN belum ada (Terima Pajak) - di kolom PENERIMAAN
+                    $rowsData[] = [
+                        'tanggal' => \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y'),
+                        'kode_rekening' => '-',
+                        'no_bukti' => $transaksi->kode_masa_pajak ?? '-',
+                        'uraian' => 'Terima Pajak ' . ($transaksi->pajak ?? '') . ' ' . ($transaksi->persen_pajak ?? '') . '% ' . ($transaksi->uraian_opsional ?? $transaksi->uraian),
+                        'penerimaan' => $transaksi->total_pajak,
+                        'pengeluaran' => 0
+                    ];
+                } else {
+                    // Jika NTPN sudah ada (Setor Pajak) - tampil di KEDUA KOLOM
+                    $rowsData[] = [
+                        'tanggal' => \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y'),
+                        'kode_rekening' => '-',
+                        'no_bukti' => $transaksi->kode_masa_pajak,
+                        'uraian' => 'Setor Pajak ' . ($transaksi->pajak ?? '') . ' ' . ($transaksi->persen_pajak ?? '') . '% ' . ($transaksi->uraian_opsional ?? $transaksi->uraian),
+                        'penerimaan' => $transaksi->total_pajak,
+                        'pengeluaran' => $transaksi->total_pajak
+                    ];
+                }
+            }
+
+            // Baris Pajak Daerah jika ada
+            if ($transaksi->total_pajak_daerah > 0) {
+                if (empty($transaksi->ntpn)) {
+                    // Jika NTPN belum ada (Terima Pajak Daerah) - di kolom PENERIMAAN
+                    $rowsData[] = [
+                        'tanggal' => \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y'),
+                        'kode_rekening' => '-',
+                        'no_bukti' => '-',
+                        'uraian' => 'Terima Pajak Daerah ' . ($transaksi->pajak_daerah ?? '') . ' ' . ($transaksi->persen_pajak_daerah ?? '') . '% ' . ($transaksi->uraian_opsional ?? $transaksi->uraian),
+                        'penerimaan' => $transaksi->total_pajak_daerah,
+                        'pengeluaran' => 0
+                    ];
+                } else {
+                    // Jika NTPN sudah ada (Setor Pajak Daerah) - tampil di KEDUA KOLOM
+                    $rowsData[] = [
+                        'tanggal' => \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y'),
+                        'kode_rekening' => '-',
+                        'no_bukti' => '-',
+                        'uraian' => 'Setor Pajak Daerah ' . ($transaksi->pajak_daerah ?? '') . ' ' . ($transaksi->persen_pajak_daerah ?? '') . '% ' . ($transaksi->uraian_opsional ?? $transaksi->uraian),
+                        'penerimaan' => $transaksi->total_pajak_daerah,
+                        'pengeluaran' => $transaksi->total_pajak_daerah
+                    ];
+                }
+            }
+        }
+
+        // BUNGA BANK
+        if ($bungaRecord && $bungaRecord->bunga_bank > 0) {
+            $rowsData[] = [
+                'tanggal' => \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d-m-Y'),
+                'kode_rekening' => '299',
+                'no_bukti' => '-',
+                'uraian' => 'Bunga Bank',
+                'penerimaan' => $bungaRecord->bunga_bank,
+                'pengeluaran' => 0
+            ];
+        }
+
+        // PAJAK BUNGA BANK
+        if ($bungaRecord && $bungaRecord->pajak_bunga_bank > 0) {
+            $rowsData[] = [
+                'tanggal' => \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d-m-Y'),
+                'kode_rekening' => '199',
+                'no_bukti' => '-',
+                'uraian' => 'Pajak Bunga Bank',
+                'penerimaan' => 0,
+                'pengeluaran' => $bungaRecord->pajak_bunga_bank
+            ];
+        }
+
+        return $rowsData;
     }
 
     /**

@@ -26,139 +26,164 @@
         @endif
 
         {{-- Modal Tambah --}}
-        <!-- Modal Tambah Anggaran -->
+        {{-- Modal Tambah --}}
         <div class="modal fade" id="tambahAnggaranModal" tabindex="-1" aria-labelledby="tambahAnggaranModalLabel"
             aria-hidden="true">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="tambahAnggaranModalLabel">Tambah Anggaran Baru</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="tambahAnggaranModalLabel">
+                            <i class="bi bi-plus-circle me-2"></i>Tambah Anggaran Baru
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                     </div>
-                    <form action="{{ route('penganggaran.store') }}" method="POST">
+                    <form action="{{ route('penganggaran.store') }}" method="POST" id="formTambahAnggaran">
                         @csrf
                         <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="pagu_anggaran" class="form-label">Pagu Anggaran</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rp</span>
-                                    <input type="text" class="form-control" id="pagu_anggaran" name="pagu_anggaran" required>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="tahun_anggaran" class="form-label">Tahun Anggaran</label>
-                                <input type="number" class="form-control" id="tahun_anggaran" name="tahun_anggaran" min="2000"
-                                    max="{{ date('Y') + 5 }}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="kepala_sekolah" class="form-label">Kepala Sekolah</label>
-                                <input type="text" class="form-control" id="kepala_sekolah" name="kepala_sekolah"
-                                    pleaceholder="Nama Kepala Sekolah" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="nip_kepala_sekolah" class="form-label">NIP Kepala Sekolah</label>
-                                <input type="text" class="form-control" id="nip_kepala_sekolah" name="nip_kepala_sekolah"
-                                    pleaceholder="NIP Kepala Sekolah" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="bendahara" class="form-label">Bendahara</label>
-                                <input type="text" class="form-control" id="bendahara" name="bendahara"
-                                    pleaceholder="Nama Bendahara" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="nip_bendahara" class="form-label">NIP Bendahara</label>
-                                <input type="text" class="form-control" id="nip_bendahara" name="nip_bendahara"
-                                    pleaceholder="NIP Bendahara" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="komite" class="form-label">Komite</label>
-                                <input type="text" class="form-control" id="komite" name="komite" pleaceholder="Nama Komite"
-                                    required>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-primary">Simpan</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+                            <div class="row">
+                                <!-- Informasi Anggaran -->
+                                <div class="col-md-6">
+                                    <div class="border-bottom pb-2 mb-3">
+                                        <h6 class="text-primary"><i class="bi bi-cash-coin me-2"></i>Informasi Anggaran</h6>
+                                    </div>
         
-        @foreach ($anggarans as $anggaran)
-        <!-- Modal Edit untuk setiap anggaran -->
-        <div class="modal fade" id="editAnggaranModal{{ $anggaran->id }}" tabindex="-1"
-            aria-labelledby="editAnggaranModalLabel{{ $anggaran->id }}" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editAnggaranModalLabel{{ $anggaran->id }}">Edit Anggaran
-                            {{ $anggaran->tahun_anggaran }}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <form action="{{ route('penganggaran.update', $anggaran->id) }}" method="POST">
-                        @csrf
-                        @method('PUT')
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="edit_pagu_anggaran_{{ $anggaran->id }}" class="form-label">Pagu
-                                    Anggaran</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rp</span>
-                                    <input type="text" class="form-control" id="edit_pagu_anggaran_{{ $anggaran->id }}"
-                                        name="pagu_anggaran"
-                                        value="{{ number_format($anggaran->pagu_anggaran, 0, ',', '.') }}" required>
+                                    <div class="mb-3">
+                                        <label for="pagu_anggaran" class="form-label">Pagu Anggaran <span
+                                                class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light">Rp</span>
+                                            <input type="text" class="form-control" id="pagu_anggaran" name="pagu_anggaran"
+                                                required placeholder="Masukkan pagu anggaran">
+                                        </div>
+                                        <div class="form-text">Contoh: 1.000.000</div>
+                                    </div>
+        
+                                    <div class="mb-3">
+                                        <label for="tahun_anggaran" class="form-label">Tahun Anggaran <span
+                                                class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" id="tahun_anggaran" name="tahun_anggaran"
+                                            min="2000" max="{{ date('Y') + 5 }}" required placeholder="{{ date('Y') }}">
+                                    </div>
+                                </div>
+        
+                                <!-- Informasi Komite -->
+                                <div class="col-md-6">
+                                    <div class="border-bottom pb-2 mb-3">
+                                        <h6 class="text-primary"><i class="bi bi-people me-2"></i>Informasi Komite</h6>
+                                    </div>
+        
+                                    <div class="mb-3">
+                                        <label for="komite" class="form-label">Nama Komite <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="komite" name="komite" required
+                                            placeholder="Nama Komite Sekolah">
+                                    </div>
                                 </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="edit_tahun_anggaran_{{ $anggaran->id }}" class="form-label">Tahun
-                                    Anggaran</label>
-                                <input type="number" class="form-control" id="edit_tahun_anggaran_{{ $anggaran->id }}"
-                                    name="tahun_anggaran" value="{{ $anggaran->tahun_anggaran }}" min="2000"
-                                    max="{{ date('Y') + 5 }}" required>
+        
+                            <!-- Informasi Kepala Sekolah -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="border-bottom pb-2 mb-3">
+                                        <h6 class="text-primary"><i class="bi bi-person-badge me-2"></i>Informasi Kepala Sekolah
+                                        </h6>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="kepala_sekolah" class="form-label">Nama Kepala Sekolah <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="kepala_sekolah" name="kepala_sekolah"
+                                            required placeholder="Nama Lengkap Kepala Sekolah">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="nip_kepala_sekolah" class="form-label">NIP <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="nip_kepala_sekolah"
+                                            name="nip_kepala_sekolah" required placeholder="Nomor Induk Pegawai">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="sk_kepala_sekolah" class="form-label">SK Pelantikan <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="sk_kepala_sekolah" name="sk_kepala_sekolah"
+                                            required placeholder="Nomor SK Pelantikan">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="edit_kepala_sekolah_{{ $anggaran->id }}" class="form-label">Kepala
-                                    Sekolah</label>
-                                <input type="text" class="form-control" id="edit_kepala_sekolah_{{ $anggaran->id }}"
-                                    name="kepala_sekolah" value="{{ $anggaran->kepala_sekolah }}"
-                                    pleaceholder="Nama Kepala Sekolah" required>
+        
+                            <!-- Informasi Bendahara -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="border-bottom pb-2 mb-3">
+                                        <h6 class="text-primary"><i class="bi bi-person-check me-2"></i>Informasi Bendahara</h6>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="bendahara" class="form-label">Nama Bendahara <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="bendahara" name="bendahara" required
+                                            placeholder="Nama Lengkap Bendahara">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="nip_bendahara" class="form-label">NIP <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="nip_bendahara" name="nip_bendahara" required
+                                            placeholder="Nomor Induk Pegawai">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="sk_bendahara" class="form-label">SK Bendahara <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="sk_bendahara" name="sk_bendahara" required
+                                            placeholder="Nomor SK Bendahara">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="edit_nip_kepala_sekolah_{{ $anggaran->id }}" class="form-label">NIP
-                                    Kepala Sekolah</label>
-                                <input type="text" class="form-control" id="edit_nip_kepala_sekolah_{{ $anggaran->id }}"
-                                    name="nip_kepala_sekolah" value="{{ $anggaran->nip_kepala_sekolah }}"
-                                    pleaceholder="NIP Kepala Sekolah" required>
+        
+                            <!-- Informasi Tambahan -->
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="tanggal_sk_bendahara" class="form-label">Tanggal SK Bendahara</label>
+                                        <input type="date" class="form-control" id="tanggal_sk_bendahara" name="tanggal_sk_bendahara">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="tanggal_sk_kepala_sekolah" class="form-label">Tanggal SK Pelantikan Kepsek</label>
+                                        <input type="date" class="form-control" id="tanggal_sk_kepala_sekolah" name="tanggal_sk_kepala_sekolah">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="edit_bendahara_{{ $anggaran->id }}" class="form-label">Bendahara</label>
-                                <input type="text" class="form-control" id="edit_bendahara_{{ $anggaran->id }}"
-                                    name="bendahara" value="{{ $anggaran->bendahara }}" pleaceholder="Nama Bendahara"
-                                    required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_nip_bendahara_{{ $anggaran->id }}" class="form-label">NIP
-                                    Bendahara</label>
-                                <input type="text" class="form-control" id="edit_nip_bendahara_{{ $anggaran->id }}"
-                                    name="nip_bendahara" value="{{ $anggaran->nip_bendahara }}"
-                                    pleaceholder="NIP Bendahara" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_komite_{{ $anggaran->id }}" class="form-label">Komite</label>
-                                <input type="text" class="form-control" id="edit_komite_{{ $anggaran->id }}"
-                                    name="komite" value="{{ $anggaran->komite }}" pleaceholder="Nama Komite" required>
+        
+                            <div class="alert alert-info mt-3">
+                                <small>
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Field dengan tanda <span class="text-danger">*</span> wajib diisi.
+                                </small>
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-2"></i>Batal
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="btnSimpan">
+                                <i class="bi bi-check-circle me-2"></i>Simpan
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-        @endforeach
 
         @foreach ($anggarans as $anggaran)
         <!-- Modal Delete untuk setiap anggaran -->
@@ -358,28 +383,81 @@
 </div>
 @endsection
 
+@push('styles')
+<style>
+    .modal-header {
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .modal-footer {
+        border-top: 1px solid #dee2e6;
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border-right: none;
+    }
+
+    .form-control:focus+.input-group-text {
+        border-color: #86b7fe;
+        background-color: #f8f9fa;
+    }
+
+    .border-bottom h6 {
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+</style>
+@endpush
+
 @push('scripts')
 <!-- PERBAIKAN: Memuat jQuery dari CDN -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{{-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> --}}
 <script>
     $(document).ready(function() {
-            // Format input angka tambah anggaran
-            $('#pagu_anggaran').on('keyup', function() {
-                let value = $(this).val().replace(/[^\d]/g, '');
-                if (value.length > 0) {
-                    value = parseInt(value).toLocaleString('id-ID');
-                    $(this).val(value);
-                }
-            });
-
-            // Format edit input angka
-            $('[id^="edit_pagu_anggaran_"]').on('keyup', function() {
-                let value = $(this).val().replace(/[^\d]/g, '');
-                if (value.length > 0) {
-                    value = parseInt(value).toLocaleString('id-ID');
-                    $(this).val(value);
-                }
-            });
+        // Format input angka tambah anggaran
+        $('#pagu_anggaran').on('keyup', function() {
+            let value = $(this).val().replace(/[^\d]/g, '');
+            if (value.length > 0) {
+                value = parseInt(value).toLocaleString('id-ID');
+                $(this).val(value);
+            }
         });
+
+        // Reset form ketika modal ditutup
+        $('#tambahAnggaranModal').on('hidden.bs.modal', function () {
+            $('#formTambahAnggaran')[0].reset();
+        });
+
+        // Validasi form sebelum submit
+        $('#formTambahAnggaran').on('submit', function(e) {
+            let isValid = true;
+            $(this).find('input[required]').each(function() {
+                if ($(this).val().trim() === '') {
+                    isValid = false;
+                    $(this).addClass('is-invalid');
+                } else {
+                    $(this).removeClass('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Harap lengkapi semua field yang wajib diisi!');
+            }
+        });
+
+        // Hapus validasi ketika user mulai mengetik
+        $('input[required]').on('input', function() {
+            if ($(this).val().trim() !== '') {
+                $(this).removeClass('is-invalid');
+            }
+        });
+    });
 </script>
 @endpush

@@ -249,7 +249,7 @@
             <tr>
                 <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
                 <td>-</td>
-                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>-</td>
                 <td>Terima Pajak Daerah {{ $transaksi->pajak_daerah }} {{ $transaksi->persen_pajak_daerah }}% {{
                     $transaksi->uraian_opsional }}</td>
                 <td class="text-right">{{ number_format($transaksi->total_pajak_daerah, 0, ',', '.') }}</td>
@@ -266,7 +266,7 @@
             <tr>
                 <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
                 <td>-</td>
-                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>-</td>
                 <td>Setor Pajak Daerah {{ $transaksi->pajak_daerah }} {{ $transaksi->persen_pajak_daerah }}% {{
                     $transaksi->uraian_opsional }}</td>
                 <td class="text-right">{{ number_format($transaksi->total_pajak_daerah, 0, ',', '.') }}</td>
@@ -303,16 +303,16 @@
             <p>Menyetujui,</p>
             <p>Kepala Sekolah</p>
             <div class="ttd-space"></div>
-            <p><strong>{{ $penganggaran->kepala_sekolah ?? 'Dra. MASTTAH ABDULLAH' }}</strong></p>
-            <p>NIP. {{ $penganggaran->nip_kepala_sekolah ?? '196909172007012017' }}</p>
+            <p><strong>{{ $penganggaran->kepala_sekolah ?? '..........' }}</strong></p>
+            <p>NIP. {{ $penganggaran->nip_kepala_sekolah ?? '..........' }}</p>
         </div>
 
         <div class="ttd-box">
-            <p>{{ $sekolah->kabupaten_kota ?? 'Tolitoli' }}, {{ $formatTanggalAkhirBulanLengkap }}</p>
+            <p>{{ $sekolah->kabupaten_kota ?? '..........' }}, {{ $formatTanggalAkhirBulanLengkap }}</p>
             <p>Bendahara,</p>
             <div class="ttd-space"></div>
-            <p><strong>{{ $penganggaran->bendahara ?? 'Dra. MASTTAH ABDULLAH' }}</strong></p>
-            <p>NIP. {{ $penganggaran->nip_bendahara ?? '196909172007012017' }}</p>
+            <p><strong>{{ $penganggaran->bendahara ?? '..........' }}</strong></p>
+            <p>NIP. {{ $penganggaran->nip_bendahara ?? '..........' }}</p>
         </div>
     </div>
 

@@ -17,17 +17,23 @@ class Penganggaran extends Model
         'pagu_anggaran',
         'tahun_anggaran',
         'kepala_sekolah',
+        'sk_kepala_sekolah',
         'bendahara',
+        'sk_bendahara',
         'komite',
         'nip_kepala_sekolah',
         'nip_bendahara',
         'tanggal_cetak',
-        'tanggal_perubahan'
+        'tanggal_perubahan',
+        'tanggal_sk_kepala_sekolah',
+        'tanggal_sk_bendahara'
     ];
 
     protected $casts = [
         'pagu_anggaran' => 'decimal:2',
         'tahun_anggaran' => 'integer',
+        'tanggal_sk_kepala_sekolah' => 'date',
+        'tanggal_sk_bendahara' => 'date',
     ];
 
     // Relasi dengan model Sekolah

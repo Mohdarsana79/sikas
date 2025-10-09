@@ -126,7 +126,7 @@
             <tr>
                 <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
                 <td>-</td>
-                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>-</td>
                 <td>Terima Pajak Daerah {{ $transaksi->pajak_daerah }} {{ $transaksi->persen_pajak_daerah }}% {{
                     $transaksi->uraian_opsional }}</td>
                 <td class="text-end">{{ number_format($transaksi->total_pajak_daerah, 0, ',', '.') }}</td>
@@ -143,7 +143,7 @@
             <tr>
                 <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
                 <td>-</td>
-                <td>{{ $transaksi->kode_masa_pajak }}</td>
+                <td>-</td>
                 <td>Setor Pajak Daerah {{ $transaksi->pajak_daerah }} {{ $transaksi->persen_pajak_daerah }}% {{
                     $transaksi->uraian_opsional }}</td>
                 <td class="text-end">{{ number_format($transaksi->total_pajak_daerah, 0, ',', '.') }}</td>

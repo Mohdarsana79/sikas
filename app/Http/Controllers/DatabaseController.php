@@ -15,9 +15,6 @@ use Illuminate\Support\Facades\Artisan;
 
 class DatabaseController extends Controller
 {
-    /**
-     * Menampilkan halaman backup & restore
-     */
     public function index()
     {
         $backupFiles = $this->getBackupFiles();
@@ -294,6 +291,75 @@ class DatabaseController extends Controller
         $progress = json_decode(file_get_contents($progressFile), true);
 
         return response()->json($progress);
+    }
+
+    /**
+     * Log restore step progress
+     */
+    private function logRestoreStep($restoreId, $step, $title, $description, $status = 'processing')
+    {
+        $progressDir = storage_path('app/restore_progress');
+        if (!file_exists($progressDir)) {
+            mkdir($progressDir, 0755, true);
+        }
+
+        $progressFile = $progressDir . '/' . $restoreId . '.json';
+
+        $progress = [];
+        if (file_exists($progressFile)) {
+            $progress = json_decode(file_get_contents($progressFile), true) ?: [];
+        }
+
+        $progress['restore_id'] = $restoreId;
+        $progress['current_step'] = $step;
+        $progress['steps'][$step] = [
+            'step' => $step,
+            'title' => $title,
+            'description' => $description,
+            'status' => $status,
+            'timestamp' => now()->toISOString()
+        ];
+
+        // Calculate overall progress
+        $completedSteps = 0;
+        $totalSteps = 5;
+
+        foreach ($progress['steps'] as $stepData) {
+            if ($stepData['status'] === 'completed') {
+                $completedSteps++;
+            }
+        }
+
+        $progress['overall_progress'] = round(($completedSteps / $totalSteps) * 100);
+        $progress['last_updated'] = now()->toISOString();
+
+        file_put_contents($progressFile, json_encode($progress, JSON_PRETTY_PRINT));
+
+        Log::info('Restore step logged', [
+            'restore_id' => $restoreId,
+            'step' => $step,
+            'title' => $title,
+            'status' => $status
+        ]);
+    }
+
+    /**
+     * Validate if file is a valid SQL file
+     */
+    private function isValidSQLFile($content)
+    {
+        // Check for common SQL keywords
+        $sqlKeywords = ['CREATE', 'INSERT', 'UPDATE', 'DELETE', 'SELECT', 'DROP', 'ALTER', '--', '/*'];
+
+        $content = strtoupper($content);
+
+        foreach ($sqlKeywords as $keyword) {
+            if (strpos($content, $keyword) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

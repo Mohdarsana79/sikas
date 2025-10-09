@@ -463,11 +463,534 @@
     </div>
     </div>
 
-    @include('rkas.modal.tambah-rkas')
-    @include('rkas.modal.detail-rkas')
-    @include('rkas.modal.edit-rkas')
-    @include('rkas.modal.sisipkan-rkas')
-    @include('rkas.modal.delete-rkas')
+    <!-- Modal Tambah RKAS -->
+    <div class="modal fade" id="tambahRkasModal" tabindex="-1" aria-labelledby="tambahRkasModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="tambahRkasModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Tambah Data RKAS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+
+                <form id="tambahRkasForm" method="POST" action="{{ route('rkas.store') }}">
+                    @csrf
+                    <div class="modal-body">
+                        <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
+                        <!-- Progress Steps -->
+                        <div class="progress-steps mb-4">
+                            <div class="step-indicator">
+                                <div class="step active" id="step-1">
+                                    <span class="step-number">1</span>
+                                    <span class="step-title">Kegiatan</span>
+                                </div>
+                                <div class="step-line"></div>
+                                <div class="step" id="step-2">
+                                    <span class="step-number">2</span>
+                                    <span class="step-title">Detail</span>
+                                </div>
+                                <div class="step-line"></div>
+                                <div class="step" id="step-3">
+                                    <span class="step-number">3</span>
+                                    <span class="step-title">Anggaran</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 1: Kegiatan Selection -->
+                        <div class="form-step" id="form-step-1">
+                            <h6 class="mb-3"><i class="bi bi-bookmark me-2"></i>Pilih Kegiatan dan Rekening</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="kegiatan" class="form-label">Kegiatan <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-select select2-kegiatan" id="kegiatan" name="kode_id"
+                                            required>
+                                            <option value="">-- Pilih Kegiatan --</option>
+                                            @foreach ($kodeKegiatans as $kode)
+                                                <option value="{{ $kode->id }}" data-kode="{{ $kode->kode }}"
+                                                    data-program="{{ $kode->program }}"
+                                                    data-sub-program="{{ $kode->sub_program }}"
+                                                    data-uraian="{{ $kode->uraian }}"
+                                                    {{ old('kode_id') == $kode->id ? 'selected' : '' }}>
+                                                    {{ $kode->kode }} - {{ $kode->uraian }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="rekening_belanja" class="form-label">Rekening Belanja <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-select select2-rekening" id="rekening_belanja"
+                                            name="kode_rekening_id" required>
+                                            <option value="">-- Pilih Rekening Belanja --</option>
+                                            @foreach ($rekeningBelanjas as $rekening)
+                                                <option value="{{ $rekening->id }}"
+                                                    data-kode-rekening="{{ $rekening->kode_rekening }}"
+                                                    data-rincian-objek="{{ $rekening->rincian_objek }}"
+                                                    {{ old('kode_rekening_id') == $rekening->id ? 'selected' : '' }}>
+                                                    {{ $rekening->kode_rekening }} - {{ $rekening->rincian_objek }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Detail Information -->
+                        <div class="form-step" id="form-step-2" style="display: none;">
+                            <h6 class="mb-3"><i class="bi bi-file-text me-2"></i>Detail Uraian dan Harga</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="uraian" class="form-label">Uraian <span
+                                                class="text-danger">*</span></label>
+                                        <textarea class="form-control" id="uraian" name="uraian" rows="4"
+                                            placeholder="Jelaskan detail barang atau jasa yang akan diadakan..." required>{{ old('uraian') }}</textarea>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="harga_satuan" class="form-label">Harga Satuan <span
+                                                class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">Rp</span>
+                                            <input type="number" class="form-control" id="harga_satuan"
+                                                name="harga_satuan" placeholder="0" step="0.01" min="0"
+                                                value="{{ old('harga_satuan') }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Budget Planning -->
+                        <div class="form-step" id="form-step-3" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Perencanaan Anggaran Bulanan
+                                </h6>
+                                <span class="badge bg-success fs-6" id="totalAnggaranDisplay">Total: Rp 0</span>
+                            </div>
+
+                            <!-- Dynamic Month Entries -->
+                            <div id="bulanContainer">
+                                <div class="month-entry border rounded p-3 mb-3" data-index="0">
+                                    <div class="row align-items-center mb-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Bulan <span class="text-danger">*</span></label>
+                                            <select class="form-select month-select" name="bulan[]" required>
+                                                <option value="">Pilih Bulan</option>
+                                                @foreach ($months as $month)
+                                                    <option value="{{ $month }}">{{ $month }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Jumlah <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control jumlah-input" name="jumlah[]"
+                                                placeholder="0" min="1" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Satuan <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control satuan-input" name="satuan[]"
+                                                placeholder="pcs, unit, buah" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Total</label>
+                                            <div class="month-total badge bg-info w-100">Rp 0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Add Month Button -->
+                            <div class="text-center mt-3">
+                                <button type="button" class="btn btn-outline-primary" id="addMonthBtn">
+                                    <i class="bi bi-plus-circle me-2"></i>Tambah Bulan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="prevStepBtn" style="display: none;">
+                            <i class="bi bi-arrow-left me-2"></i>Sebelumnya
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-primary" id="nextStepBtn">
+                            Selanjutnya<i class="bi bi-arrow-right ms-2"></i>
+                        </button>
+                        <button type="submit" class="btn btn-success" id="submitBtn" style="display: none;">
+                            <i class="bi bi-check-circle me-2"></i>Simpan Data
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detail RKAS -->
+    <div class="modal fade" id="detailRkasModal" tabindex="-1" aria-labelledby="detailRkasModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="detailRkasModalLabel">
+                        <i class="bi bi-eye me-2"></i>Detail Data RKAS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="detail-group mb-3">
+                                <label class="detail-label">Program Kegiatan:</label>
+                                <div class="detail-value" id="detail-program"></div>
+                            </div>
+                            <div class="detail-group mb-3">
+                                <label class="detail-label">Kegiatan:</label>
+                                <div class="detail-value" id="detail-kegiatan"></div>
+                            </div>
+                            <div class="detail-group mb-3">
+                                <label class="detail-label">Rekening Belanja:</label>
+                                <div class="detail-value" id="detail-rekening"></div>
+                            </div>
+                            <div class="detail-group mb-3">
+                                <label class="detail-label">Bulan:</label>
+                                <div class="detail-value" id="detail-bulan"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="detail-group mb-3">
+                                <label class="detail-label">Uraian:</label>
+                                <div class="detail-value" id="detail-uraian"></div>
+                            </div>
+                            <div class="detail-group mb-3">
+                                <label class="detail-label">Jumlah:</label>
+                                <div class="detail-value" id="detail-jumlah"></div>
+                            </div>
+                            <div class="detail-group mb-3">
+                                <label class="detail-label">Satuan:</label>
+                                <div class="detail-value" id="detail-satuan"></div>
+                            </div>
+                            <div class="detail-group mb-3">
+                                <label class="detail-label">Harga Satuan:</label>
+                                <div class="detail-value" id="detail-harga-satuan"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="detail-group mb-3">
+                                <label class="detail-label">Total Anggaran:</label>
+                                <div class="detail-value text-success fw-bold fs-5" id="detail-total"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-primary" onclick="editFromDetail()">
+                        <i class="bi bi-pencil me-2"></i>Edit Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit RKAS -->
+    <div class="modal fade" id="editRkasModal" tabindex="-1" aria-labelledby="editRkasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="editRkasModalLabel">
+                        <i class="bi bi-pencil me-2"></i>Edit Data RKAS
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editRkasForm" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-kegiatan" class="form-label">Kegiatan <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select select2-kegiatan-edit" id="edit-kegiatan" name="kode_id"
+                                        required>
+                                        <option value="">-- Pilih Kegiatan --</option>
+                                        @foreach ($kodeKegiatans as $kode)
+                                            <option value="{{ $kode->id }}" data-kode="{{ $kode->kode }}"
+                                                data-program="{{ $kode->program }}"
+                                                data-sub-program="{{ $kode->sub_program }}"
+                                                data-uraian="{{ $kode->uraian }}">
+                                                {{ $kode->kode }} - {{ $kode->uraian }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-rekening-belanja" class="form-label">Rekening Belanja <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select select2-rekening-edit" id="edit-rekening-belanja"
+                                        name="kode_rekening_id" required>
+                                        <option value="">-- Pilih Rekening Belanja --</option>
+                                        @foreach ($rekeningBelanjas as $rekening)
+                                            <option value="{{ $rekening->id }}"
+                                                data-kode-rekening="{{ $rekening->kode_rekening }}"
+                                                data-rincian-objek="{{ $rekening->rincian_objek }}">
+                                                {{ $rekening->kode_rekening }} - {{ $rekening->rincian_objek }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-uraian" class="form-label">Uraian <span
+                                            class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="edit-uraian" name="uraian" rows="4" required></textarea>
+                                    
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-bulan" class="form-label">Bulan <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select" id="edit-bulan" name="bulan" required>
+                                        <option value="">-- Pilih Bulan --</option>
+                                        @foreach ($months as $month)
+                                            <option value="{{ $month }}">{{ $month }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-harga-satuan" class="form-label">Harga Satuan <span
+                                            class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">Rp</span>
+                                        <input type="number" class="form-control" id="edit-harga-satuan"
+                                            name="harga_satuan" placeholder="0" step="0.01" min="0" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-jumlah" class="form-label">Jumlah <span
+                                            class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="edit-jumlah" name="jumlah"
+                                        placeholder="0" min="1" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-satuan" class="form-label">Satuan <span
+                                            class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="edit-satuan" name="satuan"
+                                        placeholder="pcs, unit, buah" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <strong>Total Anggaran:</strong> <span id="edit-total-display">Rp 0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-circle me-2"></i>Update Data
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Sisipkan RKAS -->
+    <div class="modal fade" id="sisipkanRkasModal" tabindex="-1" aria-labelledby="sisipkanRkasModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title" id="sisipkanRkasModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Sisipkan Data RKAS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+    
+                @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                @endif
+    
+                @if ($errors->any()))
+                <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                @endif
+    
+                <form id="sisipkanRkasForm" method="POST" action="{{ route('rkas.sisipkan') }}">
+                    @csrf
+                    <div class="modal-body">
+                        <input type="hidden" name="tahun_anggaran" value="{{ $penganggaran->tahun_anggaran }}">
+                        <input type="hidden" id="sisipkan_kode_id" name="kode_id">
+                        <input type="hidden" id="sisipkan_kode_rekening_id" name="kode_rekening_id">
+                        <input type="hidden" id="sisipkan_bulan" name="bulan">
+    
+                        <!-- Program Kegiatan yang Disisipkan -->
+                        <div class="mb-4 p-3 bg-light rounded">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Program Kegiatan</label>
+                                        <input type="text" class="form-control" id="sisipkan_program" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Kegiatan</label>
+                                        <input type="text" class="form-control" id="sisipkan_kegiatan" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label class="form-label">Rekening Belanja</label>
+                                        <input type="text" class="form-control" id="sisipkan_rekening_belanja_display"
+                                            readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- Uraian -->
+                        <div class="mb-3">
+                            <label for="sisipkan_uraian" class="form-label">Uraian <span
+                                    class="text-danger">*</span></label>
+                            <textarea class="form-control" id="sisipkan_uraian" name="uraian" rows="3"
+                                required>{{ old('uraian') }}</textarea>
+                        </div>
+    
+                        <!-- Jumlah dan Satuan -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="sisipkan_jumlah" class="form-label">Jumlah <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="sisipkan_jumlah" name="jumlah" placeholder="0"
+                                    min="1" value="{{ old('jumlah') }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="sisipkan_satuan" class="form-label">Satuan <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="sisipkan_satuan" name="satuan"
+                                    placeholder="pcs, unit, buah" value="{{ old('satuan') }}" required>
+                            </div>
+                        </div>
+    
+                        <!-- Harga Satuan -->
+                        <div class="mb-3">
+                            <label for="sisipkan_harga_satuan" class="form-label">Harga Satuan <span
+                                    class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control" id="sisipkan_harga_satuan" name="harga_satuan"
+                                    placeholder="0" step="0.01" min="0" value="{{ old('harga_satuan') }}" required>
+                            </div>
+                        </div>
+    
+                        <!-- Total Anggaran -->
+                        <div class="alert alert-info">
+                            <strong>Total Anggaran:</strong> <span id="sisipkan_total_display">Rp 0</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-circle me-2"></i>Simpan Data
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Hapus RKAS -->
+    <div class="modal fade" id="deleteRkasModal" tabindex="-1" aria-labelledby="deleteRkasModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteRkasModalLabel">
+                        <i class="bi bi-trash me-2"></i>Konfirmasi Hapus
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <i class="bi bi-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                        <h4 class="mt-3">Apakah Anda yakin?</h4>
+                        <p class="text-muted">Data RKAS yang dihapus tidak dapat dikembalikan!</p>
+
+                        <div class="card bg-body-secondary border mt-3">
+                            <div class="row ms-2 me-2">
+                                <div class="col-6 text-start">
+                                    <strong>Kegiatan:</strong><br>
+                                    <span id="delete-kegiatan-info"></span>
+                                </div>
+                                <div class="col-6 text-start">
+                                    <strong>Bulan:</strong><br>
+                                    <span id="delete-bulan-info"></span>
+                                </div>
+                            </div>
+                            <div class="row ms-2 me-2 mt-2">
+                                <div class="col-12 text-start">
+                                    <strong>Total Anggaran:</strong><br>
+                                    <span class="text-danger fw-bold" id="delete-total-info"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                        <i class="bi bi-trash me-2"></i>Ya, Hapus Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- CSS Styles -->
     <style>
