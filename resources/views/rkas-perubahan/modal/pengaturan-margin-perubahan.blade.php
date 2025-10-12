@@ -195,7 +195,6 @@
     orientasi.addEventListener('change', updatePreview);
     fontSize.addEventListener('change', updatePreview);
 
-    // Form submission
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -204,20 +203,39 @@
             saveSettings();
         }
 
-        // Get the current print button
-        const tombolCetak = document.getElementById('tombolCetakRekap');
-        if (tombolCetak) {
-            // Add parameters to the print URL
-            const currentUrl = new URL(tombolCetak.href);
-            currentUrl.searchParams.set('ukuran_kertas', ukuranKertas.value);
-            currentUrl.searchParams.set('orientasi', orientasi.value);
-            currentUrl.searchParams.set('font_size', fontSize.value);
+        const tahun = '{{ $tahun }}';
+        const ukuranKertasValue = ukuranKertas.value;
+        const orientasiValue = orientasi.value;
+        const fontSizeValue = fontSize.value;
+
+        // Build URL dengan tahun sebagai route parameter
+        let pdfUrl = "{{ route('rkas-perubahan.generate-pdf-rekap', ['tahun' => ':tahun']) }}";
+        pdfUrl = pdfUrl.replace(':tahun', tahun);
+        
+        // Tambahkan parameter lainnya sebagai query string
+        pdfUrl += `?ukuran_kertas=${encodeURIComponent(ukuranKertasValue)}`;
+        pdfUrl += `&orientasi=${encodeURIComponent(orientasiValue)}`;
+        pdfUrl += `&font_size=${encodeURIComponent(fontSizeValue)}`;
+
+        console.log('PDF URL:', pdfUrl);
+
+        // Buka PDF
+        try {
+            const newWindow = window.open(pdfUrl, '_blank');
             
-            // Update the print button URL
-            tombolCetak.href = currentUrl.toString();
-            
-            // Trigger the print
-            tombolCetak.click();
+            if (!newWindow) {
+                // Jika popup diblokir, buat link temporary
+                const tempLink = document.createElement('a');
+                tempLink.href = pdfUrl;
+                tempLink.target = '_blank';
+                tempLink.style.display = 'none';
+                document.body.appendChild(tempLink);
+                tempLink.click();
+                document.body.removeChild(tempLink);
+            }
+        } catch (error) {
+            console.error('Error opening PDF:', error);
+            alert('Terjadi error: ' + error.message);
         }
 
         // Close modal

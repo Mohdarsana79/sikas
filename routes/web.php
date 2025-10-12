@@ -109,7 +109,9 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
     Route::get('/rkas-perubahan/generate-tahapan-pdf', [RkasPerubahanController::class, 'generateTahapanPdf'])
         ->name('rkas-perubahan.generate-tahapan-pdf');
 
-    Route::get('/rkas-perubahan/generate-pdf-rekap', [RkasPerubahanController::class, 'generatePdfRkaRekap'])->name('rkas-perubahan.generate-pdf-rekap');
+    // Menjadi:
+    Route::get('/rkas-perubahan/generate-pdf-rekap/{tahun}', [RkasPerubahanController::class, 'generatePdfRkaRekap'])
+        ->name('rkas-perubahan.generate-pdf-rekap');
 
     Route::get('/rkas-perubahan/generate-rka-221-pdf', [RkasPerubahanController::class, 'generateRkaDuaSatuPdf'])
         ->name('rkas-perubahan.generate-rka-221-pdf');

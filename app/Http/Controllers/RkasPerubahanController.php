@@ -1330,27 +1330,36 @@ class RkasPerubahanController extends Controller
         return [$groupedItems, $totals];
     }
 
-    public function generatePdfRkaRekap(Request $request)
+    public function generatePdfRkaRekap(Request $request, $tahun)
     {
         try {
-            // Ambil tahun dari parameter
-            $tahun = $request->input('tahun');
+            Log::info('Generate PDF RKA Rekap dipanggil', [
+                'tahun' => $tahun,
+                'ukuran_kertas' => $request->input('ukuran_kertas'),
+                'orientasi' => $request->input('orientasi'),
+                'font_size' => $request->input('font_size')
+            ]);
 
-            if (!$tahun) {
-                throw new \Exception("Parameter tahun diperlukan");
+            // Validasi tahun
+            if (!is_numeric($tahun)) {
+                throw new \Exception("Tahun harus berupa angka");
             }
 
+            $tahun = (int) $tahun;
+
             // Ambil data penganggaran berdasarkan tahun yang dipilih
-            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
             if (!$penganggaran) {
-                throw new \Exception("Data penganggaran belum tersedia");
+                Log::error('Data penganggaran tidak ditemukan untuk tahun: ' . $tahun);
+                throw new \Exception("Data penganggaran untuk tahun {$tahun} tidak ditemukan");
             }
 
             // Ambil data sekolah
             $sekolah = Sekolah::first();
 
             if (!$sekolah) {
+                Log::error('Data sekolah tidak ditemukan');
                 throw new \Exception("Data sekolah belum tersedia");
             }
 
@@ -1387,15 +1396,15 @@ class RkasPerubahanController extends Controller
             // Data tahapan - ambil berdasarkan penganggaran_id
             $totalTahap1 = RkasPerubahan::where('penganggaran_id', $penganggaran->id)
                 ->whereIn('bulan', ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'])
-                ->sum(DB::raw('jumlah * harga_satuan'));
+                ->sum(DB::raw('COALESCE(jumlah, 0) * COALESCE(harga_satuan, 0)'));
 
             $totalTahap2 = RkasPerubahan::where('penganggaran_id', $penganggaran->id)
                 ->whereIn('bulan', ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'])
-                ->sum(DB::raw('jumlah * harga_satuan'));
+                ->sum(DB::raw('COALESCE(jumlah, 0) * COALESCE(harga_satuan, 0)'));
 
             // Format tanggal cetak
             $tanggalPerubahan = [
-                'tanggal_perubahan' => $penganggaran->format_tanggal_perubahan ?? 'Belum diisi'
+                'tanggal_perubahan' => $penganggaran->tanggal_perubahan ? \Carbon\Carbon::parse($penganggaran->tanggal_perubahan)->format('d/m/Y') : 'Belum diisi'
             ];
 
             // Get print settings from request
@@ -1405,8 +1414,11 @@ class RkasPerubahanController extends Controller
                 'font_size' => $request->input('font_size', '10pt')
             ];
 
-            // Log settings for debugging
-            Log::info('PDF Settings:', $printSettings);
+            Log::info('Data untuk PDF siap', [
+                'total_tahap1' => $totalTahap1,
+                'total_tahap2' => $totalTahap2,
+                'rekap_data_count' => count($rekapData)
+            ]);
 
             $pdf = PDF::loadView('rkas-perubahan.rka-rekap-pdf', [
                 'dataSekolah' => $dataSekolah,
@@ -1416,7 +1428,7 @@ class RkasPerubahanController extends Controller
                 'totalTahap2' => $totalTahap2,
                 'tanggalPerubahan' => $tanggalPerubahan,
                 'penganggaran' => $penganggaran,
-                'printSettings' => $printSettings // Pass settings to view
+                'printSettings' => $printSettings
             ]);
 
             // Set paper options
@@ -1427,12 +1439,28 @@ class RkasPerubahanController extends Controller
                 'defaultFont' => 'Arial',
                 'isHtml5ParserEnabled' => true,
                 'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
             ]);
 
-            return $pdf->stream('RKA-Rekap.pdf');
+            Log::info('PDF berhasil di-generate');
+
+            return $pdf->stream('RKA-Rekap-' . $tahun . '.pdf');
         } catch (\Exception $e) {
             Log::error('Error saat membuat PDF RKA Rekap: ' . $e->getMessage());
-            return back()->with('error', 'Gagal menghasilkan PDF RKA Rekap: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            // Return error response yang lebih user-friendly
+            return response("
+            <html>
+                <body>
+                    <h1>Error Generating PDF</h1>
+                    <p>Terjadi kesalahan saat membuat PDF: " . $e->getMessage() . "</p>
+                    <p>Silakan coba lagi atau hubungi administrator.</p>
+                    <button onclick='window.history.back()'>Kembali</button>
+                </body>
+            </html>
+        ", 500);
         }
     }
 

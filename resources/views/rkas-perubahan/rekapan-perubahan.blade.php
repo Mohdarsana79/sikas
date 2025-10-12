@@ -296,13 +296,13 @@
                                         Pengaturan Cetak
                                     </button>
                                 </div>
-                                <div>
+                                {{-- <div>
                                     <a class="btn btn-primary" target="_window" href="{{ route('rkas-perubahan.generate-pdf-rekap', ['tahun' => $tahun]) }}" style="font-size: 9pt;"
                                         id="tombolCetakRekap">
                                         <i class="bi bi-printer me-2"></i>
                                         Cetak RKA Rekap
                                     </a>
-                                </div>
+                                </div> --}}
                             </div>
 
                             <!-- Penerimaan Section -->

@@ -87,7 +87,7 @@
         }
 
         .footer {
-            margin-top: 50px;
+            margin-top: 5px;
             display: flex;
             justify-content: space-between;
         }
@@ -229,7 +229,8 @@
     <div class="footer">
         <div></div>
         <div class="signature" style="font-size: {{ $printSettings['font_size'] }};">
-            {{ $dataSekolah['kabupaten'] }}, {{ $tanggalPerubahan['tanggal_perubahan'] }}
+            <p>{{ $dataSekolah['kabupaten'] }}, {{ $tanggalPerubahan['tanggal_perubahan'] }}</p>
+            <p>Kepala Sekolah</p>
             <br><br><br><br>
             <strong>{{ $dataSekolah['kepala_sekolah'] }}</strong><br>
             <p>NIP. {{ $dataSekolah['nip_kepala_sekolah'] }}</p>
