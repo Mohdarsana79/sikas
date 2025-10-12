@@ -1330,28 +1330,31 @@ class RkasPerubahanController extends Controller
         return [$groupedItems, $totals];
     }
 
+    /**
+     * Generate PDF RKA Rekap dengan pengaturan dinamis
+     */
     public function generatePdfRkaRekap(Request $request)
     {
         try {
             // Ambil tahun dari parameter
             $tahun = $request->input('tahun');
 
-            if (!$tahun) {
-                throw new \Exception("Parameter tahun diperlukan");
+            if (! $tahun) {
+                throw new \Exception('Parameter tahun diperlukan');
             }
 
             // Ambil data penganggaran berdasarkan tahun yang dipilih
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
-            if (!$penganggaran) {
-                throw new \Exception("Data penganggaran belum tersedia");
+            if (! $penganggaran) {
+                throw new \Exception('Data penganggaran belum tersedia');
             }
 
             // Ambil data sekolah
             $sekolah = Sekolah::first();
 
-            if (!$sekolah) {
-                throw new \Exception("Data sekolah belum tersedia");
+            if (! $sekolah) {
+                throw new \Exception('Data sekolah belum tersedia');
             }
 
             // Data sekolah untuk PDF
@@ -1366,7 +1369,7 @@ class RkasPerubahanController extends Controller
                 'nip_kepala_sekolah' => $penganggaran->nip_kepala_sekolah,
                 'bendahara' => $penganggaran->bendahara,
                 'nip_bendahara' => $penganggaran->nip_bendahara,
-                'komite' => $penganggaran->komite
+                'komite' => $penganggaran->komite,
             ];
 
             // Data penerimaan
@@ -1376,9 +1379,9 @@ class RkasPerubahanController extends Controller
                     [
                         'kode' => '4.3.1.01.',
                         'uraian' => 'BOS Reguler',
-                        'jumlah' => $penganggaran->pagu_anggaran
-                    ]
-                ]
+                        'jumlah' => $penganggaran->pagu_anggaran,
+                    ],
+                ],
             ];
 
             // Data belanja (rekap) - ambil berdasarkan penganggaran_id
@@ -1395,18 +1398,8 @@ class RkasPerubahanController extends Controller
 
             // Format tanggal cetak
             $tanggalPerubahan = [
-                'tanggal_perubahan' => $penganggaran->format_tanggal_perubahan ?? 'Belum diisi'
+                'tanggal_perubahan' => $penganggaran->format_tanggal_perubahan ?? 'Belum diisi',
             ];
-
-            // Get print settings from request
-            $printSettings = [
-                'ukuran_kertas' => $request->input('ukuran_kertas', 'A4'),
-                'orientasi' => $request->input('orientasi', 'portrait'),
-                'font_size' => $request->input('font_size', '10pt')
-            ];
-
-            // Log settings for debugging
-            Log::info('PDF Settings:', $printSettings);
 
             $pdf = PDF::loadView('rkas-perubahan.rka-rekap-pdf', [
                 'dataSekolah' => $dataSekolah,
@@ -1416,26 +1409,15 @@ class RkasPerubahanController extends Controller
                 'totalTahap2' => $totalTahap2,
                 'tanggalPerubahan' => $tanggalPerubahan,
                 'penganggaran' => $penganggaran,
-                'printSettings' => $printSettings // Pass settings to view
-            ]);
-
-            // Set paper options
-            $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
-
-            // Set options for better font handling
-            $pdf->setOptions([
-                'defaultFont' => 'Arial',
-                'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled' => true,
             ]);
 
             return $pdf->stream('RKA-Rekap.pdf');
         } catch (\Exception $e) {
-            Log::error('Error saat membuat PDF RKA Rekap: ' . $e->getMessage());
-            return back()->with('error', 'Gagal menghasilkan PDF RKA Rekap: ' . $e->getMessage());
+            Log::error('Error saat membuat PDF RKA Rekap: '.$e->getMessage());
+
+            return back()->with('error', 'Gagal menghasilkan PDF RKA Rekap: '.$e->getMessage());
         }
     }
-
 
     /**
      * Get rekap data untuk RKAS Perubahan
@@ -2163,5 +2145,4 @@ class RkasPerubahanController extends Controller
             ], 500);
         }
     }
-
 }

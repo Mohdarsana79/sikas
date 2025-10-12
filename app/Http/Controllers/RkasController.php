@@ -189,24 +189,83 @@ class RkasController extends Controller
 
     public function sisipkan(Request $request)
     {
+        Log::info('Sisipkan RKAS Request:', $request->all());
+
         try {
+            // Validasi manual untuk memastikan ID adalah angka
+            if (!is_numeric($request->kode_id) || !is_numeric($request->kode_rekening_id)) {
+                Log::error('Invalid IDs received:', [
+                    'kode_id' => $request->kode_id,
+                    'kode_rekening_id' => $request->kode_rekening_id
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ID kegiatan atau rekening tidak valid.'
+                ], 422);
+            }
+
+            // Convert to integers
+            $kodeId = (int) $request->kode_id;
+            $rekeningId = (int) $request->kode_rekening_id;
+
+            $request->merge([
+                'kode_id' => $kodeId,
+                'kode_rekening_id' => $rekeningId
+            ]);
+
+            Log::info('After conversion:', [
+                'kode_id' => $kodeId,
+                'kode_rekening_id' => $rekeningId
+            ]);
+
             $request->validate([
                 'kode_id' => 'required|exists:kode_kegiatans,id',
                 'kode_rekening_id' => 'required|exists:rekening_belanjas,id',
-                'uraian' => 'required|string',
+                'uraian' => 'required|string|max:500',
                 'harga_satuan' => 'required|numeric|min:0',
                 'jumlah' => 'required|integer|min:1',
-                'satuan' => 'required|string',
+                'satuan' => 'required|string|max:50',
                 'tahun_anggaran' => 'required',
-                'bulan' => 'required|string',
+                'bulan' => 'required|string|in:Januari,Februari,Maret,April,Mei,Juni,Juli,Agustus,September,Oktober,November,Desember',
             ]);
 
-            $penganggaran = Penganggaran::where('tahun_anggaran', $request->tahun_anggaran)->firstOrFail();
+            Log::info('Validation passed');
 
-            Rkas::create([
+            $penganggaran = Penganggaran::where('tahun_anggaran', $request->tahun_anggaran)->first();
+
+            if (!$penganggaran) {
+                Log::error('Penganggaran not found for year: ' . $request->tahun_anggaran);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran untuk tahun ' . $request->tahun_anggaran . ' tidak ditemukan.'
+                ], 404);
+            }
+
+            Log::info('Penganggaran found: ' . $penganggaran->id);
+
+            // Check for duplicate
+            $exists = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->where('kode_id', $kodeId)
+                ->where('kode_rekening_id', $rekeningId)
+                ->where('bulan', $request->bulan)
+                ->where('uraian', $request->uraian)
+                ->exists();
+
+            if ($exists) {
+                Log::warning('Duplicate data found');
+                return response()->json([
+                    'success' => false,
+                    'message' => "Data untuk bulan {$request->bulan} sudah ada dengan kegiatan dan rekening yang sama."
+                ], 422);
+            }
+
+            Log::info('Creating new RKAS record...');
+
+            $rkas = Rkas::create([
                 'penganggaran_id' => $penganggaran->id,
-                'kode_id' => $request->kode_id,
-                'kode_rekening_id' => $request->kode_rekening_id,
+                'kode_id' => $kodeId,
+                'kode_rekening_id' => $rekeningId,
                 'uraian' => $request->uraian,
                 'harga_satuan' => $request->harga_satuan,
                 'jumlah' => $request->jumlah,
@@ -214,15 +273,33 @@ class RkasController extends Controller
                 'bulan' => $request->bulan,
             ]);
 
+            Log::info('RKAS created successfully: ' . $rkas->id);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Data berhasil disisipkan ke bulan ' . $request->bulan,
                 'bulan' => $request->bulan
             ]);
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error: ' . json_encode($e->errors()));
+
+            $errorMessages = [];
+            foreach ($e->errors() as $field => $messages) {
+                $errorMessages[] = implode(', ', $messages);
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Validasi gagal: ' . implode(', ', $errorMessages),
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error in sisipkan: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan server: ' . $e->getMessage()
             ], 500);
         }
     }

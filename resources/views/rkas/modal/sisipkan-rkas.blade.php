@@ -11,26 +11,6 @@
                     aria-label="Close"></button>
             </div>
 
-            @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
-                <i class="bi bi-check-circle me-2"></i>
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            @endif
-
-            @if ($errors->any()))
-            <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                <ul class="mb-0">
-                    @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            @endif
-
             <form id="sisipkanRkasForm" method="POST" action="{{ route('rkas.sisipkan') }}">
                 @csrf
                 <div class="modal-body">
@@ -41,25 +21,35 @@
 
                     <!-- Program Kegiatan yang Disisipkan -->
                     <div class="mb-4 p-3 bg-light rounded">
+                        <h6 class="mb-3">Data Kegiatan yang Disisipkan</h6>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Program Kegiatan</label>
-                                    <input type="text" class="form-control" id="sisipkan_program" readonly>
+                                    <label class="form-label"><strong>Program Kegiatan</strong></label>
+                                    <input type="text" class="form-control bg-white" id="sisipkan_program" readonly>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Kegiatan</label>
-                                    <input type="text" class="form-control" id="sisipkan_kegiatan" readonly>
+                                    <label class="form-label"><strong>Kegiatan</strong></label>
+                                    <input type="text" class="form-control bg-white" id="sisipkan_kegiatan" readonly>
                                 </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="mb-3">
-                                    <label class="form-label">Rekening Belanja</label>
-                                    <input type="text" class="form-control" id="sisipkan_rekening_belanja_display"
+                                    <label class="form-label"><strong>Rekening Belanja</strong></label>
+                                    <input type="text" class="form-control bg-white"
+                                        id="sisipkan_rekening_belanja_display" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Bulan Tujuan</strong></label>
+                                    <input type="text" class="form-control bg-white" id="sisipkan_bulan_display"
                                         readonly>
                                 </div>
                             </div>
@@ -71,7 +61,7 @@
                         <label for="sisipkan_uraian" class="form-label">Uraian <span
                                 class="text-danger">*</span></label>
                         <textarea class="form-control" id="sisipkan_uraian" name="uraian" rows="3"
-                            required>{{ old('uraian') }}</textarea>
+                            placeholder="Masukkan uraian kegiatan" required></textarea>
                     </div>
 
                     <!-- Jumlah dan Satuan -->
@@ -80,13 +70,13 @@
                             <label for="sisipkan_jumlah" class="form-label">Jumlah <span
                                     class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="sisipkan_jumlah" name="jumlah" placeholder="0"
-                                min="1" value="{{ old('jumlah') }}" required>
+                                min="1" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="sisipkan_satuan" class="form-label">Satuan <span
                                     class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="sisipkan_satuan" name="satuan"
-                                placeholder="pcs, unit, buah" value="{{ old('satuan') }}" required>
+                                placeholder="pcs, unit, buah" required>
                         </div>
                     </div>
 
@@ -97,18 +87,21 @@
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
                             <input type="number" class="form-control" id="sisipkan_harga_satuan" name="harga_satuan"
-                                placeholder="0" step="0.01" min="0" value="{{ old('harga_satuan') }}" required>
+                                placeholder="0" step="100" min="0" required>
                         </div>
                     </div>
 
                     <!-- Total Anggaran -->
                     <div class="alert alert-info">
-                        <strong>Total Anggaran:</strong> <span id="sisipkan_total_display">Rp 0</span>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>Total Anggaran:</strong>
+                            <span id="sisipkan_total_display" class="fw-bold">Rp 0</span>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-warning">
+                    <button type="submit" class="btn btn-warning" id="sisipkanSubmitBtn">
                         <i class="bi bi-check-circle me-2"></i>Simpan Data
                     </button>
                 </div>

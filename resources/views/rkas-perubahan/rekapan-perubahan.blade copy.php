@@ -290,7 +290,7 @@
                         <div class="p-4">
                             <div class="d-flex justify-content-end mb-3">
                                 <div>
-                                    <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModal"
+                                    <button class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModal"
                                         style="font-size: 9pt;">
                                         <i class="bi bi-gear me-2"></i>
                                         Pengaturan Cetak
@@ -785,46 +785,4 @@
         });
         });
 </script>
-
-<style>
-    .current-settings-info {
-        font-size: 0.8rem;
-        padding: 0.5rem 1rem;
-    }
-
-    .current-settings-info .alert-heading {
-        font-size: 0.9rem;
-        margin-bottom: 0.3rem;
-    }
-
-    .quick-settings-actions .btn-group {
-        flex-wrap: wrap;
-    }
-
-    .quick-settings-actions .btn {
-        font-size: 0.7rem;
-        padding: 0.2rem 0.5rem;
-        margin: 0.1rem;
-    }
-
-    .print-settings-toast {
-        z-index: 9999;
-    }
-
-    /* Responsive design */
-    @media (max-width: 768px) {
-
-        .current-settings-info .col-md-3,
-        .current-settings-info .col-md-2,
-        .current-settings-info .col-md-5 {
-            margin-bottom: 0.3rem;
-        }
-
-        .quick-settings-actions .btn-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.2rem;
-        }
-    }
-</style>
 @endsection

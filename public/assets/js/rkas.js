@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== RKAS JS LOADED SUCCESSFULLY ===');
+    
     // Inisialisasi variabel global
     let currentRkasId = null;
     let monthIndex = 1;
@@ -72,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateEditTotal();
             }
             if (e.target.id === 'sisipkan_harga_satuan' || e.target.id === 'sisipkan_jumlah') {
-                updateSisipkanTotal();
+                calculateSisipkanTotal();
             }
         });
 
@@ -146,46 +148,244 @@ document.addEventListener('DOMContentLoaded', function() {
         // Sisipkan form submission
         document.getElementById('sisipkanRkasForm')?.addEventListener('submit', function(e) {
             e.preventDefault();
-            const form = this;
-            const submitButton = form.querySelector('button[type="submit"]');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('sisipkanRkasModal'));
-            const currentMonth = getActiveTab();
+            submitSisipkanForm(this);
+        });
 
-            submitButton.innerHTML = '<span class="loading-spinner me-2"></span>Menyimpan...';
-            submitButton.disabled = true;
-
-            fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        modal.hide();
-                        localStorage.setItem('activeRkasTab', currentMonth);
-                        Swal.fire('Berhasil!', data.message, 'success').then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        throw new Error(data.message || 'Gagal menyimpan data');
-                    }
-                })
-                .catch(error => {
-                    Swal.fire('Error', error.message, 'error');
-                })
-                .finally(() => {
-                    submitButton.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Data';
-                    submitButton.disabled = false;
-                });
+        // Event listener untuk tombol sisipkan
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.sisipkan-btn')) {
+                e.preventDefault();
+                handleSisipkanButtonClick(e.target.closest('.sisipkan-btn'));
+            }
         });
     }
+
+    // ==============================================
+    // SISIPKAN RKAS FUNCTIONALITY
+    // ==============================================
+
+    function handleSisipkanButtonClick(button) {
+        console.log('=== SISIPKAN BUTTON CLICKED ===');
+        
+        // Ambil data dari attributes
+        const kodeId = button.getAttribute('data-kode-id');
+        const program = button.getAttribute('data-program');
+        const kegiatan = button.getAttribute('data-kegiatan');
+        const rekeningId = button.getAttribute('data-rekening-id');
+        const rekeningDisplay = button.getAttribute('data-rekening-display');
+        
+        console.log('Data from attributes:', {
+            kodeId: kodeId,
+            program: program,
+            kegiatan: kegiatan,
+            rekeningId: rekeningId,
+            rekeningDisplay: rekeningDisplay
+        });
+        
+        // Validasi data
+        if (!kodeId || !rekeningId || kodeId === 'undefined' || rekeningId === 'undefined') {
+            console.error('Invalid data received:', { kodeId, rekeningId });
+            Swal.fire('Error', 'Data tidak valid. Silakan refresh halaman dan coba lagi.', 'error');
+            return;
+        }
+        
+        // Convert to numbers
+        const validKodeId = parseInt(kodeId);
+        const validRekeningId = parseInt(rekeningId);
+        
+        console.log('After conversion:', {
+            validKodeId: validKodeId,
+            validRekeningId: validRekeningId
+        });
+        
+        if (isNaN(validKodeId) || isNaN(validRekeningId)) {
+            console.error('Invalid IDs after conversion:', { validKodeId, validRekeningId });
+            Swal.fire('Error', 'ID kegiatan atau rekening tidak valid.', 'error');
+            return;
+        }
+        
+        // Dapatkan bulan aktif
+        const activeTab = document.querySelector('#monthTabs .nav-link.active');
+        const bulan = activeTab ? activeTab.getAttribute('data-month') : '';
+        console.log('Active bulan:', bulan);
+        
+        if (!bulan) {
+            Swal.fire('Error', 'Tidak dapat menentukan bulan tujuan.', 'error');
+            return;
+        }
+        
+        // Set nilai form
+        setSisipkanFormValues(validKodeId, program, kegiatan, validRekeningId, rekeningDisplay, bulan);
+        
+        // Tampilkan modal
+        const modal = new bootstrap.Modal(document.getElementById('sisipkanRkasModal'));
+        modal.show();
+        
+        console.log('=== SISIPKAN MODAL SHOWN ===');
+    }
+
+    function setSisipkanFormValues(kodeId, program, kegiatan, rekeningId, rekeningDisplay, bulan) {
+        // Set hidden values
+        document.getElementById('sisipkan_kode_id').value = kodeId;
+        document.getElementById('sisipkan_kode_rekening_id').value = rekeningId;
+        document.getElementById('sisipkan_bulan').value = bulan;
+        
+        // Set display values
+        document.getElementById('sisipkan_program').value = program || '-';
+        document.getElementById('sisipkan_kegiatan').value = kegiatan || '-';
+        document.getElementById('sisipkan_rekening_belanja_display').value = rekeningDisplay || '-';
+        document.getElementById('sisipkan_bulan_display').value = bulan;
+        
+        // Reset input values
+        document.getElementById('sisipkan_uraian').value = '';
+        document.getElementById('sisipkan_harga_satuan').value = '';
+        document.getElementById('sisipkan_jumlah').value = '';
+        document.getElementById('sisipkan_satuan').value = '';
+        document.getElementById('sisipkan_total_display').textContent = 'Rp 0';
+        
+        console.log('Form values set:', {
+            kode_id: kodeId,
+            kode_rekening_id: rekeningId,
+            bulan: bulan
+        });
+    }
+
+    function calculateSisipkanTotal() {
+        const hargaSatuan = parseFloat(document.getElementById('sisipkan_harga_satuan').value) || 0;
+        const jumlah = parseFloat(document.getElementById('sisipkan_jumlah').value) || 0;
+        const total = hargaSatuan * jumlah;
+        
+        document.getElementById('sisipkan_total_display').textContent = 'Rp ' + formatNumber(total);
+    }
+
+    function submitSisipkanForm(form) {
+        const submitButton = form.querySelector('#sisipkanSubmitBtn');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('sisipkanRkasModal'));
+        
+        // Validasi form
+        if (!validateSisipkanForm()) {
+            return;
+        }
+        
+        // Show loading
+        submitButton.innerHTML = '<span class="loading-spinner me-2"></span>Menyimpan...';
+        submitButton.disabled = true;
+        
+        // Prepare form data
+        const formData = new FormData(form);
+        
+        console.log('Submitting form data:');
+        for (let [key, value] of formData.entries()) {
+            console.log(key + ': ' + value);
+        }
+        
+        // Send request
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(async response => {
+            const text = await response.text();
+            let data;
+            
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error('JSON parse error:', e);
+                throw new Error('Invalid response from server');
+            }
+            
+            if (!response.ok) {
+                throw new Error(data.message || `Server error: ${response.status}`);
+            }
+            
+            return data;
+        })
+        .then(data => {
+            if (data.success) {
+                modal.hide();
+                // Simpan tab aktif untuk refresh
+                const activeTab = document.querySelector('#monthTabs .nav-link.active');
+                if (activeTab) {
+                    localStorage.setItem('activeRkasTab', activeTab.getAttribute('data-month'));
+                }
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: data.message,
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                throw new Error(data.message || 'Gagal menyimpan data');
+            }
+        })
+        .catch(error => {
+            console.error('Sisipkan error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message,
+                confirmButtonText: 'OK'
+            });
+        })
+        .finally(() => {
+            submitButton.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Data';
+            submitButton.disabled = false;
+        });
+    }
+
+    function validateSisipkanForm() {
+        const requiredFields = [
+            'sisipkan_uraian',
+            'sisipkan_jumlah', 
+            'sisipkan_satuan',
+            'sisipkan_harga_satuan'
+        ];
+        
+        let isValid = true;
+        
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        // Validasi numeric fields
+        const hargaSatuan = parseFloat(document.getElementById('sisipkan_harga_satuan').value);
+        const jumlah = parseFloat(document.getElementById('sisipkan_jumlah').value);
+        
+        if (hargaSatuan <= 0) {
+            document.getElementById('sisipkan_harga_satuan').classList.add('is-invalid');
+            isValid = false;
+        }
+        
+        if (jumlah <= 0) {
+            document.getElementById('sisipkan_jumlah').classList.add('is-invalid');
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            Swal.fire('Error', 'Mohon lengkapi semua field yang diperlukan dengan nilai yang valid.', 'error');
+        }
+        
+        return isValid;
+    }
+
+    // ==============================================
+    // EXISTING RKAS FUNCTIONALITY
+    // ==============================================
 
     function updateSatuanOtomatis(satuanValue) {
         firstSatuanValue = satuanValue;
@@ -201,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Fungsi-fungsi utilitas
     function formatNumber(num) {
-        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        return new Intl.NumberFormat('id-ID').format(num);
     }
 
     function escapeHtml(unsafe) {
@@ -355,14 +555,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (totalDisplay) {
             totalDisplay.textContent = 'Rp ' + formatNumber(total);
         }
-    }
-
-    function updateSisipkanTotal() {
-        const hargaSatuan = parseFloat(document.getElementById('sisipkan_harga_satuan')?.value) || 0;
-        const jumlah = parseFloat(document.getElementById('sisipkan_jumlah')?.value) || 0;
-        const total = hargaSatuan * jumlah;
-
-        document.getElementById('sisipkan_total_display').textContent = 'Rp ' + formatNumber(total);
     }
 
     function validateForm() {
@@ -525,13 +717,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="#" onclick="showSisipkanModal(
-                                    ${item.kode_id},
-                                    '${escapeHtml(item.program_kegiatan)}',
-                                    '${escapeHtml(item.kegiatan)}',
-                                    ${item.kode_rekening_id},
-                                    '${escapeHtml(item.rekening_belanja)}'
-                                )">
+                                <a class="dropdown-item sisipkan-btn" href="#" 
+                                    data-kode-id="${item.kode_id}"
+                                    data-program="${escapeHtml(item.program_kegiatan)}"
+                                    data-kegiatan="${escapeHtml(item.kegiatan)}"
+                                    data-rekening-id="${item.kode_rekening_id}"
+                                    data-rekening-display="${escapeHtml(item.rekening_belanja)}">
                                     <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
                                 </a>
                             </li>
@@ -996,44 +1187,21 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     };
 
-    window.showSisipkanModal = function(kodeId, program, kegiatan, rekeningId, rekeningDisplay) {
-        const activeTab = document.querySelector('#monthTabs .nav-link.active');
-        const bulan = activeTab ? activeTab.getAttribute('data-month') : '';
-
-        // Set nilai form
-        document.getElementById('sisipkan_kode_id').value = kodeId;
-        document.getElementById('sisipkan_kode_rekening_id').value = rekeningId;
-        document.getElementById('sisipkan_bulan').value = bulan;
-        document.getElementById('sisipkan_program').value = program;
-        document.getElementById('sisipkan_kegiatan').value = kegiatan;
-        document.getElementById('sisipkan_rekening_belanja_display').value = rekeningDisplay;
-
-        // Reset form lainnya
-        document.getElementById('sisipkan_uraian').value = '';
-        document.getElementById('sisipkan_harga_satuan').value = '';
-        document.getElementById('sisipkan_jumlah').value = '';
-        document.getElementById('sisipkan_satuan').value = '';
-        document.getElementById('sisipkan_total_display').textContent = 'Rp 0';
-
-        // Tampilkan modal
-        new bootstrap.Modal(document.getElementById('sisipkanRkasModal')).show();
-    };
-
     // Setelah halaman dimuat, aktifkan tab yang sesuai
-    document.addEventListener('DOMContentLoaded', function() {
-        const savedTab = localStorage.getItem('activeRkasTab');
-        if (savedTab) {
-            setActiveTab(savedTab);
-            localStorage.removeItem('activeRkasTab');
-        }
+    const savedTab = localStorage.getItem('activeRkasTab');
+    if (savedTab) {
+        setActiveTab(savedTab);
+        localStorage.removeItem('activeRkasTab');
+    }
 
-        // Simpan tab aktif saat berpindah tab
-        document.querySelectorAll('#monthTabs .nav-link').forEach(tab => {
-            tab.addEventListener('click', function() {
-                localStorage.setItem('activeRkasTab', this.getAttribute('data-month'));
-            });
+    // Simpan tab aktif saat berpindah tab
+    document.querySelectorAll('#monthTabs .nav-link').forEach(tab => {
+        tab.addEventListener('click', function() {
+            localStorage.setItem('activeRkasTab', this.getAttribute('data-month'));
         });
     });
+
+    console.log('=== RKAS JS INITIALIZATION COMPLETE ===');
 });
 
 // Fungsi untuk refresh data bulan yang aktif

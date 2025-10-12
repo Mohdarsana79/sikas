@@ -398,13 +398,13 @@
                                                                     </a>
                                                                 </li>
                                                                 <li>
-                                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showSisipkanModal(
-                                                                            {{ $rkas->kode_id }}, 
-                                                                            '{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->program : '-' }}', 
-                                                                            '{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->sub_program : '-' }}',
-                                                                            {{ $rkas->kode_rekening_id }},
-                                                                            '{{ $rkas->rekeningBelanja ? $rkas->rekeningBelanja->kode_rekening.' - '.$rkas->rekeningBelanja->rincian_objek : '-' }}'
-                                                                        )" style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
+                                                                    <!-- Di bagian dropdown menu action - GANTI SEMUA TOMBOL SISIPKAN -->
+                                                                    <a class="dropdown-item d-flex align-items-center sisipkan-btn" href="#" data-kode-id="{{ $rkas->kode_id }}"
+                                                                        data-program="{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->program : '-' }}"
+                                                                        data-kegiatan="{{ $rkas->kodeKegiatan ? $rkas->kodeKegiatan->sub_program : '-' }}"
+                                                                        data-rekening-id="{{ $rkas->kode_rekening_id }}"
+                                                                        data-rekening-display="{{ $rkas->rekeningBelanja ? $rkas->rekeningBelanja->kode_rekening.' - '.$rkas->rekeningBelanja->rincian_objek : '-' }}"
+                                                                        style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                                         <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
                                                                     </a>
                                                                 </li>

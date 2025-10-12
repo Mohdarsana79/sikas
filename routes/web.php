@@ -16,8 +16,8 @@ use App\Http\Controllers\RkasController;
 use App\Http\Controllers\RkasPerubahanController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\SetorTunaiController;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -102,10 +102,15 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
     Route::get('/rkas-perubahan/rekapan-perubahan', [RkasPerubahanController::class, 'showRekapanPerubahan'])
         ->name('rkas-perubahan.rekapan-perubahan');
 
+    // Route Pengaturan Cetak
+    
+
     // Routes untuk PDF dan Preview
     Route::get('/rkas-perubahan/generate-tahapan-pdf', [RkasPerubahanController::class, 'generateTahapanPdf'])
         ->name('rkas-perubahan.generate-tahapan-pdf');
+
     Route::get('/rkas-perubahan/generate-pdf-rekap', [RkasPerubahanController::class, 'generatePdfRkaRekap'])->name('rkas-perubahan.generate-pdf-rekap');
+
     Route::get('/rkas-perubahan/generate-rka-221-pdf', [RkasPerubahanController::class, 'generateRkaDuaSatuPdf'])
         ->name('rkas-perubahan.generate-rka-221-pdf');
 
@@ -221,7 +226,6 @@ Route::middleware(['auth'])->prefix('bku-audit')->group(function () {
         ->name('bku.fix.data');
 });
 
-
 Route::middleware(['auth'])->prefix('bku')->group(function () {
     // Route untuk debug volume
 
@@ -308,7 +312,7 @@ Route::middleware(['auth'])->prefix('laporan')->group(function () {
         ->name('laporan.bkp-bank-pdf');
 
     Route::get('/laporan/bku-pembantu-tunai-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkuPembantuTunaiPdf'])
-    ->name('laporan.bku-pembantu-tunai-pdf');
+        ->name('laporan.bku-pembantu-tunai-pdf');
 
     // Route debug
     Route::get('/debug/bkp-bank/{tahun}/{bulan}', [BukuKasUmumController::class, 'debugBkpBank'])
