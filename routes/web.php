@@ -113,7 +113,7 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
     Route::get('/rkas-perubahan/generate-pdf-rekap/{tahun}', [RkasPerubahanController::class, 'generatePdfRkaRekap'])
         ->name('rkas-perubahan.generate-pdf-rekap');
 
-    Route::get('/rkas-perubahan/generate-rka-221-pdf', [RkasPerubahanController::class, 'generateRkaDuaSatuPdf'])
+    Route::get('/rkas-perubahan/generate-rka-221-pdf/{tahun}', [RkasPerubahanController::class, 'generateRkaDuaSatuPdf'])
         ->name('rkas-perubahan.generate-rka-221-pdf');
 
     Route::get('/rkas-perubahan/get-monthly-data', [RkasPerubahanController::class, 'getMonthlyData'])
