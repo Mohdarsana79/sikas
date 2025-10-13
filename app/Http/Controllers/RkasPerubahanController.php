@@ -1459,7 +1459,7 @@ class RkasPerubahanController extends Controller
 
             // Format tanggal cetak
             $tanggalPerubahan = [
-                'tanggal_perubahan' => $penganggaran->tanggal_perubahan ? \Carbon\Carbon::parse($penganggaran->tanggal_perubahan)->format('d/m/Y') : 'Belum diisi'
+                'tanggal_perubahan' => $penganggaran->format_tanggal_cetak ?? 'Belum diisi'
             ];
 
             // Get print settings from request

@@ -690,17 +690,27 @@ class RkasController extends Controller
     public function generatePdf(Request $request)
     {
         try {
+            Log::info('Generate PDF RKA Tahapan dipanggil', [
+                'request_data' => $request->all(),
+                'tahun' => $request->input('tahun'),
+                'ukuran_kertas' => $request->input('ukuran_kertas'),
+                'orientasi' => $request->input('orientasi'),
+                'font_size' => $request->input('font_size')
+            ]);
             // Ambil tahun dari parameter
             $tahun = $request->input('tahun');
 
             if (!$tahun) {
-                throw new \Exception("Parameter tahun diperlukan");
+                Log::error('Parameter tahun tidak ditemukan dalam request');
+                throw new \Exception('Parameter tahun diperlukan');
             }
+            
             // Ambil data penganggaran berdasarkan tahun yang dipilih
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
             if (!$penganggaran) {
-                throw new \Exception("Data penganggaran belum tersedia");
+                Log::error('Data penganggaran tidak ditemukan untuk tahun: ' . $tahun);
+                throw new \Exception('Data penganggaran untuk tahun ' . $tahun . ' tidak ditemukan');
             }
 
             // Ambil data sekolah
@@ -758,6 +768,20 @@ class RkasController extends Controller
             // Organisasikan data RKAS
             $dataTerkelola = $this->kelolaDataRkas($rkasData);
 
+            // Get print settings from request
+            $printSettings = [
+                'ukuran_kertas' => $request->input('ukuran_kertas', 'A4'),
+                'orientasi' => $request->input('orientasi', 'landscape'),
+                'font_size' => $request->input('font_size', '8pt')
+            ];
+
+            Log::info('Data untuk PDF RKA Tahapan siap', [
+                'tahun' => $tahun,
+                'total_tahap1' => $totalTahap1,
+                'total_tahap2' => $totalTahap2,
+                'print_settings' => $printSettings
+            ]);
+
             $pdf = PDF::loadView('rkas.rkas-tahap-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
@@ -765,13 +789,40 @@ class RkasController extends Controller
                 'totalTahap1' => $totalTahap1,
                 'totalTahap2' => $totalTahap2,
                 'totalBelanja' => $totalTahap1 + $totalTahap2,
+                'printSettings' => $printSettings,
                 'penganggaran' => $penganggaran
             ]);
 
-            return $pdf->stream('RKAS-Tahap.pdf');
+            // Set paper options
+            $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
+
+            // Set options for better font handling
+            $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
+            ]);
+
+            Log::info('PDF RKA Tahapan berhasil di-generate');
+
+            return $pdf->stream('RKAS-Tahap-' . $tahun . '.pdf');
         } catch (\Exception $e) {
             Log::error('Error saat membuat PDF RKAS: ' . $e->getMessage());
-            return back()->with('error', 'Gagal menghasilkan PDF RKAS: ' . $e->getMessage());
+
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return response("
+            <html>
+                <body>
+                    <h1>Error Generating PDF RKA Tahapan</h1>
+                    <p>Terjadi kesalahan saat membuat PDF: " . $e->getMessage() . "</p>
+                    <p>Silakan coba lagi atau hubungi administrator.</p>
+                    <button onclick='window.history.back()'>Kembali</button>
+                </body>
+            </html>
+            ", 500);
         }
     }
 
@@ -1268,27 +1319,36 @@ class RkasController extends Controller
         }
     }
 
-    public function generatePdfRkaRekap(Request $request)
+    public function generatePdfRkaRekap(Request $request, $tahun)
     {
         try {
-            // Ambil tahun dari parameter
-            $tahun = $request->input('tahun');
+            Log::info('Generate PDF RKA Rekap dipanggil', [
+                'tahun' => $tahun,
+                'ukuran_kertas' => $request->input('ukuran_kertas'),
+                'orientasi' => $request->input('orientasi'),
+                'font_size' => $request->input('font_size')
+            ]);
 
-            if (!$tahun) {
-                throw new \Exception("Parameter tahun diperlukan");
+            // Validasi tahun
+            if (!is_numeric($tahun)) {
+                throw new \Exception("Tahun harus berupa angka");
             }
+            // Ambil tahun dari parameter
+            $tahun = (int) $tahun;
 
             // Ambil data penganggaran berdasarkan tahun yang dipilih
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
             if (!$penganggaran) {
-                throw new \Exception("Data penganggaran belum tersedia");
+                Log::error('Data penganggaran tidak ditemukan untuk tahun: ' . $tahun);
+                throw new \Exception("Data penganggaran untuk tahun {$tahun} tidak ditemukan");
             }
 
             // Ambil data sekolah
             $sekolah = Sekolah::first();
 
             if (!$sekolah) {
+                Log::error('Data sekolah tidak ditemukan');
                 throw new \Exception("Data sekolah belum tersedia");
             }
 
@@ -1336,6 +1396,19 @@ class RkasController extends Controller
                 'tanggal_cetak' => $penganggaran->format_tanggal_cetak ?? 'Belum diisi'
             ];
 
+            // Get print settings from request
+            $printSettings = [
+                'ukuran_kertas' => $request->input('ukuran_kertas', 'A4'),
+                'orientasi' => $request->input('orientasi', 'portrait'),
+                'font_size' => $request->input('font_size', '10pt')
+            ];
+
+            Log::info('Data untuk PDF siap', [
+                'total_tahap1' => $totalTahap1,
+                'total_tahap2' => $totalTahap2,
+                'rekap_data_count' => count($rekapData)
+            ]);
+
             $pdf = PDF::loadView('rkas.rka-rekap-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
@@ -1343,13 +1416,40 @@ class RkasController extends Controller
                 'totalTahap1' => $totalTahap1,
                 'totalTahap2' => $totalTahap2,
                 'tanggalCetak' => $tanggalCetak,
-                'penganggaran' => $penganggaran
+                'penganggaran' => $penganggaran,
+                'printSettings' => $printSettings
             ]);
 
-            return $pdf->stream('RKA-Rekap.pdf');
+            // Set paper options
+            $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
+
+            // Set options for better font handling
+            $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
+            ]);
+
+             Log::info('PDF berhasil di-generate');
+
+            return $pdf->stream('RKA-Rekap-' . $tahun . '.pdf');
         } catch (\Exception $e) {
             Log::error('Error saat membuat PDF RKA Rekap: ' . $e->getMessage());
-            return back()->with('error', 'Gagal menghasilkan PDF RKA Rekap: ' . $e->getMessage());
+
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return response("
+            <html>
+                <body>
+                    <h1>Error Generating PDF</h1>
+                    <p>Terjadi kesalahan saat membuat PDF: " . $e->getMessage() . "</p>
+                    <p>Silakan coba lagi atau hubungi administrator.</p>
+                    <button onclick='window.history.back()'>Kembali</button>
+                </body>
+            </html>
+        ", 500);
         }
     }
 
@@ -1437,24 +1537,33 @@ class RkasController extends Controller
         }
     }
 
-    public function generateRkaDuaSatuPdf(Request $request)
+    public function generateRkaDuaSatuPdf(Request $request, $tahun)
     {
         try {
-            // Ambil tahun dari parameter request
-            $tahun = $request->input('tahun');
+            Log::info('Generate PDF RKA Dua Satu dipanggil', [
+                'tahun' => $tahun,
+                'ukuran_kertas' => $request->input('ukuran_kertas'),
+                'orientasi' => $request->input('orientasi'),
+                'font_size' => $request->input('font_size')
+            ]);
 
-            if (!$tahun) {
-                throw new \Exception("Parameter tahun diperlukan");
-            }
+            // Ambil tahun dari parameter request
+            $tahun = (int) $tahun;
 
             // Ambil data penganggaran berdasarkan tahun yang dipilih
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
+            if (!$penganggaran) {
+                Log::error('Data penganggaran tidak ditemukan untuk tahun: ' . $tahun);
+                throw new \Exception("Data penganggaran untuk tahun {$tahun} tidak ditemukan");
+            }
+
             // Ambil data sekolah
             $sekolah = Sekolah::first();
 
-            if (!$sekolah || !$penganggaran) {
-                throw new \Exception("Data sekolah atau penganggaran tidak ditemukan");
+            if (!$sekolah) {
+                Log::error('Data sekolah tidak ditemukan');
+                throw new \Exception("Data sekolah belum tersedia");
             }
 
             // Data untuk tabel indikator kinerja
@@ -1527,6 +1636,19 @@ class RkasController extends Controller
                 }
             }
 
+            // Get print settings from request
+            $printSettings = [
+                'ukuran_kertas' => $request->input('ukuran_kertas', 'A4'),
+                'orientasi' => $request->input('orientasi', 'portrait'),
+                'font_size' => $request->input('font_size', '10pt')
+            ];
+
+            Log::info('Data untuk PDF RKA 221 siap', [
+                'total_anggaran' => $penganggaran->pagu_anggaran,
+                'grouped_items_count' => count($groupedItems),
+                'print_settings' => $printSettings
+            ]);
+
             $pdf = PDF::loadView('rkas.rka-dua-satu-pdf', [
                 'penganggaran' => $penganggaran,
                 'sekolah' => $sekolah,
@@ -1535,13 +1657,40 @@ class RkasController extends Controller
                 'groupedItems' => $groupedItems,
                 'totals' => $totals,
                 'total_anggaran' => $penganggaran->pagu_anggaran,
-                'tahun_anggaran' => $penganggaran->tahun_anggaran
+                'tahun_anggaran' => $penganggaran->tahun_anggaran,
+                'printSettings' =>$printSettings
             ]);
 
-            return $pdf->stream('RKA-221.pdf');
+            // Set paper options
+            $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
+
+            // Set options for better font handling
+            $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
+            ]);
+
+            Log::info('PDF RKA 221 berhasil di-generate');
+
+            return $pdf->stream('RKA-221-' . $tahun . '.pdf');
         } catch (\Exception $e) {
             Log::error('Error generating RKA 221 PDF: ' . $e->getMessage());
-            return back()->with('error', 'Gagal menghasilkan PDF RKA 221: ' . $e->getMessage());
+
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return response("
+            <html>
+                <body>
+                    <h1>Error Generating PDF RKA 221</h1>
+                    <p>Terjadi kesalahan saat membuat PDF: " . $e->getMessage() . "</p>
+                    <p>Silakan coba lagi atau hubungi administrator.</p>
+                    <button onclick='window.history.back()'>Kembali</button>
+                </body>
+            </html>
+            ", 500);
         }
     }
 
@@ -1755,13 +1904,40 @@ class RkasController extends Controller
                 });
             });
 
+            // Get print settings from request
+            $printSettings = [
+                'ukuran_kertas' => request()->input('ukuran_kertas', 'A4'),
+                'orientasi' => request()->input('orientasi', 'landscape'),
+                'font_size' => request()->input('font_size', '10pt')
+            ];
+
+            Log::info('Generate PDF RKA Bulanan', [
+                'tahun' => $tahun,
+                'bulan' => $validBulan,
+                'print_settings' => $printSettings,
+                'total_belanja' => $totalBelanja
+            ]);
+
             $pdf = PDF::loadView('rkas.rka-bulanan-pdf', [
                 'dataSekolah' => $dataSekolah,
                 'penerimaan' => $penerimaan,
                 'belanja' => $dataTerkelola,
                 'totalBelanja' => $totalBelanja,
                 'bulan' => $validBulan,
-                'penganggaran' => $penganggaran
+                'penganggaran' => $penganggaran,
+                'printSettings' => $printSettings
+            ]);
+
+            // Set paper options
+            $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
+
+            // Set options for better font handling
+            $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
             ]);
 
             return $pdf->stream("RKAS-Bulanan-{$validBulan}-{$tahun}.pdf");

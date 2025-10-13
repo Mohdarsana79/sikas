@@ -155,8 +155,8 @@ Route::middleware(['auth'])->prefix('rkas')->group(function () {
 
     // Routes untuk PDF dan Preview
     Route::get('/rkas/generate-pdf', [RkasController::class, 'generatePdf'])->name('rkas.generate-pdf');
-    Route::get('/rkas/generate-pdf-rekap', [RkasController::class, 'generatePdfRkaRekap'])->name('rkas.generate-pdf-rekap');
-    Route::get('/rkas/generate-rka-221-pdf', [RkasController::class, 'generateRkaDuaSatuPdf'])
+    Route::get('/rkas/generate-pdf-rekap/{tahun}', [RkasController::class, 'generatePdfRkaRekap'])->name('rkas.generate-pdf-rekap');
+    Route::get('/rkas/generate-rka-221-pdf/{tahun}', [RkasController::class, 'generateRkaDuaSatuPdf'])
         ->name('rkas.generate-rka-221-pdf');
 
     Route::get('/rkas/get-monthly-data', [RkasController::class, 'getMonthlyData'])

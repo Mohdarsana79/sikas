@@ -137,7 +137,7 @@
     </style>
 </head>
 
-<body>
+<body style="font-size: {{ $printSettings['font_size'] }};">
     <div class="header" style="font-size: {{ $printSettings['font_size'] }};">
         <h1>RENCANA KERTAS KERJA PER BULAN {{ strtoupper($bulan) }}</h1>
         <p>TAHUN ANGGARAN : {{ $dataSekolah['tahun_anggaran'] }}</p>

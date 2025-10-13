@@ -3,11 +3,36 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>RKA Rekap</title>
+    <title>RKA Rekap - {{ $penganggaran->tahun_anggaran }}</title>
     <style>
+        @page {
+            size: {
+                    {
+                    $printSettings['ukuran_kertas']
+                }
+            }
+
+                {
+                    {
+                    $printSettings['orientasi']
+                }
+            }
+
+            ;
+            margin: 15mm;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            font-size: 10pt;
+            margin: 0;
+
+            font-size: {
+                    {
+                    $printSettings['font_size']
+                }
+            }
+
+            ;
         }
 
         .header {
@@ -71,61 +96,59 @@
     </style>
 </head>
 
-<body>
+<body style="font-size: {{ $printSettings['font_size'] }};">
     <!-- Header -->
-    <div class="header">
-        <h2>LEMBAR KERTAS KERJA</h2>
-        <p>UNIT KERJA</p>
-        <p>PEMERINTAH KOTA BOGOR</p>
-        <p>TAHUN ANGGARAN {{ $dataSekolah['tahun_anggaran'] }}</p>
-        <p>Urusan Pemerintahan : 1.01 - PENDIDIKAN</p>
-        <p>Organisasi : {{ $dataSekolah['nama'] }}</p>
+    <div class="header" style="font-size: {{ $printSettings['font_size'] }};">
+        <h2 style="font-size: {{ $printSettings['font_size'] }};">LEMBAR KERTAS KERJA</h2>
+        <p style="font-size: {{ $printSettings['font_size'] }};">TAHUN ANGGARAN {{ $dataSekolah['tahun_anggaran'] }}</p>
+        <p style="font-size: {{ $printSettings['font_size'] }};">Urusan Pemerintahan : 1.01 - PENDIDIKAN</p>
+        <p style="font-size: {{ $printSettings['font_size'] }};">Organisasi : {{ $dataSekolah['nama'] }}</p>
     </div>
 
     <!-- Penerimaan Section -->
-    <div class="section-title">A. PENERIMAAN</div>
-    <div class="subsection-title"><strong>Sumber Dana :</strong></div>
-    <table>
+    <div class="section-title" style="font-size: {{ $printSettings['font_size'] }};">A. PENERIMAAN</div>
+    <div class="subsection-title" style="font-size: {{ $printSettings['font_size'] }};"><strong>Sumber Dana :</strong></div>
+    <table style="font-size: {{ $printSettings['font_size'] }};">
         <thead>
             <tr>
-                <th style="width: 15%;">No Kode</th>
-                <th style="width: 60%;">Penerimaan</th>
-                <th style="width: 25%;">Jumlah (Rp)</th>
+                <th style="width: 15%; font-size: {{ $printSettings['font_size'] }};">No Kode</th>
+                <th style="width: 60%; font-size: {{ $printSettings['font_size'] }};">Penerimaan</th>
+                <th style="width: 25%; font-size: {{ $printSettings['font_size'] }};">Jumlah (Rp)</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($penerimaan['items'] as $item)
             <tr>
-                <td>{{ $item['kode'] }}</td>
-                <td>{{ $item['uraian'] }}</td>
-                <td class="text-right">{{ number_format($item['jumlah'], 0, ',', '.') }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $item['kode'] }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $item['uraian'] }}</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">{{ number_format($item['jumlah'], 0, ',', '.') }}</td>
             </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="2"><strong>Total Penerimaan</strong></td>
-                <td class="text-right"><strong>{{ number_format($penerimaan['total'], 0, ',', '.') }}</strong></td>
+                <td colspan="2" style="font-size: {{ $printSettings['font_size'] }};"><strong>Total Penerimaan</strong></td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};"><strong>{{ number_format($penerimaan['total'], 0, ',', '.') }}</strong></td>
             </tr>
         </tfoot>
     </table>
 
     <!-- Belanja Section -->
-    <div class="section-title">B. REKAPITULASI ANGGARAN</div>
+    <div class="section-title" style="font-size: {{ $printSettings['font_size'] }};">B. REKAPITULASI ANGGARAN</div>
     <table>
         <thead>
             <tr>
-                <th style="width: 15%;">Kode Rekening</th>
-                <th style="width: 65%;">Uraian</th>
-                <th style="width: 20%;">Jumlah (Rp)</th>
+                <th style="width: 15%;" style="font-size: {{ $printSettings['font_size'] }};">Kode Rekening</th>
+                <th style="width: 65%;" style="font-size: {{ $printSettings['font_size'] }};">Uraian</th>
+                <th style="width: 20%;" style="font-size: {{ $printSettings['font_size'] }};">Jumlah (Rp)</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($rekapData as $item)
             <tr>
-                <td>{{ $item['kode'] }}</td>
-                <td>{{ $item['uraian'] }}</td>
-                <td class="text-right">
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $item['kode'] }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $item['uraian'] }}</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">
                     @if($item['jumlah'] === '-')
                     -
                     @else
@@ -138,52 +161,52 @@
     </table>
 
     <!-- Tahapan Section -->
-    <div class="section-title">C. RENCANA PELAKSANAAN ANGGARAN PER TAHAP</div>
-    <table>
-        <thead>
+    <div class="section-title" style="font-size: {{ $printSettings['font_size'] }};">C. RENCANA PELAKSANAAN ANGGARAN PER TAHAP</div>
+    <table style="font-size: {{ $printSettings['font_size'] }};">
+        <thead style="font-size: {{ $printSettings['font_size'] }};">
             <tr>
-                <th rowspan="2" style="width: 5%;">No</th>
-                <th rowspan="2" style="width: 50%;">Uraian</th>
-                <th colspan="2" style="width: 30%;">Tahap</th>
-                <th rowspan="2" style="width: 15%;">Jumlah</th>
+                <th rowspan="2" style="width: 5%; font-size: {{ $printSettings['font_size'] }};">No</th>
+                <th rowspan="2" style="width: 50%; font-size: {{ $printSettings['font_size'] }};">Uraian</th>
+                <th colspan="2" style="width: 30%; font-size: {{ $printSettings['font_size'] }};">Tahap</th>
+                <th rowspan="2" style="width: 15%; font-size: {{ $printSettings['font_size'] }};">Jumlah</th>
             </tr>
             <tr>
-                <th style="width: 15%;">I</th>
-                <th style="width: 15%;">II</th>
+                <th style="width: 15%; font-size: {{ $printSettings['font_size'] }};">I</th>
+                <th style="width: 15%; font-size: {{ $printSettings['font_size'] }};">II</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>1</td>
-                <td>Pendapatan</td>
-                <td class="text-right">{{ number_format($penerimaan['total'] / 2, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($penerimaan['total'] / 2, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($penerimaan['total'], 0, ',', '.') }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">1</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Pendapatan</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">{{ number_format($penerimaan['total'] / 2, 0, ',', '.') }}</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">{{ number_format($penerimaan['total'] / 2, 0, ',', '.') }}</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">{{ number_format($penerimaan['total'], 0, ',', '.') }}</td>
             </tr>
             <tr>
-                <td>2.1</td>
-                <td>Belanja Operasi</td>
-                <td class="text-right">{{ number_format($totalTahap1, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($totalTahap2, 0, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($totalTahap1 + $totalTahap2, 0, ',', '.') }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">2.1</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Belanja Operasi</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">{{ number_format($totalTahap1, 0, ',', '.') }}</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">{{ number_format($totalTahap2, 0, ',', '.') }}</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">{{ number_format($totalTahap1 + $totalTahap2, 0, ',', '.') }}</td>
             </tr>
             <tr>
-                <td>2.2</td>
-                <td>Belanja Modal</td>
-                <td class="text-right">0</td>
-                <td class="text-right">0</td>
-                <td class="text-right">0</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">2.2</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Belanja Modal</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">0</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">0</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">0</td>
             </tr>
         </tbody>
     </table>
 
     <!-- Footer Signature -->
-    <div class="footer">
+    <div class="footer" style="font-size: {{ $printSettings['font_size'] }};">
         <div></div>
-        <div class="signature">
+        <div class="signature" style="font-size: {{ $printSettings['font_size'] }};">
             {{ $dataSekolah['kabupaten'] }}, {{ $tanggalCetak['tanggal_cetak'] }}
             <br><br><br><br>
-            <strong>{{ $dataSekolah['kepala_sekolah'] }}</strong><br>
+            <strong style="font-size: {{ $printSettings['font_size'] }};">{{ $dataSekolah['kepala_sekolah'] }}</strong><br>
             NIP. {{ $dataSekolah['nip_kepala_sekolah'] }}
         </div>
     </div>

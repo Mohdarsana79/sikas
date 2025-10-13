@@ -69,10 +69,11 @@
                         <div class="tab-pane fade show active" id="rka-tahapan" role="tabpanel">
                             <div class="p-4">
                                 <div class="d-flex justify-content-end">
-                                    <a class="btn btn-primary" target="_blank" href="{{route('rkas.generate-pdf',['tahun' => $tahun])}}" style="font-size: 9pt;">
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModalTahap"
+                                        style="font-size: 9pt;">
                                         <i class="bi bi-printer me-2"></i>
-                                        Cetak
-                                    </a>
+                                        Cetak RKA Tahapan
+                                    </button>
                                 </div>
                                 <section class="penerimaan mb-4">
                                     <p class="section-title"><strong>A. PENERIMAAN</strong></p>
@@ -215,10 +216,11 @@
                         <div class="tab-pane fade" id="rka-rekap" role="tabpanel">
                             <div class="p-4">
                                 <div class="d-flex justify-content-end mb-3">
-                                    <a class="btn btn-primary" target="_window" href="{{ route('rkas.generate-pdf-rekap', ['tahun' => $tahun]) }}" style="font-size: 9pt;">
-                                        <i class="bi bi-printer me-2"></i>
-                                        Cetak
-                                    </a>
+                                    <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModal"
+                                        style="font-size: 9pt;">
+                                        <i class="bi bi-gear me-2"></i>
+                                        Pengaturan Cetak
+                                    </button>
                                 </div>
                         
                                 <!-- Penerimaan Section -->
@@ -335,10 +337,13 @@
                             <div class="p-4">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="mb-0">LEMBAR KERTAS KERJA</h5>
-                                    <a class="btn btn-primary btn-sm" href="{{ route('rkas.generate-rka-221-pdf', ['tahun' => $tahun]) }}"
-                                        target="_blank">
-                                        <i class="bi bi-printer me-2"></i>Cetak
-                                    </a>
+                                    <div>
+                                        <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModalDuaSatu"
+                                            style="font-size: 9pt;">
+                                            <i class="bi bi-gear me-2"></i>
+                                            Pengaturan Cetak
+                                        </button>
+                                    </div>
                                 </div>                      
                                 <!-- Tabel Indikator Kinerja -->
                                 <table class="table table-bordered mb-4" id="rka-221" style="font-size: 10pt;">
@@ -417,25 +422,22 @@
                         {{-- Rka Bulanan --}}
                         <div class="tab-pane fade" id="rka-bulan" role="tabpanel">
                             <div class="p-4">
-                                <form method="GET" action="{{ route('rkas.rekapan') }}" id="bulanForm">
-                                    <input type="hidden" name="tahun" value="{{ $tahun }}">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <div>
-                                            <select name="bulan" id="bulanSelect" class="form-select form-select-sm" style="width: 150px;">
-                                                @foreach($months as $month)
-                                                <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{ $month }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <a class="btn btn-primary btn-sm" id="cetakPdfButton"
-                                                href="{{ route('rkas.rka-bulanan-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}" target="_blank"
-                                                style="font-size: 9pt;">
-                                                <i class="bi bi-printer me-2"></i> Cetak
-                                            </a>
-                                        </div>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <select name="bulan" id="bulanSelect" class="form-select form-select-sm" style="width: 150px;">
+                                            @foreach($months as $month)
+                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{ $month }}</option>
+                                            @endforeach
+                                        </select>
                                     </div>
-                                </form>
+                                    <div>
+                                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModalBulanan"
+                                            style="font-size: 9pt;">
+                                            <i class="bi bi-printer me-2"></i>
+                                            Cetak RKA Bulanan
+                                        </button>
+                                    </div>
+                                </div>
                         
                                 <div class="table-responsive">
                                     <table class="table table-bordered" id="tabel-bulanan" style="font-size: 10pt;">
@@ -489,6 +491,12 @@
             </div>
         </div>
     </div>
+
+    @include('rkas.modal.pengaturan-cetak-rkas-tahap')
+    @include('rkas.modal.pengaturan-cetak-rkas-rekap')
+    @include('rkas.modal.pengaturan-cetak-rkas-dua-satu')
+    @include('rkas.modal.pengaturan-cetak-rkas-bulanan')
+
         {{-- modal Edit Tanggal Cetak --}}
 <div class="modal fade" id="editTanggalCetak" tabindex="-1" aria-labelledby="editTanggalCetakLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -618,4 +626,43 @@
             }
         }
     </style>
+
+    <script src="{{ asset('assets/js/jquery-3.6.0.min.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            // Tangani perubahan bulan
+            $('#bulanSelect').change(function() {
+                const bulan = $(this).val();
+                const tahun = "{{ $tahun }}";
+    
+                if (!bulan) return;
+                
+                // AJAX request untuk load data tabel
+                $('#loadingIndicator').show();
+                $('#rka-bulan table tbody').hide();
+                
+                $.ajax({
+                    url: "{{ route('rkas.get-monthly-data') }}",
+                    type: "GET",
+                    data: {
+                        bulan: bulan,
+                        tahun: tahun,
+                        _token: "{{ csrf_token() }}"
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#rka-bulan table tbody').html(response.html);
+                            $('#rka-bulan table tfoot td.text-right').html(
+                                '<strong>' + new Intl.NumberFormat('id-ID').format(response.totalBulanan) + '</strong>'
+                            );
+                        }
+                    },
+                    complete: function() {
+                        $('#rka-bulan table tbody').fadeIn();
+                        $('#loadingIndicator').hide();
+                    }
+                });
+            });
+        });
+    </script>
 @endsection
