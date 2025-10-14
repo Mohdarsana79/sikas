@@ -903,7 +903,7 @@ class RkasPerubahanController extends Controller
             }
 
             // Format tanggal perubahan
-            $formatTanggalPerubahan = $penganggaran->tanggal_perubahan ?
+            $formatTanggalPerubahan = $penganggaran->format_tanggal_perubahan ?
                 \Carbon\Carbon::parse($penganggaran->tanggal_perubahan)->format('d/m/Y') :
                 \Carbon\Carbon::now()->format('d/m/Y');
 
@@ -2191,10 +2191,7 @@ class RkasPerubahanController extends Controller
             ];
 
             // Format tanggal perubahan
-            $formatTanggalPerubahan = $penganggaran->tanggal_perubahan ?
-                \Carbon\Carbon::parse($penganggaran->tanggal_perubahan)->format('d/m/Y') :
-                \Carbon\Carbon::now()->format('d/m/Y');
-
+            $formatTanggalPerubahan = $penganggaran->format_tanggal_perubahan;
             Log::info('Generate PDF RKA Bulanan', [
                 'tahun' => $tahun,
                 'bulan' => $validBulan,

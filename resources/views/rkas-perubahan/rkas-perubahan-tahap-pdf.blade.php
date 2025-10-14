@@ -71,17 +71,17 @@
 
         .main-category {
             font-weight: bold;
-            background-color: #e6f2ff;
+            background-color: #fcda8b;
         }
 
         .sub-category {
             font-weight: bold;
-            background-color: #f0f8ff;
+            background-color: #bffa98;
         }
 
         .uraian-category {
             font-weight: bold;
-            background-color: #f9f9f9;
+            background-color: #acfad7;
         }
 
         .detail-item {

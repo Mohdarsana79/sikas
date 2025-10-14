@@ -36,10 +36,14 @@
             margin-bottom: 5px;
         }
 
+        .no-border {
+            border: none;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
         }
 
         table,
@@ -67,7 +71,7 @@
         }
 
         .footer {
-            margin-top: 50px;
+            margin-top: 0px;
         }
 
         .signature {
@@ -92,19 +96,41 @@
     <div class="header">
         <h4 style="font-size: {{ $printSettings['font_size'] }};">LEMBAR KERTAS KERJA</h4>
         <p style="margin: 0; font-size: {{ $printSettings['font_size'] }};">TAHUN ANGGARAN {{ $penganggaran->tahun_anggaran }}</p>
-        <p style="font-size: {{ $printSettings['font_size'] }};">Pemerintahan : 1.01 - PENDIDIKAN</p>
-        <p style="font-size: {{ $printSettings['font_size'] }};">Organisasi : {{ $sekolah->nama_sekolah }}</p>
-        <p style="font-size: {{ $printSettings['font_size'] }};">Lokasi Kegiatan : {{ $sekolah->alamat }}</p>
     </div>
 
+    <table class="no-border" style="font-size: {{ $printSettings['font_size'] }};">
+        <tr>
+            <td class="no-border" style="witdh: 10%; font-size: {{ $printSettings['font_size'] }};">
+                Urusan Pemerintahan
+            </td>
+            <td class="no-border" style="witdh: 1%; font-size: {{ $printSettings['font_size'] }};">
+                :
+            </td>
+            <td class="no-border" style="witdh: 89%; font-size: {{ $printSettings['font_size'] }};">
+                1.01 - PENDIDIKAN
+            </td>
+        </tr>
+        <tr>
+            <td class="no-border" style="witdh: 10%; font-size: {{ $printSettings['font_size'] }};">
+                Organisasi
+            </td>
+            <td class="no-border" style="witdh: 2%; font-size: {{ $printSettings['font_size'] }};">
+                :
+            </td>
+            <td class="no-border" style="font-size: {{ $printSettings['font_size'] }};">
+                {{ $sekolah->nama_sekolah }}
+            </td>
+        </tr>
+    </table>
+
     <!-- Tabel Indikator Kinerja -->
-    <h5>Indikator & Tolok Ukur Kinerja Belanja Langsung</h5>
+    <h5 style="font-size: {{ $printSettings['font_size'] }};">Indikator & Tolok Ukur Kinerja Belanja Langsung</h5>
     <table style="font-size: {{ $printSettings['font_size'] }};">
         <thead>
             <tr>
-                <th style="font-size: {{ $printSettings['font_size'] }};">Indikator</th>
-                <th style="font-size: {{ $printSettings['font_size'] }};">Tolok Ukur Kinerja</th>
-                <th style="font-size: {{ $printSettings['font_size'] }};">Target Kinerja</th>
+                <th class="text-center" style="font-size: {{ $printSettings['font_size'] }};">Indikator</th>
+                <th class="text-center" style="font-size: {{ $printSettings['font_size'] }};">Tolok Ukur Kinerja</th>
+                <th class="text-center" style="font-size: {{ $printSettings['font_size'] }};">Target Kinerja</th>
             </tr>
         </thead>
         <tbody>
@@ -129,15 +155,15 @@
     <table style="font-size: {{ $printSettings['font_size'] }};">
         <thead>
             <tr>
-                <th rowspan="2" style="width: 10%; font-size: {{ $printSettings['font_size'] }};">Kode Rekening</th>
-                <th rowspan="2" style="width: 30%; font-size: {{ $printSettings['font_size'] }};">Uraian</th>
-                <th colspan="3">Rincian Perhitungan</th>
-                <th rowspan="2" style="width: 15%; font-size: {{ $printSettings['font_size'] }};">Jumlah (Rp)</th>
+                <th class="text-center" rowspan="2" style="width: 10%; font-size: {{ $printSettings['font_size'] }};">Kode Rekening</th>
+                <th class="text-center" rowspan="2" style="width: 30%; font-size: {{ $printSettings['font_size'] }};">Uraian</th>
+                <th class="text-center" colspan="3">Rincian Perhitungan</th>
+                <th class="text-center" rowspan="2" style="width: 15%; font-size: {{ $printSettings['font_size'] }};">Jumlah (Rp)</th>
             </tr>
             <tr>
-                <th style="width: 10%; font-size: {{ $printSettings['font_size'] }};">Volume</th>
-                <th style="width: 10%; font-size: {{ $printSettings['font_size'] }};">Satuan</th>
-                <th style="width: 15%; font-size: {{ $printSettings['font_size'] }};">Harga Satuan</th>
+                <th class="text-center" style="width: 10%; font-size: {{ $printSettings['font_size'] }};">Volume</th>
+                <th class="text-center" style="width: 10%; font-size: {{ $printSettings['font_size'] }};">Satuan</th>
+                <th class="text-center" style="width: 15%; font-size: {{ $printSettings['font_size'] }};">Harga Satuan</th>
             </tr>
         </thead>
         <tbody>
