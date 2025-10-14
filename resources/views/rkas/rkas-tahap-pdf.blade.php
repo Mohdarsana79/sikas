@@ -71,13 +71,13 @@
 
         .main-category {
             font-weight: bold;
-            background-color: #f2f2f2;
+            background-color: #fcda8b;
         }
 
         .sub-category {
             font-weight: bold;
             padding-left: 5px;
-            background-color: #f9f9f9;
+            background-color: #bffa98;
         }
 
         .detail-item {
@@ -135,7 +135,7 @@
 
         .uraian-category {
             padding-left: 15px;
-            background-color: #f0f0f0;
+            background-color: #acfad7;
             font-weight: bold;
         }
 

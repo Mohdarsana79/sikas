@@ -36,6 +36,10 @@
             margin-bottom: 5px;
         }
 
+        .section-header, .item-header {
+            border: none;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -67,7 +71,7 @@
         }
 
         .footer {
-            margin-top: 50px;
+            margin-top: 5px;
         }
 
         .signature {
@@ -92,10 +96,21 @@
     <div class="header" style="font-size: {{ $printSettings['font_size'] }};">
         <h4 style="font-size: {{ $printSettings['font_size'] }};">LEMBAR KERTAS KERJA</h4>
         <p style="font-size: {{ $printSettings['font_size'] }};">TAHUN ANGGARAN {{ $penganggaran->tahun_anggaran }}</p>
-        <p style="font-size: {{ $printSettings['font_size'] }};">Pemerintahan : 1.01 - PENDIDIKAN</p>
-        <p style="font-size: {{ $printSettings['font_size'] }};">Organisasi : {{ $sekolah->nama_sekolah }}</p>
-        <p style="font-size: {{ $printSettings['font_size'] }};">Lokasi Kegiatan : {{ $sekolah->alamat }}</p>
     </div>
+
+    <table class="section-header">
+        <tr>
+            <td class="item-header" style="font-size: {{ $printSettings['font_size'] }}; width: 20%;">Urusan Pemerintahan
+            </td>
+            <td class="item-header" style="font-size: {{ $printSettings['font_size'] }}; width: 80%;">: 1.01 - PENDIDIKAN
+            </td>
+        </tr>
+        <tr>
+            <td class="item-header" style="font-size: {{ $printSettings['font_size'] }}; width: 20%;">Organisasi</td>
+            <td class="item-header" style="font-size: {{ $printSettings['font_size'] }}; width: 80%;">:
+                {{ $sekolah->nama_sekolah }}</td>
+        </tr>
+    </table>
 
     <!-- Tabel Indikator Kinerja -->
     <h5 style="font-size: {{ $printSettings['font_size'] }};">Indikator & Tolok Ukur Kinerja Belanja Langsung</h5>

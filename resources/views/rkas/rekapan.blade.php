@@ -9,8 +9,8 @@
             <!-- Page Title -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h1 class="h3 mb-1 text-gradient">Rekapan RKAS Perubahan</h1>
-                    <p class="mb-0 text-muted">Rekap Rencana Kegiatan dan Anggaran Sekolah Perubahan</p>
+                    <h1 class="h3 mb-1 text-gradient">Rekapan RKAS</h1>
+                    <p class="mb-0 text-muted">Rekap Rencana Kegiatan dan Anggaran Sekolah</p>
                 </div>
                 <div class="tanggal-cetak" style="font-size: 10pt;">
     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#editTanggalCetak" style="font-size: 10pt;">
