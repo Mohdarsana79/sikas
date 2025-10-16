@@ -95,6 +95,11 @@ class BukuKasUmum extends Model
         return $this->belongsTo(RekeningBelanja::class, 'kode_rekening_id');
     }
 
+    public function Sekolah()
+    {
+        return $this->belongsTo(Sekolah::class);
+    }
+
     // Scope untuk mencari transaksi berdasarkan uraian
     public function scopeWhereUraianLike($query, $uraian)
     {

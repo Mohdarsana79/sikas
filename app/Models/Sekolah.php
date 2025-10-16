@@ -32,4 +32,9 @@ class Sekolah extends Model
     {
         return $this->hasOne(Penganggaran::class)->orderBy('tahun_anggaran', 'desc');
     }
+
+    public function BukuKasUmum()
+    {
+        return $this->hasMany(BukuKasUmum::class);
+    }
 }

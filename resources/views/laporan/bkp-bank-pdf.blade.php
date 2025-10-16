@@ -6,11 +6,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BKP Bank {{ $bulan }} {{ $tahun }}</title>
     <style>
+        @page {
+            size: {
+                    {
+                    $printSettings['ukuran_kertas']
+                }
+            }
+
+                {
+                    {
+                    $printSettings['orientasi']
+                }
+            }
+
+            ;
+            margin: 1cm;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            font-size: 10pt;
+
+            font-size: {
+                    {
+                    $printSettings['font_size']
+                }
+            }
+
+            ;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
         }
 
         .header {
@@ -58,16 +90,8 @@
             font-weight: bold;
         }
 
-        .text-center {
-            text-align: center;
-        }
-
-        .text-right {
-            text-align: right;
-        }
-
         .footer {
-            margin-top: 30px;
+            margin-top: 5px;
             font-size: 9pt;
         }
 
@@ -86,13 +110,13 @@
         }
 
         .signature {
-            margin-top: 50px;
+            margin-top: 5px;
+            text-align:center;
         }
 
         .signature-line {
             margin-top: 60px;
-            border-top: 1px solid #000;
-            width: 200px;
+
             text-align: center;
             padding-top: 5px;
         }
@@ -108,66 +132,66 @@
     </style>
 </head>
 
-<body>
-    <div class="header">
-        <h1>BUKU KAS PEMBANTU BANK</h1>
-        <h2>BULAN : {{ strtoupper($bulan) }} TAHUN : {{ $tahun }}</h2>
+<body style="font-size: {{ $printSettings['font_size'] }};">
+    <div class="header" style="font-size: {{ $printSettings['font_size'] }};">
+        <h1 style="font-size: {{ $printSettings['font_size'] }};">BUKU KAS PEMBANTU BANK</h1>
+        <h2 style="font-size: {{ $printSettings['font_size'] }};">BULAN : {{ strtoupper($bulan) }} TAHUN : {{ $tahun }}</h2>
     </div>
 
-    <table class="info-sekolah">
+    <table class="info-sekolah" style="font-size: {{ $printSettings['font_size'] }};">
         <tr>
-            <td style="width: 20%">NPSN</td>
-            <td style="width: 5%">:</td>
-            <td style="width: 75%">{{ $sekolah->npsn ?? '40202255' }}</td>
+            <td style="width: 10%; font-size: {{$printSettings['font_size']}};">NPSN</td>
+            <td style="width: 2%; font-size: {{$printSettings['font_size']}};">:</td>
+            <td style="width: 88%; font-size: {{$printSettings['font_size']}};">{{ $sekolah->npsn ?? '-' }}</td>
         </tr>
         <tr>
-            <td>Nama Sekolah</td>
-            <td>:</td>
-            <td>{{ $sekolah->nama_sekolah ?? 'SMP MUHAMMADIYAH SONI' }}</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">Nama Sekolah</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->nama_sekolah ?? '-' }}</td>
         </tr>
         <tr>
-            <td>Desa/Kecamatan</td>
-            <td>:</td>
-            <td>{{ $sekolah->alamat ?? 'Jl. Santa No. 150, Kec. Dampal Selatan' }}</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">Desa/Kecamatan</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->alamat ?? '-' }}</td>
         </tr>
         <tr>
-            <td>Kabupaten / Kota</td>
-            <td>:</td>
-            <td>{{ $sekolah->kabupaten ?? 'Kab. Tolitoli' }}</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">Kabupaten / Kota</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->kabupaten_kota ?? '-' }}</td>
         </tr>
         <tr>
-            <td>Provinsi</td>
-            <td>:</td>
-            <td>{{ $sekolah->provinsi ?? 'Prov. Sulawesi Tengah' }}</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">Provinsi</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->provinsi ?? '-' }}</td>
         </tr>
         <tr>
-            <td>Sumber Dana</td>
-            <td>:</td>
-            <td>BOSP Reguler</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">Sumber Dana</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+            <td style="font-size: {{ $printSettings['font_size'] }};">BOSP Reguler</td>
         </tr>
     </table>
 
-    <table class="table table-primary table-bordered table-sm mb-0" style="font-size: 10pt; border-collapse: collapse;">
+    <table class="table table-primary table-bordered table-sm mb-0" style="font-size: {{$printSettings['font_size']}}; border-collapse: collapse;">
         <thead class="table-light">
             <tr>
-                <th style="width: 10%">TANGGAL</th>
-                <th style="width: 12%">KODE KEGIATAN</th>
-                <th style="width: 12%">KODE REKENING</th>
-                <th style="width: 12%">NO. BUKTI</th>
-                <th style="width: 24%">URAIAN</th>
-                <th style="width: 10%">PENERIMAAN</th>
-                <th style="width: 10%">PENGELUARAN</th>
-                <th style="width: 10%">SALDO</th>
+                <th style="width: 10%; font-size: {{ $printSettings['font_size'] }};">TANGGAL</th>
+                <th style="width: 12%; font-size: {{ $printSettings['font_size'] }};">KODE KEGIATAN</th>
+                <th style="width: 12%; font-size: {{ $printSettings['font_size'] }};">KODE REKENING</th>
+                <th style="width: 12%; font-size: {{ $printSettings['font_size'] }};">NO. BUKTI</th>
+                <th style="width: 24%; font-size: {{ $printSettings['font_size'] }};">URAIAN</th>
+                <th style="width: 10%; font-size: {{ $printSettings['font_size'] }};">PENERIMAAN</th>
+                <th style="width: 10%; font-size: {{ $printSettings['font_size'] }};">PENGELUARAN</th>
+                <th style="width: 10%; font-size: {{ $printSettings['font_size'] }};">SALDO</th>
             </tr>
             <tr>
-                <th>1</th>
-                <th>2</th>
-                <th>3</th>
-                <th>4</th>
-                <th>5</th>
-                <th>6</th>
-                <th>7</th>
-                <th>8</th>
+                <th style="font-size: {{ $printSettings['font_size'] }};">1</th>
+                <th style="font-size: {{ $printSettings['font_size'] }};">2</th>
+                <th style="font-size: {{ $printSettings['font_size'] }};">3</th>
+                <th style="font-size: {{ $printSettings['font_size'] }};">4</th>
+                <th style="font-size: {{ $printSettings['font_size'] }};">5</th>
+                <th style="font-size: {{ $printSettings['font_size'] }};">6</th>
+                <th style="font-size: {{ $printSettings['font_size'] }};">7</th>
+                <th style="font-size: {{ $printSettings['font_size'] }};">8</th>
             </tr>
         </thead>
         <tbody>
@@ -181,16 +205,16 @@
     
             <!-- Baris Saldo Awal -->
             <tr>
-                <td>
+                <td class="text-center" style="font-size: {{ $printSettings['font_size'] }}; text-align: center;">
                     @php
                     $bulanAngkaFormatted = str_pad($bulanAngka, 2, '0', STR_PAD_LEFT);
                     @endphp
                     01-{{ $bulanAngkaFormatted }}-{{ $tahun }}
                 </td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">
                     @if($bulanAngka == 1)
                     Saldo Awal Bank {{ $tahun }}
                     @else
@@ -198,10 +222,10 @@
                     $tahun }}
                     @endif
                 </td>
-                <td class="text-end">@if($saldoAwal > 0) Rp {{ number_format($saldoAwal, 0, ',', '.') }} @else 0
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">@if($saldoAwal > 0) Rp {{ number_format($saldoAwal, 0, ',', '.') }} @else 0
                     @endif</td>
-                <td class="text-end">0</td>
-                <td class="text-end">@if($saldo > 0) Rp {{ number_format($saldo, 0, ',', '.') }} @else 0 @endif
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">0</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">@if($saldo > 0) Rp {{ number_format($saldo, 0, ',', '.') }} @else 0 @endif
                 </td>
             </tr>
     
@@ -213,14 +237,14 @@
             $saldo += $penerimaan->jumlah_dana;
             @endphp
             <tr>
-                <td>{{ \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('d-m-Y') }}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>Terima Dana {{ $penerimaan->sumber_dana }}</td>
-                <td class="text-end">Rp {{ number_format($penerimaan->jumlah_dana, 0, ',', '.') }}</td>
-                <td class="text-end">0</td>
-                <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                <td class="text-center" style="font-size: {{ $printSettings['font_size'] }}; text-align: center;">{{ \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('d-m-Y') }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Terima Dana {{ $penerimaan->sumber_dana }}</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">Rp {{ number_format($penerimaan->jumlah_dana, 0, ',', '.') }}</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">0</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
             </tr>
             @endforeach
     
@@ -232,14 +256,14 @@
             $saldo -= $penarikan->jumlah_penarikan;
             @endphp
             <tr>
-                <td>{{ \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d-m-Y') }}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>Tarik Tunai</td>
-                <td class="text-end">0</td>
-                <td class="text-end">Rp {{ number_format($penarikan->jumlah_penarikan, 0, ',', '.') }}</td>
-                <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                <td class="text-center" style="font-size: {{ $printSettings['font_size'] }}; text-align: center;">{{ \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d-m-Y') }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Tarik Tunai</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">0</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">Rp {{ number_format($penarikan->jumlah_penarikan, 0, ',', '.') }}</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
             </tr>
             @endforeach
     
@@ -250,14 +274,14 @@
             $saldo += $bungaRecord->bunga_bank;
             @endphp
             <tr>
-                <td>{{ \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d-m-Y') }}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>Bunga Bank</td>
-                <td class="text-end">Rp {{ number_format($bungaRecord->bunga_bank, 0, ',', '.') }}</td>
-                <td class="text-end">0</td>
-                <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                <td class="text-center" style="font-size: {{ $printSettings['font_size'] }}; text-align: center;">{{ \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Bunga Bank</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">Rp {{ number_format($bungaRecord->bunga_bank, 0, ',', '.') }}</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">0</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
             </tr>
             @endif
     
@@ -268,63 +292,57 @@
             $saldo -= $bungaRecord->pajak_bunga_bank;
             @endphp
             <tr>
-                <td>{{ \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d-m-Y') }}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>Pajak Bunga</td>
-                <td class="text-end">0</td>
-                <td class="text-end">Rp {{ number_format($bungaRecord->pajak_bunga_bank, 0, ',', '.') }}</td>
-                <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                <td class="text-center" style="font-size: {{ $printSettings['font_size'] }}; text-align: center;">{{ \Carbon\Carbon::parse($bungaRecord->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Pajak Bunga</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">0</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">Rp {{ number_format($bungaRecord->pajak_bunga_bank, 0, ',', '.') }}</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
             </tr>
             @endif
     
             <!-- Baris Jumlah -->
             <tr class="table-active fw-bold">
-                <td colspan="5" class="text-center">Jumlah</td>
-                <td class="text-end">Rp {{ number_format($totalPenerimaan, 0, ',', '.') }}</td>
-                <td class="text-end">Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}</td>
-                <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                <td colspan="5" class="text-center" style="font-size: {{ $printSettings['font_size'] }};">Jumlah</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;"">Rp {{ number_format($totalPenerimaan, 0, ',', '.') }}</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;"">Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}</td>
+                <td class="text-end" style="font-size: {{ $printSettings['font_size'] }}; text-align: right;">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
             </tr>
         </tbody>
     </table>
 
-    <div class="footer">
+    <div class="footer" style="font-size: {{ $printSettings['font_size'] }};">
         <p>Pada hari ini {{ $formatAkhirBulanLengkapHari }}, Buku Kas Umum Ditutup dengan
             keadaan/posisi buku sebagai berikut :</p>
 
         <p><strong>Saldo Bank : Rp. {{ number_format($saldo, 0, ',', '.') }}</strong></p>
 
-        <table class="footer-table">
+        <table class="footer-table" style="font-size: {{ $printSettings['font_size'] }};">
             <tr>
-                <td style="width: 50%">
-                    <div class="signature">
+                <td style="width: 50%; font-size: {{$printSettings['font_size']}};">
+                    <div class="signature" style="font-size: {{ $printSettings['font_size'] }};">
                         <p>Menyetujui,</p>
                         <p>Kepala Sekolah</p>
                         <div class="signature-line">
-                            <strong>{{ $penganggaran->kepala_sekolah ?? 'Dra. Masitah Abdullah' }}</strong><br>
-                            NIP: {{ $penganggaran->nip_kepala_sekolah ?? '196909172007012017' }}
+                            <strong>{{ $penganggaran->kepala_sekolah ?? '-' }}</strong><br>
+                            NIP: {{ $penganggaran->nip_kepala_sekolah ?? '-' }}
                         </div>
                     </div>
                 </td>
-                <td style="width: 50%">
-                    <div class="signature">
+                <td style="width: 50%; font-size: {{$printSettings['font_size']}};">
+                    <div class="signature" style="font-size: {{ $printSettings['font_size'] }};">
                         <p>{{ $sekolah->kabupaten_kota ?? 'Tolitoli' }}, {{ $formatTanggalAkhirBulanLengkap }}</p>
                         <p>Bendahara,</p>
-                        <div class="signature-line">
-                            <strong>{{ $penganggaran->bendahara ?? 'Dra. Masitah Abdullah' }}</strong><br>
-                            NIP: {{ $penganggaran->nip_bendahara ?? '196909172007012017' }}
+                        <div class="signature-line" style="font-size: {{ $printSettings['font_size'] }};">
+                            <strong>{{ $penganggaran->bendahara ?? '-' }}</strong><br>
+                            NIP: {{ $penganggaran->nip_bendahara ?? '-' }}
                         </div>
                     </div>
                 </td>
             </tr>
         </table>
-
-        <div style="text-align: center; margin-top: 20px; font-size: 7pt;">
-            BKP Bank {{ $bulan }} {{ $tahun }} - NPSN : {{ $sekolah->npsn ?? '40202255' }}, Nama Sekolah : {{
-            $sekolah->nama_sekolah ?? 'SMP MUHAMMADIYAH SONI' }}<br>
-            Halaman 1 dari 1
-        </div>
     </div>
 </body>
 

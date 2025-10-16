@@ -75,27 +75,23 @@
                     <!-- BKP Bank Tab -->
                     <div class="tab-pane fade show active" id="bkp-bank" role="tabpanel">
                         <div class="p-4">
-                            <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}"
-                                id="bulanForm">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <select name="bulan" id="bulanSelect" class="form-select form-select-sm"
-                                            style="width: 150px;">
-                                            @foreach($months as $month)
-                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
-                                                $month }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <a class="btn btn-primary btn-sm" id="cetakPdfButton"
-                                            href="{{ route('laporan.bkp-bank-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}"
-                                            target="_blank" style="font-size: 9pt;">
-                                            <i class="bi bi-printer me-2"></i> Cetak BKP Bank
-                                        </a>
-                                    </div>
+                            <div class="d-flex justify-content-between align-content-center mb-3">
+                                <div>
+                                    <select name="bulan" id="bulanSelect" class="form-select form-select-sm" style="width: 150px;">
+                                        @foreach($months as $month)
+                                        <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
+                                            $month }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
-                            </form>
+                                <div>
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModalBkpBank"
+                                        style="font-size: 9pt;">
+                                        <i class="bi bi-printer me-2"></i>
+                                        Cetak BKP Bank
+                                    </button>
+                                </div>
+                            </div>
 
                             <!-- Loading Indicator -->
                             <div id="loadingIndicatorBank" class="text-center d-none">
@@ -122,27 +118,23 @@
                     <!-- BKP Pembantu Tab -->
                     <div class="tab-pane fade" id="bkp-pembantu" role="tabpanel">
                         <div class="p-4">
-                            <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}"
-                                id="bulanFormPembantu">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <select name="bulan" id="bulanSelectPembantu" class="form-select form-select-sm"
-                                            style="width: 150px;">
-                                            @foreach($months as $month)
-                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
-                                                $month }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <a class="btn btn-primary btn-sm" id="cetakPdfButtonPembantu"
-                                            href="{{ route('laporan.bku-pembantu-tunai-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}"
-                                            target="_blank" style="font-size: 9pt;">
-                                            <i class="bi bi-printer me-2"></i> Cetak BKP Pembantu Tunai
-                                        </a>
-                                    </div>
+                            <div class="d-flex justify-content-between align-content-center mb-3">
+                                <div>
+                                    <select name="bulan" id="bulanSelectPembantu" class="form-select form-select-sm" style="width: 150px;">
+                                        @foreach($months as $month)
+                                        <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
+                                            $month }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
-                            </form>
+                                <div>
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModalBkpPembantu"
+                                        style="font-size: 9pt;">
+                                        <i class="bi bi-printer me-2"></i>
+                                        Cetak BKP Bank
+                                    </button>
+                                </div>
+                            </div>
 
                             <!-- Loading Indicator -->
                             <div id="loadingIndicatorPembantu" class="text-center d-none">
@@ -170,27 +162,23 @@
                     <!-- BKP Umum Tab -->
                     <div class="tab-pane fade" id="bkp-umum" role="tabpanel">
                         <div class="p-4">
-                            <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}"
-                                id="bulanFormUmum">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <select name="bulan" id="bulanSelectUmum" class="form-select form-select-sm"
-                                            style="width: 150px;">
-                                            @foreach($months as $month)
-                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
-                                                $month }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <a class="btn btn-primary btn-sm" id="cetakPdfButtonUmum"
-                                            href="{{ route('laporan.bkp-umum-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}"
-                                            target="_blank" style="font-size: 9pt;">
-                                            <i class="bi bi-printer me-2"></i> Cetak BKP Umum
-                                        </a>
-                                    </div>
+                            <div class="d-flex justify-content-between align-content-center mb-3">
+                                <div>
+                                    <select name="bulan" id="bulanSelectUmum" class="form-select form-select-sm" style="width: 150px;">
+                                        @foreach($months as $month)
+                                        <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
+                                            $month }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
-                            </form>
+                                <div>
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModalBkpUmum"
+                                        style="font-size: 9pt;">
+                                        <i class="bi bi-printer me-2"></i>
+                                        Cetak BKP Bank
+                                    </button>
+                                </div>
+                            </div>
 
                             <!-- Loading Indicator -->
                             <div id="loadingIndicatorUmum" class="text-center d-none">
@@ -228,27 +216,24 @@
                     <!-- BKP Pajak Tab -->
                     <div class="tab-pane fade" id="bkp-pajak" role="tabpanel">
                         <div class="p-4">
-                            <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}"
-                                id="bulanFormPajak">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <select name="bulan" id="bulanSelectPajak" class="form-select form-select-sm"
-                                            style="width: 150px;">
-                                            @foreach($months as $month)
-                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
-                                                $month }}</option>
-                                            @endforeach
-                                        </select>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <select name="bulan" id="bulanSelectPajak" class="form-select form-select-sm"
+                                        style="width: 150px;">
+                                        @foreach($months as $month)
+                                        <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
+                                        $month }}</option>
+                                        @endforeach
+                                    </select>
                                     </div>
                                     <div>
-                                        <a class="btn btn-primary btn-sm" id="cetakPdfButtonPajak"
-                                            href="{{ route('laporan.bkp-pajak-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}"
-                                            target="_blank" style="font-size: 9pt;">
-                                            <i class="bi bi-printer me-2"></i> Cetak BKP Pajak
-                                        </a>
+                                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                            data-bs-target="#pengaturanKertasModalBkpPajak" style="font-size: 9pt;">
+                                            <i class="bi bi-printer me-2"></i>
+                                            Cetak BKP Pajak
+                                        </button>
                                     </div>
                                 </div>
-                            </form>
 
                             <!-- Loading Indicator -->
                             <div id="loadingIndicatorPajak" class="text-center d-none">
@@ -281,27 +266,26 @@
                     <!-- ROB Tab -->
                     <div class="tab-pane fade" id="Rob" role="tabpanel">
                         <div class="p-4">
-                            <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}"
-                                id="bulanFormRob">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
                                     <div>
                                         <select name="bulan" id="bulanSelectRob" class="form-select form-select-sm"
                                             style="width: 150px;">
                                             @foreach($months as $month)
                                             <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
-                                                $month }}</option>
+                                            $month }}</option>
                                             @endforeach
                                         </select>
                                     </div>
                                     <div>
-                                        <a class="btn btn-primary btn-sm" id="cetakPdfButtonRob"
-                                            href="{{ route('laporan.bkp-rob-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}"
-                                            target="_blank" style="font-size: 9pt;">
-                                            <i class="bi bi-printer me-2"></i> Cetak Rincian Objek Belanja
-                                        </a>
+                                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                            data-bs-target="#pengaturanKertasModalRob" style="font-size: 9pt;">
+                                            <i class="bi bi-printer me-2"></i>
+                                            Cetak Rob
+                                        </button>
                                     </div>
                                 </div>
-                            </form>
+                            </div>
 
                             <!-- Loading Indicator -->
                             <div id="loadingIndicatorRob" class="text-center d-none">
@@ -323,24 +307,23 @@
                     <!-- REGISTRASI Tab -->
                     <div class="tab-pane fade" id="Reg" role="tabpanel">
                         <div class="p-4">
-                            <form method="GET" action="{{ route('laporan.rekapan-bku', ['tahun' => $tahun]) }}" id="bulanFormReg">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <select name="bulan" id="bulanSelectReg" class="form-select form-select-sm" style="width: 150px;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <select name="bulan" id="bulanSelectReg" class="form-select form-select-sm" style="width: 150px;">
                                             @foreach($months as $month)
-                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{ $month }}</option>
+                                            <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{
+                                                $month }}</option>
                                             @endforeach
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <a class="btn btn-primary btn-sm" id="cetakPdfButtonReg"
-                                            href="{{ route('laporan.bkp-reg-pdf', ['tahun' => $tahun, 'bulan' => $bulan]) }}"
-                                            target="_blank" style="font-size: 9pt;">
-                                            <i class="bi bi-printer me-2"></i> Cetak Registrasi
-                                        </a>
-                                    </div>
+                                    </select>
                                 </div>
-                            </form>
+                                <div>
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModalRegistrasi"
+                                            style="font-size: 9pt;">
+                                            <i class="bi bi-printer me-2"></i>
+                                            Cetak Registrasi
+                                    </button>
+                                </div>
+                            </div>
                     
                             <!-- Loading Indicator -->
                             <div id="loadingIndicatorReg" class="text-center d-none">
@@ -413,6 +396,13 @@
         </div>
     </div>
 </div>
+
+@include('laporan.modal.pengaturan-cetak-rob')
+@include('laporan.modal.pengaturan-cetak-bkp-bank')
+@include('laporan.modal.pengaturan-cetak-bkp-pembantu')
+@include('laporan.modal.pengaturan-cetak-bkp-umum')
+@include('laporan.modal.pengaturan-cetak-bkp-pajak')
+@include('laporan.modal.pengaturan-cetak-registrasi')
 
 <style>
     /* Animasi loading */

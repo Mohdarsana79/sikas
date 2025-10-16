@@ -5,9 +5,33 @@
     <meta charset="utf-8">
     <title>BKP Pajak - {{ $bulan }} {{ $tahun }}</title>
     <style>
+        @page {
+            size: {
+                    {
+                    $printSettings['ukuran_kertas']
+                }
+            }
+
+                {
+                    {
+                    $printSettings['orientasi']
+                }
+            }
+
+            ;
+            margin: 1cm;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            font-size: 10pt;
+
+            font-size: {
+                    {
+                    $printSettings['font_size']
+                }
+            }
+
+            ;
             margin: 0;
             padding: 0;
         }
@@ -15,7 +39,6 @@
         .header {
             text-align: center;
             margin-bottom: 20px;
-            border-bottom: 2px solid #000;
             padding-bottom: 10px;
         }
 
@@ -104,21 +127,52 @@
     </style>
 </head>
 
-<body>
+<body style="font-size: {{ $printSettings['font_size'] }};">
     <div class="header">
-        <div class="school-info">
-            {{ $sekolah->nama_sekolah ?? 'SMP MUHAMMADIYAH SONI' }}
-        </div>
-        <div class="school-info">
-            {{ $sekolah->desa_kelurahan ?? 'PADDUNFU' }} {{ $sekolah->kecamatan ?? 'TOLITOLI' }}
-        </div>
-        <div class="school-info">
-            {{ $sekolah->kabupaten_kota ?? 'TOLITOLI' }} {{ $sekolah->provinsi ?? 'SULAWESI TENGAH' }}
-        </div>
         <div class="report-title">
             BUKU PEMBANTU PAJAK<br>
             BULAN : {{ strtoupper($bulan) }} {{ $tahun }}
         </div>
+    </div>
+
+    <div class="section-info">
+        <table style="border: none;">
+            <tr>
+                <td style="width: 10%; border: none;">NPSN</td>
+                <td style="width: 1%; border: none;">:</td>
+                <td style="width: 89%; border: none;">{{$sekolah->npsn}}</td>
+            </tr>
+            <tr>
+                <td style="width: 10%; border: none;">Nama Sekolah</td>
+                <td style="width: 1%; border: none;">:</td>
+                <td style="width: 89%; border: none;">{{$sekolah->nama_sekolah}}</td>
+            </tr>
+            <tr>
+                <td style="width: 10%; border: none;">Desa / Kelurahan</td>
+                <td style="width: 1%; border: none;">:</td>
+                <td style="width: 89%; border: none;">{{$sekolah->kelurahan_desa}}</td>
+            </tr>
+            <tr>
+                <td style="width: 10%; border: none;">Kecamatan</td>
+                <td style="width: 1%; border: none;">:</td>
+                <td style="width: 89%; border: none;">{{$sekolah->kecamatan}}</td>
+            </tr>
+            <tr>
+                <td style="width: 10%; border: none;">Kabupaten</td>
+                <td style="width: 1%; border: none;">:</td>
+                <td style="width: 89%; border: none;">{{$sekolah->kabupaten_kota}}</td>
+            </tr>
+            <tr>
+                <td style="width: 10%; border: none;">Provinsi</td>
+                <td style="width: 1%; border: none;">:</td>
+                <td style="width: 89%; border: none;">{{$sekolah->provinsi}}</td>
+            </tr>
+            <tr>
+                <td style="width: 10%; border: none;">Sumber Dana</td>
+                <td style="width: 1%; border: none;">:</td>
+                <td style="width: 89%; border: none;">BOSP Reguler</td>
+            </tr>
+        </table>
     </div>
 
     <table>
@@ -146,7 +200,7 @@
 
             <!-- Baris Saldo Awal -->
             <tr>
-                <td>1/{{ $bulanAngka }}/{{ $tahun }}</td>
+                <td>1-{{ $bulanAngka }}-{{ $tahun }}</td>
                 <td>-</td>
                 <td>-</td>
                 <td>Saldo awal bulan</td>
@@ -168,8 +222,8 @@
             @endphp
 
             <tr>
-                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d/m/Y') }}</td>
-                <td>{{ $transaksi->rekeningBelanja->kode_rekening ?? '-' }}</td>
+                <td>{{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d-m-Y') }}</td>
+                <td>{{ $transaksi->kode_masa_pajak ?? '-' }}</td>
                 <td>{{ $transaksi->id_transaksi }}</td>
                 <td>{{ $row['uraian'] }}</td>
                 <td class="text-end">{{ $row['ppn'] > 0 ? number_format($row['ppn'], 0, ',', '.') : '-' }}</td>
@@ -219,22 +273,19 @@
                     <br>
                     <br>
                     <br>
-                    <div class="signature-line"></div><br>
-                    <u>{{ $sekolah->kepala_sekolah ?? 'Dra. MASTTAH ABDULLAH' }}</u><br>
-                    NIP: {{ $sekolah->nip_kepala_sekolah ?? '19690917 200701 2017' }}
+                    <strong>{{ $penganggaran->kepala_sekolah ?? '_____________________' }}</strong><br>
+                    NIP: {{ $penganggaran->nip_kepala_sekolah ?? '_____________________' }}
                 </td>
                 <td>
-                    {{ $sekolah->kabupaten_kota ?? 'Tolitoli' }}, {{ $formatAkhirBulanLengkapHari ?? '31 Maret 2025'
+                    {{ $sekolah->kecamatan ?? '-' }}, {{ $formatAkhirBulanLengkapHari ?? '_____________________'
                     }}<br>
-                    Dibuat oleh<br>
                     Bendahara<br>
                     <br>
                     <br>
                     <br>
                     <br>
-                    <div class="signature-line"></div><br>
-                    <u>{{ $sekolah->bendahara ?? 'Dra. MASTTAH ABDULLAH' }}</u><br>
-                    NIP: {{ $sekolah->nip_bendahara ?? '19690917 200701 2017' }}
+                    <strong>{{ $penganggaran->bendahara ?? '_____________________' }}</strong><br>
+                    NIP: {{ $penganggaran->nip_bendahara ?? '_____________________' }}
                 </td>
             </tr>
         </table>

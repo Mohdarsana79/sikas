@@ -5,11 +5,35 @@
     <meta charset="UTF-8">
     <title>BUKU KAS UMUM - {{ $bulan }} {{ $tahun }}</title>
     <style>
+        @page {
+            size: {
+                    {
+                    $printSettings['ukuran_kertas']
+                }
+            }
+
+                {
+                    {
+                    $printSettings['orientasi']
+                }
+            }
+
+            ;
+            margin: 1cm;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            font-size: 10pt;
+
+            font-size: {
+                    {
+                    $printSettings['font_size']
+                }
+            }
+
+            ;
             margin: 0;
-            padding: 10px;
+            padding: 0;
         }
 
         .header {
@@ -92,7 +116,8 @@
 
         .signature {
             width: 100%;
-            margin-top: 40px;
+            margin-top: 10px;
+            line-height: 0.5;
         }
 
         .signature td {
@@ -106,7 +131,7 @@
     </style>
 </head>
 
-<body>
+<body style="font-size: {{$printSettings['font_size']}};">
     <div class="header">
         <h1>BUKU KAS UMUM</h1>
         <h2>BULAN : {{ strtoupper($bulan) }} {{ $tahun }}</h2>
@@ -115,9 +140,9 @@
     <div class="school-info">
         <table>
             <tr>
-                <td width="30%">Nama Sekolah</td>
-                <td width="2%">:</td>
-                <td>{{ $sekolah->nama_sekolah ?? '.......................' }}</td>
+                <td width="10%">Nama Sekolah</td>
+                <td width="1%">:</td>
+                <td width="89%">{{ $sekolah->nama_sekolah ?? '.......................' }}</td>
             </tr>
             <tr>
                 <td>Desa/Kecamatan</td>
@@ -252,24 +277,19 @@
             <td>
                 <p>Mengetahui,</p>
                 <p>Kepala Sekolah</p>
-                <br><br><br>
+                <br><br><br><br><br><br><br><br><br><br><br>
                 <p><strong>{{ $penganggaran->kepala_sekolah }}</strong></p>
-                <p><strong>NIP. {{ $penganggaran->nip_kepala_sekolah }}</strong></p>
+                <p>NIP. {{ $penganggaran->nip_kepala_sekolah }}</p>
             </td>
             <td>
                 <p>{{ $sekolah->kecamatan ?? '................' }}, {{ $formatAkhirBulanSingkat }}</p>
                 <p>Bendahara</p>
-                <br><br><br>
+                <br><br><br><br><br><br><br><br><br><br><br>
                 <p><strong>{{ $penganggaran->bendahara }}</strong></p>
-                <p><strong>NIP. {{ $penganggaran->nip_bendahara }}</strong></p>
+                <p>NIP. {{ $penganggaran->nip_bendahara }}</p>
             </td>
         </tr>
     </table>
-
-    <!-- Footer -->
-    <div class="footer">
-        <p style="text-align: right; font-size: 8pt;">Dicetak pada: {{ $tanggal_cetak }}</p>
-    </div>
 </body>
 
 </html>

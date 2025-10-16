@@ -6,10 +6,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BKP ROB {{ $bulan }} {{ $tahun }}</title>
     <style>
+        @page {
+            size: {
+                    {
+                    $printSettings['ukuran_kertas']
+                }
+            }
+
+                {
+                    {
+                    $printSettings['orientasi']
+                }
+            }
+
+            ;
+            margin: 1cm;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            font-size: 10pt;
-            line-height: 1.2;
+
+            font-size: {
+                    {
+                    $printSettings['font_size']
+                }
+            }
+
+            ;
+            margin: 0;
+            padding: 0;
         }
 
         .header {
@@ -80,7 +105,7 @@
         }
 
         .ttd {
-            margin-top: 30px;
+            margin-top: 5px;
             width: 100%;
         }
 
@@ -101,61 +126,61 @@
     </style>
 </head>
 
-<body>
-    <div class="header">
-        <h2>BUKU PEMBANTU RINCIAN OBJEK BELANJA</h2>
-        <h3>Bulan {{ $bulan }} Tahun {{ $tahun }}</h3>
+<body style="font-size: {{ $printSettings['font_size'] }};">
+    <div class="header" style="font-size: {{ $printSettings['font_size'] }};">
+        <h2 style="font-size: {{ $printSettings['font_size'] }};">BUKU PEMBANTU RINCIAN OBJEK BELANJA</h2>
+        <h3 style="font-size: {{ $printSettings['font_size'] }};">Bulan {{ $bulan }} Tahun {{ $tahun }}</h3>
     </div>
 
-    <div class="info-sekolah">
-        <table style="width: 100%; border: none; font-size: 9pt;">
+    <div class="info-sekolah" style="font-size: {{ $printSettings['font_size'] }};">
+        <table style="width: 100%; border: none; font-size: {{$printSettings['font_size']}};">
             <tr>
-                <td style="width: 30%;">NPSN</td>
-                <td style="width: 2%;">:</td>
-                <td style="width: 68%;">{{ $sekolah->npsn ?? '-' }}</td>
+                <td style="width: 30%; font-size: {{$printSettings['font_size']}};">NPSN</td>
+                <td style="width: 2%; font-size: {{$printSettings['font_size']}};">:</td>
+                <td style="width: 68%; font-size:{{$printSettings['font_size']}};">{{ $sekolah->npsn ?? '-' }}</td>
             </tr>
             <tr>
-                <td>Nama Sekolah</td>
-                <td>:</td>
-                <td>{{ $sekolah->nama_sekolah ?? 'SMP MUHAMMADIYAH SONI' }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Nama Sekolah</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->nama_sekolah ?? '-' }}</td>
             </tr>
             <tr>
-                <td>Desa / Kelurahan</td>
-                <td>:</td>
-                <td>{{ $sekolah->desa_kelurahan ?? 'Paddumpu' }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Desa / Kelurahan</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->kelurahan_desa ?? '-' }}</td>
             </tr>
             <tr>
-                <td>Kecamatan</td>
-                <td>:</td>
-                <td>{{ $sekolah->kecamatan ?? 'Dampal Selatan' }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Kecamatan</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->kecamatan ?? '-' }}</td>
             </tr>
             <tr>
-                <td>Kabupaten / Kota</td>
-                <td>:</td>
-                <td>{{ $sekolah->kabupaten_kota ?? 'Tolitoli' }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Kabupaten / Kota</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->kabupaten_kota ?? '-' }}</td>
             </tr>
             <tr>
-                <td>Provinsi</td>
-                <td>:</td>
-                <td>{{ $sekolah->provinsi ?? 'Sulawesi Tengah' }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Provinsi</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->provinsi ?? '-' }}</td>
             </tr>
             <tr>
-                <td>Anggaran Belanja</td>
-                <td>:</td>
-                <td><strong>Rp {{ number_format($saldoAwal ?? 0, 0, ',', '.') }}</strong></td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">Anggaran Belanja</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">:</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};"><strong>Rp {{ number_format($saldoAwal ?? 0, 0, ',', '.') }}</strong></td>
             </tr>
         </table>
     </div>
 
-    <table class="table-rob">
+    <table class="table-rob" style="font-size: {{ $printSettings['font_size'] }};">
         <thead>
             <tr>
-                <th width="15%">Tanggal</th>
-                <th width="15%">No Bukti</th>
-                <th width="30%">Uraian</th>
-                <th width="15%">Realisasi</th>
-                <th width="15%">Jumlah</th>
-                <th width="15%">Sisa Anggaran</th>
+                <th width="15%" style="font-size: {{ $printSettings['font_size'] }};">Tanggal</th>
+                <th width="15%" style="font-size: {{ $printSettings['font_size'] }};">No Bukti</th>
+                <th width="30%" style="font-size: {{ $printSettings['font_size'] }};">Uraian</th>
+                <th width="15%" style="font-size: {{ $printSettings['font_size'] }};">Realisasi</th>
+                <th width="15%" style="font-size: {{ $printSettings['font_size'] }};">Jumlah</th>
+                <th width="15%" style="font-size: {{ $printSettings['font_size'] }};">Sisa Anggaran</th>
             </tr>
         </thead>
         <tbody>
@@ -176,7 +201,7 @@
             @endif
 
             <tr class="rekening-header-row">
-                <td colspan="6">
+                <td colspan="6" style="font-size: {{ $printSettings['font_size'] }};">
                     <strong>{{ $rekening['kode'] }}</strong> - {{ $rekening['nama_rekening'] }}
                 </td>
             </tr>
@@ -201,12 +226,12 @@
             @endphp
 
             <tr>
-                <td>{{ $transaksi['tanggal'] }}</td>
-                <td>{{ $transaksi['no_bukti'] }}</td>
-                <td>{{ $transaksi['uraian'] }}</td>
-                <td class="text-right">Rp {{ number_format($transaksi['realisasi'], 0, ',', '.') }}</td>
-                <td class="text-right">Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</td>
-                <td class="text-right">Rp {{ number_format($sisaAnggaran, 0, ',', '.') }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $transaksi['tanggal'] }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $transaksi['no_bukti'] }}</td>
+                <td style="font-size: {{ $printSettings['font_size'] }};">{{ $transaksi['uraian'] }}</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">Rp {{ number_format($transaksi['realisasi'], 0, ',', '.') }}</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};">Rp {{ number_format($sisaAnggaran, 0, ',', '.') }}</td>
             </tr>
             @php $pageCount++; @endphp
             @endforeach
@@ -214,16 +239,16 @@
 
             <!-- Ringkasan Keseluruhan -->
             <tr class="total-row-rob">
-                <td colspan="3" class="text-center">
+                <td colspan="3" class="text-center" style="font-size: {{ $printSettings['font_size'] }};">
                     <strong>Jumlah</strong><br>
                 </td>
-                <td class="text-right"><strong>Rp {{ number_format($totalRealisasi ?? 0, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($totalRealisasi ?? 0, 0, ',', '.') }}</strong></td>
-                <td class="text-right"><strong>Rp {{ number_format($sisaAnggaran, 0, ',', '.') }}</strong></td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};"><strong>Rp {{ number_format($totalRealisasi ?? 0, 0, ',', '.') }}</strong></td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};"><strong>Rp {{ number_format($totalRealisasi ?? 0, 0, ',', '.') }}</strong></td>
+                <td class="text-right" style="font-size: {{ $printSettings['font_size'] }};"><strong>Rp {{ number_format($sisaAnggaran, 0, ',', '.') }}</strong></td>
             </tr>
             @else
             <tr>
-                <td colspan="6" class="text-center py-4">
+                <td colspan="6" class="text-center py-4" style="font-size: {{ $printSettings['font_size'] }};">
                     <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
                     <p class="text-muted mt-3">Tidak ada data transaksi untuk bulan {{ $bulan }} {{ $tahun }}</p>
                 </td>
@@ -234,30 +259,26 @@
 
     @if(!empty($robData) && count($robData) > 0)
     <div class="ttd">
-        <table class="ttd-table">
+        <table class="ttd-table" style="font-size: {{ $printSettings['font_size'] }};">
             <tr>
-                <td style="width: 50%;">
+                <td style="width: 50%; font-size: {{$printSettings['font_size']}};">
                     Mengetahui<br>
                     Kepala Sekolah
                     <div class="ttd-space"></div>
-                    <strong>{{ $sekolah->kepala_sekolah ?? 'Dra. MASITAH ABDULLAH' }}</strong><br>
-                    NIP. {{ $sekolah->nip_kepala_sekolah ?? '19690917 200701 2 017' }}
+                    <strong>{{ $penganggaran->kepala_sekolah ?? '-' }}</strong><br>
+                    NIP. {{ $penganggaran->nip_kepala_sekolah ?? '-' }}
                 </td>
-                <td style="width: 50%;">
-                    Dibuat oleh<br>
+                <td style="width: 50%; font-size: {{$printSettings['font_size']}};">
+                    {{ $sekolah->kabupaten_kota }}, {{$formatAkhirBulanSingkat}}<br>
                     Bendahara
                     <div class="ttd-space"></div>
-                    <strong>{{ $sekolah->bendahara ?? 'Dra. MASITAH ABDULLAH' }}</strong><br>
-                    NIP. {{ $sekolah->nip_bendahara ?? '19690917 200701 2 017' }}
+                    <strong>{{ $penganggaran->bendahara ?? '-' }}</strong><br>
+                    NIP. {{ $penganggaran->nip_bendahara ?? '-' }}
                 </td>
             </tr>
         </table>
     </div>
     @endif
-
-    <div style="position: fixed; bottom: 10px; right: 10px; font-size: 8pt; color: #666;">
-        Dicetak pada: {{ $tanggal_cetak }}
-    </div>
 </body>
 
 </html>

@@ -11,6 +11,7 @@ use App\Models\RekeningBelanja;
 use App\Models\Rkas;
 use App\Models\RkasPerubahan;
 use App\Models\SetorTunai;
+use App\Models\Sekolah;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -3191,7 +3192,7 @@ class BukuKasUmumController extends Controller
             }
 
             // Ambil data sekolah
-            $sekolah = \App\Models\Sekolah::first();
+            $sekolah = Sekolah::first();
 
             $bulanAngka = $this->convertBulanToNumber($bulan);
 
@@ -3240,6 +3241,19 @@ class BukuKasUmumController extends Controller
             $totalPengeluaran = $totalPenarikan + $totalPajak;
             $currentSaldo = $totalPenerimaan - $totalPengeluaran;
 
+            $printSettings = [
+                'ukuran_kertas' => request()
+                    ->input('ukuran_kertas', 'A4'),
+                'orientasi' => request()->input('orientasi', 'landscape'),
+                'font_size' => request()->input('font_size', '10pt')
+            ];
+
+            Log::info('Generate ROB', [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'print_settings' => $printSettings,
+            ]);
+
             $data = [
                 'tahun' => $tahun,
                 'bulan' => $bulan,
@@ -3264,14 +3278,24 @@ class BukuKasUmumController extends Controller
                     return $this->convertNumberToBulan($angka);
                 },
                 'tanggal_cetak' => now()->format('d/m/Y'),
+                'printSettings' => $printSettings
             ];
 
             $pdf = PDF::loadView('laporan.bkp-bank-pdf', $data);
-            $pdf->setPaper('A4', 'landscape');
+
+           $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
+
+           $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
+            ]);
 
             $filename = "BKP_Bank_{$bulan}_{$tahun}.pdf";
 
-            return $pdf->download($filename);
+            return $pdf->stream($filename);
         } catch (\Exception $e) {
             Log::error('Error generating BKP Bank PDF: ' . $e->getMessage());
 
@@ -3359,6 +3383,19 @@ class BukuKasUmumController extends Controller
 
             $currentSaldo = $totalPenerimaan - $totalPengeluaran;
 
+            $printSettings = [
+                'ukuran_kertas' => request()
+                    ->input('ukuran_kertas', 'A4'),
+                'orientasi' => request()->input('orientasi', 'landscape'),
+                'font_size' => request()->input('font_size', '10pt')
+            ];
+
+            Log::info('Generate ROB', [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'print_settings' => $printSettings,
+            ]);
+
             $data = [
                 'tahun' => $tahun,
                 'bulan' => $bulan,
@@ -3380,14 +3417,25 @@ class BukuKasUmumController extends Controller
                 'convertNumberToBulan' => function ($angka) {
                     return $this->convertNumberToBulan($angka);
                 },
-                'tanggal_cetak' => now()->format('d/m/Y')
+                'tanggal_cetak' => now()->format('d/m/Y'),
+                'printSettings' => $printSettings
             ];
 
             $pdf = PDF::loadView('laporan.bku-pembantu-tunai-pdf', $data);
-            $pdf->setPaper('A4', 'landscape');
+
+            $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
+
+            $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
+            ]);
 
             $filename = "BKP_Pembantu_Tunai_{$bulan}_{$tahun}.pdf";
-            return $pdf->download($filename);
+
+            return $pdf->stream($filename);
         } catch (\Exception $e) {
             Log::error('Error generating BKP Pembantu Tunai PDF: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal generate PDF: ' . $e->getMessage()], 500);
@@ -3725,6 +3773,19 @@ class BukuKasUmumController extends Controller
             $danaSekolah = 0;
             $danaBosp = $saldoBank;
 
+            $printSettings = [
+                'ukuran_kertas' => request()
+                    ->input('ukuran_kertas', 'A4'),
+                'orientasi' => request()->input('orientasi', 'landscape'),
+                'font_size' => request()->input('font_size', '10pt')
+            ];
+
+            Log::info('Generate ROB', [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'print_settings' => $printSettings,
+            ]);
+
             $data = [
                 'tahun' => $tahun,
                 'bulan' => $bulan,
@@ -3750,14 +3811,24 @@ class BukuKasUmumController extends Controller
                     return $this->convertNumberToBulan($angka);
                 },
                 'tanggal_cetak' => now()->format('d/m/Y'),
+                'printSettings' => $printSettings
             ];
 
             $pdf = PDF::loadView('laporan.bkp-umum-pdf', $data);
-            $pdf->setPaper('A4', 'landscape');
+            
+            $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
+
+            $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
+            ]);
 
             $filename = "BKP_Umum_{$bulan}_{$tahun}.pdf";
 
-            return $pdf->download($filename);
+            return $pdf->stream($filename);
         } catch (\Exception $e) {
             Log::error('Error generating BKP Umum PDF: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
@@ -4534,6 +4605,19 @@ class BukuKasUmumController extends Controller
 
             $totalPenerimaan = $totalPpn + $totalPph21 + $totalPph22 + $totalPph23 + $totalPb1;
 
+            $printSettings = [
+                'ukuran_kertas' => request()
+                    ->input('ukuran_kertas', 'A4'),
+                'orientasi' => request()->input('orientasi', 'landscape'),
+                'font_size' => request()->input('font_size', '10pt')
+            ];
+
+            Log::info('Generate ROB', [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'print_settings' => $printSettings,
+            ]);
+
             $data = [
                 'tahun' => $tahun,
                 'bulan' => $bulan,
@@ -4558,14 +4642,24 @@ class BukuKasUmumController extends Controller
                     return $this->convertNumberToBulan($angka);
                 },
                 'tanggal_cetak' => now()->format('d/m/Y'),
+                'printSettings' => $printSettings
             ];
 
             $pdf = PDF::loadView('laporan.bkp-pajak-pdf', $data);
-            $pdf->setPaper('A4', 'landscape');
+            
+            $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
+
+            $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
+            ]);
 
             $filename = "BKP_Pajak_{$bulan}_{$tahun}.pdf";
 
-            return $pdf->download($filename);
+            return $pdf->stream($filename);
         } catch (\Exception $e) {
             Log::error('Error generating BKP Pajak PDF: ' . $e->getMessage());
 
@@ -4676,7 +4770,7 @@ class BukuKasUmumController extends Controller
             }
 
             // Ambil data sekolah
-            $sekolah = \App\Models\Sekolah::first();
+            $sekolah = Sekolah::first();
 
             $bulanAngka = $this->convertBulanToNumber($bulan);
 
@@ -4725,6 +4819,19 @@ class BukuKasUmumController extends Controller
                 ];
             }
 
+            $printSettings = [
+                'ukuran_kertas' =>request()
+                ->input('ukuran_kertas', 'A4'),
+                'orientasi' => request()->input('orientasi', 'landscape'),
+                'font_size' => request()->input('font_size', '10pt')
+            ];
+
+            Log::info('Generate ROB', [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'print_settings' => $printSettings,
+            ]);
+
             $data = [
                 'tahun' => $tahun,
                 'bulan' => $bulan,
@@ -4744,14 +4851,24 @@ class BukuKasUmumController extends Controller
                     return $this->convertNumberToBulan($angka);
                 },
                 'tanggal_cetak' => now()->format('d/m/Y'),
+                'printSettings' => $printSettings
             ];
 
             $pdf = PDF::loadView('laporan.bkp-rob-pdf', $data);
-            $pdf->setPaper('A4', 'portrait');
+
+            $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
+
+            $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
+            ]);
 
             $filename = "BKP_ROB_{$bulan}_{$tahun}.pdf";
 
-            return $pdf->download($filename);
+            return $pdf->stream($filename);
         } catch (\Exception $e) {
             Log::error('Error generating BKP ROB PDF: ' . $e->getMessage());
 
@@ -4885,6 +5002,19 @@ class BukuKasUmumController extends Controller
             $totalUangLogam = $this->hitungTotalUangLogam($uangLogam);
             $saldoAkhirBuku = $totalUangKertas + $totalUangLogam + $saldoBank;
 
+            $printSettings = [
+                'ukuran_kertas' => request()
+                    ->input('ukuran_kertas', 'A4'),
+                'orientasi' => request()->input('orientasi', 'potrait'),
+                'font_size' => request()->input('font_size', '10pt')
+            ];
+
+            Log::info('Generate ROB', [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'print_settings' => $printSettings,
+            ]);
+
             $data = [
                 'tahun' => $tahun,
                 'bulan' => $bulan,
@@ -4918,14 +5048,24 @@ class BukuKasUmumController extends Controller
                     return $this->convertNumberToBulan($angka);
                 },
                 'tanggal_cetak' => now()->format('d/m/Y'),
+                'printSettings' => $printSettings
             ];
 
             $pdf = PDF::loadView('laporan.bkp-registrasi-pdf', $data);
-            $pdf->setPaper('A4', 'portrait');
+
+            $pdf->setPaper($printSettings['ukuran_kertas'], $printSettings['orientasi']);
+
+            $pdf->setOptions([
+                'defaultFont' => 'Arial',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'chroot' => realpath(base_path()),
+            ]);
 
             $filename = "BKP_Registrasi_{$bulan}_{$tahun}.pdf";
 
-            return $pdf->download($filename);
+            return $pdf->stream($filename);
         } catch (\Exception $e) {
             Log::error('Error generating BKP Registrasi PDF: ' . $e->getMessage());
 
