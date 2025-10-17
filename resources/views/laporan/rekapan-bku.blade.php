@@ -68,6 +68,12 @@
                             REG
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="Ba-tab" data-bs-toggle="tab" data-bs-target="#Ba" type="button"
+                            role="tab">
+                            Berita Acara
+                        </button>
+                    </li>
                 </ul>
 
                 <!-- Tab Content -->
@@ -363,36 +369,58 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Modal Edit Tanggal Cetak -->
-<div class="modal fade" id="editTanggalCetak" tabindex="-1" aria-labelledby="editTanggalCetakLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editTanggalCetakLabel">Tanggal Cetak</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ route('penganggaran.update-tanggal-cetak', $penganggaran->id) }}" method="POST">
-                @csrf
-                @method('PUT')
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="edit_tanggal_cetak" class="form-label">Tanggal Cetak</label>
-                        <input type="date" class="form-control" id="edit_tanggal_cetak" name="tanggal_cetak"
-                            value="{{ $penganggaran->tanggal_cetak ? \Carbon\Carbon::parse($penganggaran->tanggal_cetak)->format('Y-m-d') : '' }}"
-                            required>
+                    <!-- Berita Acara Tab -->
+                    <div class="tab-pane fade" id="Ba" role="tabpanel">
+                        <div class="p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <select name="bulan" id="bulanSelectBa" class="form-select form-select-sm" style="width: 150px;">
+                                        @foreach($months as $month)
+                                        <option value="{{ $month }}" {{ $bulan==$month ? 'selected' : '' }}>{{ $month }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#pengaturanKertasModalBa"
+                                        style="font-size: 9pt;">
+                                        <i class="bi bi-printer me-2"></i>
+                                        Cetak Berita Acara
+                                    </button>
+                                </div>
+                            </div>
+                    
+                            <!-- Loading Indicator -->
+                            <div id="loadingIndicatorBa" class="text-center d-none">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <span class="ms-2">Memuat data...</span>
+                            </div>
+                    
+                            <!-- Tabel Berita Acara -->
+                            <div id="beritaAcaraTable">
+                                @include('laporan.partials.ba-pemeriksaan-kas-table', [
+                                'bulan' => $bulan,
+                                'tahun' => $tahun,
+                                'sekolah' => $sekolah ?? null,
+                                'totalUangKertasLogam' => 0,
+                                'saldoBank' => 0,
+                                'totalKas' => 0,
+                                'saldoBuku' => 0,
+                                'perbedaan' => 0,
+                                'tanggalAkhirBulan' => \Carbon\Carbon::now(),
+                                'namaHariAkhirBulan' => 'Jumat',
+                                'namaBendahara' => 'Dra. MASITAH ABDULLAH',
+                                'namaKepalaSekolah' => 'Dra. MASITAH ABDULLAH',
+                                'nipBendahara' => '19690917 200701 2 017',
+                                'nipKepalaSekolah' => '19690917 200701 2 017'
+                                ])
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Update</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -584,12 +612,55 @@
             var regPdfUrl = '{{ route("laporan.bkp-reg-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
             regPdfUrl = regPdfUrl.replace(':bulan', selectedBulan);
             $('#cetakPdfButtonReg').attr('href', regPdfUrl);
+
+            // Update URL cetak Berita Acara
+            var regPdfUrl = '{{ route("laporan.berita-acara-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
+            regPdfUrl = regPdfUrl.replace(':bulan', selectedBulan);
+            $('#cetakPdfButtonBa').attr('href', regPdfUrl);
         }
 
-        // Fungsi untuk memuat data tabel
         function loadTableData(selectedBulan, tabType) {
-            var loadingIndicator = $('#loadingIndicator' + tabType);
-            var tableContainer = $('#bkp' + tabType + 'Table');
+            // Tentukan container ID berdasarkan tab type
+            var containerId = '';
+            var loadingIndicatorId = '';
+            
+            // Mapping container ID untuk setiap tab
+            switch(tabType) {
+                case 'Bank':
+                    containerId = '#bkpBankTable';
+                    loadingIndicatorId = '#loadingIndicatorBank';
+                    break;
+                case 'Pembantu':
+                    containerId = '#bkpPembantuTable';
+                    loadingIndicatorId = '#loadingIndicatorPembantu';
+                    break;
+                case 'Umum':
+                    containerId = '#bkpUmumTable';
+                    loadingIndicatorId = '#loadingIndicatorUmum';
+                    break;
+                case 'Pajak':
+                    containerId = '#bkpPajakTable';
+                    loadingIndicatorId = '#loadingIndicatorPajak';
+                    break;
+                case 'Rob':
+                    containerId = '#bkpRobTable';
+                    loadingIndicatorId = '#loadingIndicatorRob';
+                    break;
+                case 'Reg':
+                    containerId = '#bkpRegTable';
+                    loadingIndicatorId = '#loadingIndicatorReg';
+                    break;
+                case 'Ba':
+                    containerId = '#beritaAcaraTable'; // INI YANG BERBEDA
+                    loadingIndicatorId = '#loadingIndicatorBa';
+                    break;
+                default:
+                    containerId = '#bkpBankTable';
+                    loadingIndicatorId = '#loadingIndicatorBank';
+            }
+
+            var loadingIndicator = $(loadingIndicatorId);
+            var tableContainer = $(containerId);
 
             // Show loading
             loadingIndicator.removeClass('d-none');
@@ -614,7 +685,7 @@
                             tableContainer.removeClass('btn-pulse');
                         }, 500);
                         
-                        console.log('Data loaded for tab:', tabType, 'bulan:', selectedBulan);
+                        console.log('Data loaded for tab:', tabType, 'bulan:', selectedBulan, 'container:', containerId);
                     } else {
                         alert('Gagal memuat data: ' + response.message);
                     }
@@ -708,6 +779,20 @@
             $('#bulanSelectRob').val(selectedBulan);
         });
 
+        // Event untuk Berita Acara
+        $('#bulanSelectBa').change(function() {
+            var selectedBulan = $(this).val();
+            loadTableData(selectedBulan, 'Ba');
+            
+            // Update select di tab lain agar konsisten
+            $('#bulanSelect').val(selectedBulan);
+            $('#bulanSelectPembantu').val(selectedBulan);
+            $('#bulanSelectUmum').val(selectedBulan);
+            $('#bulanSelectPajak').val(selectedBulan);
+            $('#bulanSelectRob').val(selectedBulan);
+            $('#bulanSelectReg').val(selectedBulan);
+        });
+
         // Event ketika tab diubah
         $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
             var target = $(e.target).attr('data-bs-target');
@@ -733,6 +818,9 @@
             } else if (target === '#Reg') {
                 // Load data Registrasi ketika tab diaktifkan
                 loadTableData(selectedBulan, 'Reg');
+            } else if (target === '#Ba') {
+                // Load data Berita Acara ketika tab diaktifkan
+                loadTableData(selectedBulan, 'Ba');
             }
         });
 
@@ -750,6 +838,11 @@
             loadTableData(selectedBulan, 'Rob');
         } else if (activeTab === '#Reg') {
             loadTableData(selectedBulan, 'Reg');
+        } else if (activeTab === '#Ba') {
+            loadTableData(selectedBulan, 'Ba');
+        } else {
+            // Default load BKP Bank
+            loadTableData(selectedBulan, 'Bank');
         }
 
         // Update URLs saat pertama kali load

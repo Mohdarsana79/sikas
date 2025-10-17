@@ -16,6 +16,12 @@ use App\Http\Controllers\RkasController;
 use App\Http\Controllers\RkasPerubahanController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\SetorTunaiController;
+use App\Http\Controllers\BukuBankController;
+use App\Http\Controllers\BukuPajakController;
+use App\Http\Controllers\BeritaAcaraPenutupanController;
+use App\Http\Controllers\RegistrasiPenutupanKasController;
+use App\Http\Controllers\BukuKasPembantuTunaiController;
+use App\Http\Controllers\BukuRobController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
@@ -248,7 +254,7 @@ Route::middleware(['auth'])->prefix('bku')->group(function () {
     Route::delete('/penarikan-tunai/{id}', [PenarikanTunaiController::class, 'destroy'])->name('penarikan.destroy');
 
     // set tanggal sebelum tanggal penarikan tunai
-    Route::get('/tanggal-penarikan/{penganggaran_id}', [BukuKasUmumController::class, 'getTanggalPenarikanTunai'])
+    Route::get('/tanggal-penarikan/{penganggaran_id}', [BukuKasPembantuTunaiController::class, 'getTanggalPenarikanTunai'])
         ->name('bku.tanggal-penarikan');
 
     // setor tunai
@@ -264,8 +270,8 @@ Route::middleware(['auth'])->prefix('bku')->group(function () {
     Route::post('/store', [BukuKasUmumController::class, 'store'])->name('bku.store');
 
     // Route untuk lapor pajak
-    Route::post('/{id}/lapor-pajak', [BukuKasUmumController::class, 'laporPajak'])->name('bku.lapor-pajak');
-    Route::get('/{id}/get-pajak', [BukuKasUmumController::class, 'getDataPajak'])->name('bku.get-pajak');
+    Route::post('/{id}/lapor-pajak', [BukuPajakController::class, 'laporPajak'])->name('bku.lapor-pajak');
+    Route::get('/{id}/get-pajak', [BukuPajakController::class, 'getDataPajak'])->name('bku.get-pajak');
 
     // Route untuk mendapatkan nomor nota terakhir
     Route::get('/last-nota-number/{tahun}/{bulan}', [BukuKasUmumController::class, 'getLastNotaNumber'])
@@ -303,21 +309,24 @@ Route::middleware(['auth'])->prefix('laporan')->group(function () {
     Route::get('/laporan/rekapan-bku/ajax', [BukuKasUmumController::class, 'getRekapanBkuAjax'])
         ->name('laporan.rekapan-bku.ajax');
 
-    Route::get('/bkp-bank/data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getBkpBankData'])
+    Route::get('/bkp-bank/data/{tahun}/{bulan}', [BukuBankController::class, 'getBkpBankData'])
         ->name('bkp-bank.data');
 
     Route::get('/rekapan-bku', [BukuKasUmumController::class, 'rekapanBku'])
         ->name('laporan.rekapan-bku');
 
     // Route untuk generate PDF BKP Bank dengan prefix yang konsisten
-    Route::get('/laporan/bkp-bank-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkpBankPdf'])
+    Route::get('/laporan/bkp-bank-pdf/{tahun}/{bulan}', [BukuBankController::class, 'generateBkpBankPdf'])
         ->name('laporan.bkp-bank-pdf');
 
-    Route::get('/laporan/bku-pembantu-tunai-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkuPembantuTunaiPdf'])
+    Route::get('/data/{tahun}/{bulan}', [BukuKasPembantuTunaiController::class, 'getBkpPembantuData'])
+        ->name('bkp-pembantu.data');
+
+    Route::get('/laporan/bku-pembantu-tunai-pdf/{tahun}/{bulan}', [BukuKasPembantuTunaiController::class, 'generateBkuPembantuTunaiPdf'])
         ->name('laporan.bku-pembantu-tunai-pdf');
 
     // Route debug
-    Route::get('/debug/bkp-bank/{tahun}/{bulan}', [BukuKasUmumController::class, 'debugBkpBank'])
+    Route::get('/debug/bkp-bank/{tahun}/{bulan}', [BukuBankController::class, 'debugBkpBank'])
         ->name('debug.bkp-bank');
 
     // Route untuk BKP Umum
@@ -327,22 +336,28 @@ Route::middleware(['auth'])->prefix('laporan')->group(function () {
         ->name('laporan.bkp-umum-pdf');
 
     // Route untuk Pajak
-    Route::get('/bkp-pajak/data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getBkpPajakData'])
+    Route::get('/bkp-pajak/data/{tahun}/{bulan}', [BukuPajakController::class, 'getBkpPajakData'])
         ->name('bkp-pajak.data');
-    Route::get('/bkp-pajak-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkpPajakPdf'])
+    Route::get('/bkp-pajak-pdf/{tahun}/{bulan}', [BukuPajakController::class, 'generateBkpPajakPdf'])
         ->name('laporan.bkp-pajak-pdf');
 
     // Route untuk ROB
-    Route::get('/bkp-rob/data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getBkpRobData'])
+    Route::get('/bkp-rob/data/{tahun}/{bulan}', [BukuRobController::class, 'getBkpRobData'])
         ->name('bkp-rob.data');
-    Route::get('/bkp-rob-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkpRobPdf'])
+    Route::get('/bkp-rob-pdf/{tahun}/{bulan}', [BukuRobController::class, 'generateBkpRobPdf'])
         ->name('laporan.bkp-rob-pdf');
 
     // Route untuk BKP Registrasi
-    Route::get('/laporan/bkp-reg-pdf/{tahun}/{bulan}', [BukuKasUmumController::class, 'generateBkpRegPdf'])
+    Route::get('/laporan/bkp-reg-pdf/{tahun}/{bulan}', [RegistrasiPenutupanKasController::class, 'generateBkpRegPdf'])
         ->name('laporan.bkp-reg-pdf');
 
     // Route untuk get data BKP Registrasi (AJAX)
-    Route::get('/laporan/bkp-reg-data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getBkpRegData'])
+    Route::get('/laporan/bkp-reg-data/{tahun}/{bulan}', [RegistrasiPenutupanKasController::class, 'getBkpRegData'])
         ->name('laporan.bkp-reg-data');
+
+    // Route untuk Berita Acara
+    Route::get('/laporan/berita-acara/data/{tahun}/{bulan}', [BeritaAcaraPenutupanController::class, 'getBeritaAcaraData'])
+        ->name('laporan.berita-acara.data');
+    Route::get('/laporan/berita-acara-pdf/{tahun}/{bulan}', [BeritaAcaraPenutupanController::class, 'generateBeritaAcaraPdf'])
+        ->name('laporan.berita-acara-pdf');
 });
