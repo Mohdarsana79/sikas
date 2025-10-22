@@ -2107,6 +2107,13 @@ class BukuKasUmumController extends Controller
                 ->orderBy('tanggal_penarikan', 'asc')
                 ->get();
 
+            // Data untuk BKP Umum Terima Tunai
+            $terimaTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
+                ->whereMonth('tanggal_penarikan', $bulanAngka)
+                ->whereYear('tanggal_penarikan', $tahun)
+                ->orderBy('tanggal_penarikan', 'asc')
+                ->get();
+
             $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran->id)
                 ->whereMonth('tanggal_setor', $bulanAngka)
                 ->whereYear('tanggal_setor', $tahun)
@@ -2187,6 +2194,7 @@ class BukuKasUmumController extends Controller
                 'penganggaran' => $penganggaran,
                 'bulanAngka' => $bulanAngka,
                 'penarikanTunais' => $penarikanTunais,
+                'terimaTunais' => $terimaTunais,
                 'setorTunais' => $setorTunais,
                 'bkuDataTunai' => $bkuDataTunai,
                 'bungaRecord' => $bungaRecord,
@@ -2305,6 +2313,14 @@ class BukuKasUmumController extends Controller
                         ->get();
 
                     Log::info('Data penarikan tunai ditemukan:', ['count' => $penarikanTunais->count()]);
+
+                    $terimaTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
+                        ->whereMonth('tanggal_penarikan', $bulanAngka)
+                        ->whereYear('tanggal_penarikan', $tahun)
+                        ->orderBy('tanggal_penarikan', 'asc')
+                        ->get();
+                    
+                    Log::info('Data terima tunai ditemukan:', ['count' => $terimaTunais->count()]);
 
                     $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran->id)
                         ->whereMonth('tanggal_setor', $bulanAngka)
@@ -2428,6 +2444,7 @@ class BukuKasUmumController extends Controller
                         'bulanAngka' => $bulanAngka,
                         'penerimaanDanas' => $penerimaanDanas,
                         'penarikanTunais' => $penarikanTunais,
+                        'terimaTunais' => $terimaTunais,
                         'setorTunais' => $setorTunais,
                         'bkuData' => $bkuData,
                         'bungaRecord' => $bungaRecord,
@@ -2769,6 +2786,12 @@ class BukuKasUmumController extends Controller
                 ->orderBy('tanggal_penarikan', 'asc')
                 ->get();
 
+            $terimaTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
+                ->whereMonth('tanggal_penarikan', $bulanAngka)
+                ->whereYear('tanggal_penarikan', $tahun)
+                ->orderBy('tanggal_penarikan', 'asc')
+                ->get();
+
             $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran->id)
                 ->whereMonth('tanggal_setor', $bulanAngka)
                 ->whereYear('tanggal_setor', $tahun)
@@ -2823,6 +2846,7 @@ class BukuKasUmumController extends Controller
                 'bulanAngka' => $bulanAngka,
                 'penerimaanDanas' => $penerimaanDanas,
                 'penarikanTunais' => $penarikanTunais,
+                'terimaTunais' => $terimaTunais,
                 'setorTunais' => $setorTunais,
                 'bkuData' => $bkuData,
                 'bungaRecord' => $bungaRecord,
@@ -2880,6 +2904,12 @@ class BukuKasUmumController extends Controller
                 ->get();
 
             $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
+                ->whereMonth('tanggal_penarikan', $bulanAngka)
+                ->whereYear('tanggal_penarikan', $tahun)
+                ->orderBy('tanggal_penarikan', 'asc')
+                ->get();
+
+            $terimaTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
                 ->whereMonth('tanggal_penarikan', $bulanAngka)
                 ->whereYear('tanggal_penarikan', $tahun)
                 ->orderBy('tanggal_penarikan', 'asc')
@@ -2943,6 +2973,7 @@ class BukuKasUmumController extends Controller
                 $saldoAwalTunai,
                 $penerimaanDanas,
                 $penarikanTunais,
+                $terimaTunais,
                 $setorTunais,
                 $bkuData,
                 $bungaRecord
@@ -3034,7 +3065,7 @@ class BukuKasUmumController extends Controller
     /**
      * Siapkan data rows untuk BKP Umum dengan struktur yang konsisten
      */
-    private function siapkanDataRowsBkpUmum($penganggaran_id, $tahun, $bulan, $bulanAngka, $saldoAwal, $saldoAwalTunai, $penerimaanDanas, $penarikanTunais, $setorTunais, $bkuData, $bungaRecord)
+    private function siapkanDataRowsBkpUmum($penganggaran_id, $tahun, $bulan, $bulanAngka, $saldoAwal, $saldoAwalTunai, $penerimaanDanas, $penarikanTunais, $terimaTunais, $setorTunais, $bkuData, $bungaRecord)
     {
         $rowsData = [];
 
@@ -3043,7 +3074,7 @@ class BukuKasUmumController extends Controller
             'tanggal' => '1/' . $bulanAngka . '/' . $tahun,
             'kode_rekening' => '-',
             'no_bukti' => '-',
-            'uraian' => 'Saldo Awal bulan',
+            'uraian' => 'Saldo Awal bulan ' . $bulan,
             'penerimaan' => $saldoAwal,
             'pengeluaran' => 0,
             'is_saldo_awal' => true
@@ -3081,8 +3112,19 @@ class BukuKasUmumController extends Controller
                 'tanggal' => \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d-m-Y'),
                 'kode_rekening' => '-',
                 'no_bukti' => '-',
-                'uraian' => 'Penarikan Tunai',
-                'penerimaan' => $penarikan->jumlah_penarikan,
+                'uraian' => 'Penarikan Tunai ' . $penerimaan->sumber_dana . ' T.A ' . $tahun,
+                'penerimaan' => 0,
+                'pengeluaran' => $penarikan->jumlah_penarikan
+            ];
+        }
+
+        foreach ($terimaTunais as $terima) {
+            $rowsData[] = [
+                'tanggal' => \Carbon\Carbon::parse($terima->tanggal_penarikan)->format('d/m/Y'),
+                'kode_rekening' => '-',
+                'no_bukti' => '-',
+                'uraian' => 'Terima Tunai ' . $penerimaan->sumber_dana . ' T.A ' . $tahun,
+                'penerimaan' => $terima->jumlah_penarikan,
                 'pengeluaran' => 0
             ];
         }

@@ -27,7 +27,7 @@
             'tanggal' => '1/'.$bulanAngka.'/'.$tahun,
             'kode_rekening' => '-',
             'no_bukti' => '-',
-            'uraian' => 'Saldo Awal bulan',
+            'uraian' => 'Saldo Awal bulan ' . $bulan,
             'penerimaan' => $saldoAwal,
             'pengeluaran' => 0,
             'is_saldo_awal' => true
@@ -65,9 +65,21 @@
             'tanggal' => \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d/m/Y'),
             'kode_rekening' => '-',
             'no_bukti' => '-',
-            'uraian' => 'Penarikan Tunai',
-            'penerimaan' => $penarikan->jumlah_penarikan,
-            'pengeluaran' => 0
+            'uraian' => 'Penarikan Tunai ' .$penerimaan->sumber_dana.' T.A '.$tahun,
+            'penerimaan' => 0,
+            'pengeluaran' => $penarikan->jumlah_penarikan
+            ];
+            }
+
+            // DATA TERIMA TUNAI
+            foreach($terimaTunais as $terima) {
+                $rowsData[] = [
+                    'tanggal' => \Carbon\Carbon::parse($terima->tanggal_penarikan)->format('d/m/Y'),
+                    'kode_rekening' => '-',
+                    'no_bukti' => '-',
+                    'uraian' => 'Terima Tunai ' .$penerimaan->sumber_dana.' T.A '.$tahun,
+                    'penerimaan' => $terima->jumlah_penarikan,
+                    'pengeluaran' => 0
             ];
             }
 

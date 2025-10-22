@@ -208,6 +208,7 @@
                                 'bulanAngka' => $bulanAngka,
                                 'penerimaanDanas' => $penerimaanDanas ?? collect(),
                                 'penarikanTunais' => $penarikanTunais,
+                                'terimaTunais' => $terimaTunais,
                                 'setorTunais' => $setorTunais,
                                 'bkuData' => $bkuData ?? collect(),
                                 'bungaRecord' => $bungaRecord,
