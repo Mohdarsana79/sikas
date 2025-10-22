@@ -432,7 +432,7 @@
                                 <tr>
                                     <td class="px-4 py-3">{{ $bku->id_transaksi }}</td>
                                     <td class="px-4 py-3">{{ $bku->tanggal_transaksi->format('d/m/Y') }}</td>
-                                    <td class="px-4 py-3">{{ $bku->kodeKegiatan->uraian }}</td>
+                                    <td class="px-4 py-3">{{ $bku->kodeKegiatan->sub_program }}</td>
                                     @if ($bku->uraian_opsional)
                                     <td class="px-4 py-3">
                                         {{ $bku->uraian_opsional }}

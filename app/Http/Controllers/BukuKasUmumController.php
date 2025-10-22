@@ -23,10 +23,16 @@ use App\Services\BukuKasService;
 class BukuKasUmumController extends Controller
 {
     protected $bukuKasService;
+    protected $beritaAcaraController;
+    protected $registrasiPenutupanKasController;
+    protected $realisasiController;
 
-    public function __construct(BukuKasService $bukuKasService)
+    public function __construct(BukuKasService $bukuKasService, BeritaAcaraPenutupanController $beritaAcaraController, RegistrasiPenutupanKasController $registrasiPenutupanKasController, RekapitulasiRealisasiController $realisasiController)
     {
         $this->bukuKasService = $bukuKasService;
+        $this->beritaAcaraController = $beritaAcaraController;
+        $this->registrasiPenutupanKasController = $registrasiPenutupanKasController;
+        $this->realisasiController = $realisasiController;
     }
 
     // Ganti semua pemanggilan method yang dipindah ke service
@@ -101,6 +107,74 @@ class BukuKasUmumController extends Controller
     private function hitungTotalUangLogam($uangLogam)
     {
         return $this->bukuKasService->hitungTotalUangLogam($uangLogam);
+    }
+
+    
+
+    private function getBeritaAcaraData($penganggaran, $tahun, $bulan, $bulanAngka)
+    {
+        try {
+            Log::info('=== MENGAMBIL DATA BERITA ACARA DARI CONTROLLER ===', [
+                'penganggaran_id' => $penganggaran->id,
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'bulan_angka' => $bulanAngka
+            ]);
+
+            // Gunakan method yang sudah ada di BeritaAcaraController
+            return $this->beritaAcaraController->getDataForBeritaAcara(
+                $penganggaran->id,
+                $tahun,
+                $bulan,
+                $bulanAngka
+            );
+        } catch (\Exception $e) {
+            Log::error('Error getBeritaAcaraData from controller: ' . $e->getMessage());
+
+            // Return data default jika error
+            return [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'penganggaran' => $penganggaran,
+                'sekolah' => \App\Models\Sekolah::first(),
+                'uangKertas' => [],
+                'uangLogam' => [],
+                'totalUangKertas' => 0,
+                'totalUangLogam' => 0,
+                'totalUangKertasLogam' => 0,
+                'saldoBank' => 0,
+                'totalKas' => 0,
+                'saldoBuku' => 0,
+                'perbedaan' => 0,
+                'penjelasanPerbedaan' => 'Data tidak tersedia',
+                'formatTanggalAkhirBulan' => '',
+                'namaHariAkhirBulan' => '',
+                'tanggalPemeriksaan' => '',
+                'namaBendahara' => '-',
+                'namaKepalaSekolah' => '-',
+                'nipBendahara' => '-',
+                'nipKepalaSekolah' => '-',
+            ];
+        }
+    }
+
+    private function getRegistrasiPenutupanData($tahun, $bulan)
+    {
+        try{
+            Log::info('===MENGAMBIL DATA REGISTRASI PENUTUPAN KAS DARI CONTROLLER===',[
+                'bulan' => $bulan,
+                'tahun' => $tahun
+            ]);
+
+            return $this->registrasiPenutupanKasController->getBkpRegData($tahun, $bulan);
+        } catch (\Exception $e) {
+            Log::error('Error getBkpRegData from controller: ' . $e->getMessage());
+            // kembalikan default jika error
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat data dari controller getBkpRegData: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     // Tambahkan method untuk mendapatkan status bulan
@@ -2099,9 +2173,12 @@ class BukuKasUmumController extends Controller
             $saldoBank = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka + 1);
             $saldoTunai = $this->hitungSaldoTunaiSebelumBulan($penganggaran->id, $bulanAngka + 1);
 
+            // AMBIL DATA BERITA ACARA LANGSUNG DARI CONTROLLER
+            $beritaAcaraData = $this->getBeritaAcaraData($penganggaran, $tahun, $bulan, $bulanAngka);
+            $registrasiPenutupanKasData = $this->getRegistrasiPenutupanData($tahun, $bulan);
+
             $danaSekolah = 0;
             $danaBosp = $saldoBank;
-
 
             return view('laporan.rekapan-bku', [
                 'tahun' => $tahun,
@@ -2125,6 +2202,11 @@ class BukuKasUmumController extends Controller
                 'saldoTunai' => $saldoTunai,
                 'danaSekolah' => $danaSekolah,
                 'danaBosp' => $danaBosp,
+                'beritaAcaraData' => $beritaAcaraData,
+                'registrasiPenutupanKasData' => $registrasiPenutupanKasData,
+                // Data untuk realisasi tab
+                'jenisLaporan' => 'bulanan', // default
+                'tahap' => 'tahap1' // default
             ]);
         } catch (\Exception $e) {
             Log::error('Error loading rekapan BKU: ' . $e->getMessage());
@@ -2553,13 +2635,32 @@ class BukuKasUmumController extends Controller
                 // DATA UNTUK BKP REGISTRASI
                 $html = $this->generateRegHtml($penganggaran, $tahun, $bulan, $bulanAngka);  
             }elseif ($tabType === 'Ba'){
-                $beritaAcaraController = new BeritaAcaraPenutupanController(new BukuKasService());
-                $html = $beritaAcaraController->generateBeritaAcaraHtml($penganggaran, $tahun, $bulan, $this->convertBulanToNumber($bulan));
+                // GUNAKAN DATA LANGSUNG DARI BERITA ACARA CONTROLLER
+                $beritaAcaraData = $this->getBeritaAcaraData($penganggaran, $tahun, $bulan, $bulanAngka);
+
+                $html = view('laporan.partials.ba-pemeriksaan-kas-table', $beritaAcaraData)->render();
 
                 return response()->json([
                     'success' => true,
                     'html' => $html
                 ]);
+            } else if ($tabType === 'Realisasi'){
+                try {
+                    $tahun = $request->get('tahun');
+                    $bulan = $request->get('bulan');
+
+                    $realisasiController = new RekapitulasiRealisasiController();
+                    $response = $realisasiController->getRealisasiForRekapanBku($tahun, $bulan);
+
+                    if ($response->getData()->success) {
+                        $html = $response->getData()->html;
+                    } else {
+                        $html = '<div class="alert alert-danger">Gagal memuat data realisasi: ' . $response->getData()->message . '</div>';
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Error loading realisasi data: ' . $e->getMessage());
+                    $html = '<div class="alert alert-danger">Error: ' . $e->getMessage() . '</div>';
+                }
             }else {
                 // Data untuk tab lainnya...
                 $html = '<div class="text-center py-5"><i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i><p class="text-muted mt-3">Belum ada data lainnya</p></div>';

@@ -661,7 +661,28 @@ class BukuKasService
             $totalPenerimaan += $pajakPenerimaan + $pajakDaerahPenerimaan;
             $totalPengeluaran = $setorTunais->sum('jumlah_setor')
                 + $bkuData->sum('total_transaksi_kotor')
-                + $pajakPengeluaran + $pajakDaerahPengeluaran;
+                + $pajakPengeluaran + $pajakDaerahPengeluaran
+                + ($bungaRecord ? $bungaRecord->pajak_bunga_bank : 0);
+
+            // TAMBAHKAN LOGGING DETAIL
+            Log::info('=== DETAIL PERHITUNGAN BKP UMUM ===', [
+                'penganggaran_id' => $penganggaran_id,
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'saldoAwal' => $saldoAwal,
+                'saldoAwalTunai' => $saldoAwalTunai,
+                'penerimaanBulanIni' => $penerimaanBulanIni->sum('jumlah_dana'),
+                'penarikanTunai' => $penarikanTunais->sum('jumlah_penarikan'),
+                'bungaBank' => ($bungaRecord ? $bungaRecord->bunga_bank : 0),
+                'pajakPenerimaan' => $pajakPenerimaan,
+                'pajakDaerahPenerimaan' => $pajakDaerahPenerimaan,
+                'totalPenerimaan' => $totalPenerimaan,
+                'setorTunai' => $setorTunais->sum('jumlah_setor'),
+                'belanjaBKU' => $bkuData->sum('total_transaksi_kotor'),
+                'pajakPengeluaran' => $pajakPengeluaran,
+                'pajakDaerahPengeluaran' => $pajakDaerahPengeluaran,
+                'totalPengeluaran' => $totalPengeluaran
+            ]);
 
             return [
                 'totalPenerimaan' => $totalPenerimaan,

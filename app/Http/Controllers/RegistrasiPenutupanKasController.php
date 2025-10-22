@@ -55,6 +55,8 @@ class RegistrasiPenutupanKasController extends Controller
         return $this->bukuKasService->hitungTotalUangLogam($uangLogam);
     }
 
+
+
     /**
      * Get data BKP Registrasi
      */
@@ -72,6 +74,90 @@ class RegistrasiPenutupanKasController extends Controller
 
             $bulanAngka = $this->convertBulanToNumber($bulan);
 
+            // Ambil data sekolah
+            $sekolah = Sekolah::first();
+
+            // PERBAIKAN: Gunakan data langsung dari perhitungan BKP Umum
+            $dataUmum = $this->getDataFromBkpUmumCalculation($penganggaran->id, $tahun, $bulan, $bulanAngka);
+            $totalPenerimaan = $dataUmum['totalPenerimaan'];
+            $totalPengeluaran = $dataUmum['totalPengeluaran'];
+            $saldoBuku = $totalPenerimaan - $totalPengeluaran;
+
+            // Hitung saldo kas B dari currentSaldo di tab Pembantu
+            $saldoKas = $this->getSaldoKasFromPembantu($penganggaran->id, $tahun, $bulan, $bulanAngka);
+
+            // Hitung saldo bank
+            $saldoBank = $this->hitungSaldoBankSebelumBulan($penganggaran->id, $bulanAngka + 1);
+
+            // Data uang kertas berdasarkan saldo kas dari Pembantu
+            $uangKertas = $this->getDenominasiUangKertas($saldoKas);
+            $totalUangKertas = $this->hitungTotalUangKertas($uangKertas);
+
+            // Hitung sisa untuk uang logam
+            $sisaUntukLogam = $saldoKas - $totalUangKertas;
+            $uangLogam = $this->getDenominasiUangLogam($sisaUntukLogam);
+            $totalUangLogam = $this->hitungTotalUangLogam($uangLogam);
+
+            $saldoAkhirBuku = $totalUangKertas + $totalUangLogam + $saldoBank;
+
+            // LOG UNTUK DEBUG
+            Log::info('=== DATA REGISTRASI PENUTUPAN ===', [
+                'penganggaran_id' => $penganggaran->id,
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'totalPenerimaan' => $totalPenerimaan,
+                'totalPengeluaran' => $totalPengeluaran,
+                'saldoBuku' => $saldoBuku,
+                'saldoKas' => $saldoKas,
+                'saldoBank' => $saldoBank
+            ]);
+
+            $data = [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'bulanAngka' => $bulanAngka,
+                'penganggaran' => $penganggaran,
+                'sekolah' => $sekolah,
+                'totalPenerimaan' => $totalPenerimaan,
+                'totalPengeluaran' => $totalPengeluaran,
+                'saldoBuku' => $saldoBuku,
+                'saldoKas' => $saldoKas,
+                'saldoBank' => $saldoBank,
+                'uangKertas' => $uangKertas,
+                'uangLogam' => $uangLogam,
+                'totalUangKertas' => $totalUangKertas,
+                'totalUangLogam' => $totalUangLogam,
+                'saldoAkhirBuku' => $saldoAkhirBuku,
+                'perbedaan' => $saldoBuku - $saldoKas,
+                'penjelasanPerbedaan' => 'Masih ada sebagian dana BOS yang belum diambil di rekening bank. Masih ada sisa tunai yang disimpan bendahara.',
+                'tanggalPenutupan' => Carbon::create($tahun, $bulanAngka, 1)->endOfMonth()->format('d F Y'),
+                'tanggalPenutupanLalu' => '-',
+                'namaBendahara' => $sekolah->bendahara ?? '-',
+                'namaKepalaSekolah' => $sekolah->kepala_sekolah ?? '-',
+                'nipBendahara' => $sekolah->nip_bendahara ?? '-',
+                'nipKepalaSekolah' => $sekolah->nip_kepala_sekolah ?? '-',
+            ];
+
+            $html = view('laporan.partials.bkp-registrasi-table', $data)->render();
+
+            return response()->json([
+                'success' => true,
+                'html' => $html,
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error get BKP Registrasi data: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat data BKP Registrasi: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function generateRegHtml($penganggaran, $tahun, $bulan, $bulanAngka)
+    {
+        try {
             // Ambil data sekolah
             $sekolah = \App\Models\Sekolah::first();
 
@@ -124,20 +210,10 @@ class RegistrasiPenutupanKasController extends Controller
                 'nipKepalaSekolah' => $sekolah->nip_kepala_sekolah ?? '19690917 200701 2 017',
             ];
 
-            $html = view('laporan.partials.bkp-registrasi-table', $data)->render();
-
-            return response()->json([
-                'success' => true,
-                'html' => $html,
-                'data' => $data,
-            ]);
+            return view('laporan.partials.bkp-registrasi-table', $data)->render();
         } catch (\Exception $e) {
-            Log::error('Error get BKP Registrasi data: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memuat data BKP Registrasi: ' . $e->getMessage(),
-            ], 500);
+            Log::error('Error generate REG HTML: ' . $e->getMessage());
+            return '<div class="alert alert-danger">Error: ' . $e->getMessage() . '</div>';
         }
     }
 
@@ -154,7 +230,7 @@ class RegistrasiPenutupanKasController extends Controller
             }
 
             // Ambil data sekolah
-            $sekolah = \App\Models\Sekolah::first();
+            $sekolah = Sekolah::first();
 
             $bulanAngka = $this->convertBulanToNumber($bulan);
 
@@ -283,35 +359,5 @@ class RegistrasiPenutupanKasController extends Controller
         ];
 
         return $bulanList[$angka] ?? 'Januari';
-    }
-
-    private function getTanggalAkhirBulan($tahun, $bulan)
-    {
-        $bulanAngka = $this->convertBulanToNumber($bulan);
-        return Carbon::create($tahun, $bulanAngka, 1)->endOfMonth();
-    }
-
-    private function getHariAkhirBulan($tahun, $bulan)
-    {
-        $tanggalAkhirBulan = $this->getTanggalAkhirBulan($tahun, $bulan);
-        return $tanggalAkhirBulan->locale('id')->dayName;
-    }
-
-    private function formatAkhirBulanLengkapHari($tahun, $bulan)
-    {
-        $tanggalAkhirBulan = $this->getTanggalAkhirBulan($tahun, $bulan);
-        return $tanggalAkhirBulan->locale('id')->translatedFormat('l, j F Y');
-    }
-
-    private function formatAkhirBulanSingkat($tahun, $bulan)
-    {
-        $tanggalAkhirBulan = $this->getTanggalAkhirBulan($tahun, $bulan);
-        return $tanggalAkhirBulan->format('d/m/Y');
-    }
-
-    private function formatTanggalAkhirBulanLengkap($tahun, $bulan)
-    {
-        $tanggalAkhirBulan = $this->getTanggalAkhirBulan($tahun, $bulan);
-        return $tanggalAkhirBulan->locale('id')->translatedFormat('j F Y');
     }
 }

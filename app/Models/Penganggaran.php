@@ -92,6 +92,26 @@ class Penganggaran extends Model
         return $date->day . ' ' . $bulan[$date->month] . ' ' . $date->year;
     }
 
+    /**
+     * Accessor untuk format tanggal SK Kepala Sekolah
+     */
+    public function getFormatTanggalSkKepsekAttribute()
+    {
+        return $this->tanggal_sk_kepala_sekolah
+            ? $this->formatTanggalIndonesia($this->tanggal_sk_kepala_sekolah)
+            : null;
+    }
+
+    /**
+     * Accessor untuk format tanggal SK Bendahara
+     */
+    public function getFormatTanggalSkBendaharaAttribute()
+    {
+        return $this->tanggal_sk_bendahara
+            ? $this->formatTanggalIndonesia($this->tanggal_sk_bendahara)
+            : null;
+    }
+
     public function penerimaanDanas()
     {
         return $this->hasMany(PenerimaanDana::class, 'penganggaran_id');

@@ -110,7 +110,7 @@ class BeritaAcaraPenutupanController extends Controller
     /**
      * Get data untuk Berita Acara Pemeriksaan Kas - VERSI DIPERBAIKI LENGKAP
      */
-    private function getDataForBeritaAcara($penganggaran_id, $tahun, $bulan, $bulanAngka)
+    public function getDataForBeritaAcara($penganggaran_id, $tahun, $bulan, $bulanAngka)
     {
         try {
             $penganggaran = Penganggaran::find($penganggaran_id);
@@ -156,7 +156,9 @@ class BeritaAcaraPenutupanController extends Controller
             $totalUangKertasLogam = $totalUangKertas + $totalUangLogam;
             $totalKas = $totalUangKertasLogam + $saldoBank;
 
-            $perbedaan = $saldoBuku - $totalKas;
+            $perbedaan = $saldoBuku - $saldoKas;
+
+            $formatTanggalAkhirBulan = BukuKasUmum::formatTanggalAkhirBulanLengkap($tahun, $bulan);
 
             // DEBUG: Log semua data secara detail
             Log::info('=== DETAIL PERHITUNGAN BERITA ACARA ===', [
@@ -196,13 +198,13 @@ class BeritaAcaraPenutupanController extends Controller
                 'saldoBuku' => $saldoBuku,
                 'perbedaan' => $perbedaan,
                 'penjelasanPerbedaan' => $this->getPenjelasanPerbedaan($perbedaan),
-                'tanggalAkhirBulan' => $tanggalAkhirBulan,
+                'formatTanggalAkhirBulan' => $formatTanggalAkhirBulan,
                 'namaHariAkhirBulan' => $namaHariAkhirBulan,
                 'tanggalPemeriksaan' => $tanggalAkhirBulan->format('d F Y'),
-                'namaBendahara' => $penganggaran->bendahara ?? 'Dra. MASITAH ABDULLAH',
-                'namaKepalaSekolah' => $penganggaran->kepala_sekolah ?? 'Dra. MASITAH ABDULLAH',
-                'nipBendahara' => $penganggaran->nip_bendahara ?? '19690917 200701 2 017',
-                'nipKepalaSekolah' => $penganggaran->nip_kepala_sekolah ?? '19690917 200701 2 017',
+                'namaBendahara' => $penganggaran->bendahara ?? '-',
+                'namaKepalaSekolah' => $penganggaran->kepala_sekolah ?? '-',
+                'nipBendahara' => $penganggaran->nip_bendahara ?? '-',
+                'nipKepalaSekolah' => $penganggaran->nip_kepala_sekolah ?? '-',
             ];
         } catch (\Exception $e) {
             Log::error('Error getDataForBeritaAcara: ' . $e->getMessage());
@@ -408,16 +410,14 @@ class BeritaAcaraPenutupanController extends Controller
             }
 
             $bulanAngka = $this->convertBulanToNumber($bulan);
-            $data = $this->getDataForBeritaAcara($penganggaran->id, $tahun, $bulan, $bulanAngka);
-
             $printSettings = [
                 'ukuran_kertas' => request()->input('ukuran_kertas', 'A4'),
                 'orientasi' => request()->input('orientasi', 'portrait'),
                 'font_size' => request()->input('font_size', '11pt')
             ];
+            $data = $this->getDataForBeritaAcara($penganggaran->id, $tahun, $bulan, $bulanAngka);
 
             $data['printSettings'] = $printSettings;
-            $data['tanggal_cetak'] = now()->format('d/m/Y');
 
             $pdf = PDF::loadView('laporan.berita-acara-pdf', $data);
 

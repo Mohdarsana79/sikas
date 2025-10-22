@@ -36,4 +36,6 @@ class KodeKegiatan extends Model
     {
         return $this->hasMany(BukuKasUmum::class, 'kode_kegiatan_id');
     }
+
+    
 }

@@ -12,7 +12,7 @@
                     <tr>
                         <td colspan="4">
                             Pada hari ini, <span class="fw-bold">{{ $namaHariAkhirBulan }}</span> tanggal
-                            <span class="fw-bold">{{ $tanggalAkhirBulan->format('d F Y') }}</span>
+                            <span class="fw-bold">{{ $formatTanggalAkhirBulan }}</span>
                             yang bertanda tangan di bawah ini, kami Kepala Sekolah yang ditunjuk berdasarkan<br>
                             Surat Keputusan No. <span class="fw-bold">{{ $sekolah->sk_kepala_sekolah ??
                                 '821.24/2063.03/BKD Tanggal 03 September 2013' }}</span>
@@ -92,7 +92,7 @@
                     </tr>
                     <tr>
                         <td colspan="4" class="text-center">
-                            Tanggal, {{ $tanggalAkhirBulan->format('d F Y') }}
+                            {{ $sekolah->kecamatan }}, {{ $formatTanggalAkhirBulan }}
                         </td>
                     </tr>
                     <tr>

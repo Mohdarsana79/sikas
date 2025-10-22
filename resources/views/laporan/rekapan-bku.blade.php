@@ -74,6 +74,12 @@
                             Berita Acara
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="Realisasi-tab" data-bs-toggle="tab" data-bs-target="#Realisasi" type="button"
+                            role="tab">
+                            Realisasi
+                        </button>
+                    </li>
                 </ul>
 
                 <!-- Tab Content -->
@@ -341,31 +347,13 @@
                     
                             <!-- Tabel Registrasi -->
                             <div id="bkpRegTable">
-                                @include('laporan.partials.bkp-registrasi-table', [
-                                'tahun' => $tahun,
-                                'bulan' => $bulan,
-                                'bulanAngka' => $bulanAngka,
-                                'penganggaran' => $penganggaran,
-                                'sekolah' => $sekolah ?? null,
-                                'totalPenerimaan' => 0,
-                                'totalPengeluaran' => 0,
-                                'saldoBuku' => 0,
-                                'saldoKas' => 0,
-                                'saldoBank' => 0,
-                                'uangKertas' => $uangKertas ?? [],
-                                'uangLogam' => $uangLogam ?? [],
-                                'totalUangKertas' => $totalUangKertas ?? 0,
-                                'totalUangLogam' => $totalUangLogam ?? 0,
-                                'saldoAkhirBuku' => $saldoAkhirBuku ?? 0,
-                                'perbedaan' => 0,
-                                'penjelasanPerbedaan' => '',
-                                'tanggalPenutupan' => \Carbon\Carbon::now()->format('d F Y'),
-                                'tanggalPenutupanLalu' => '-',
-                                'namaBendahara' => 'Dra. MASITAH ABDULLAH',
-                                'namaKepalaSekolah' => 'Dra. MASITAH ABDULLAH',
-                                'nipBendahara' => '19690917 200701 2 017',
-                                'nipKepalaSekolah' => '19690917 200701 2 017'
-                                ])
+                                @if(isset($registrasiPenutupaKasData))
+                                @include('laporan.partials.bkp-registrasi-table', $registrasiPenutupanKasData)
+                                @else
+                                <div class="alert alert-warning">
+                                    Data Registrasi Penutupan Kas belum tersedia untuk bulan {{ $bulan }} {{ $tahun }}
+                                </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -400,22 +388,95 @@
                     
                             <!-- Tabel Berita Acara -->
                             <div id="beritaAcaraTable">
-                                @include('laporan.partials.ba-pemeriksaan-kas-table', [
-                                'bulan' => $bulan,
-                                'tahun' => $tahun,
-                                'sekolah' => $sekolah ?? null,
-                                'totalUangKertasLogam' => 0,
-                                'saldoBank' => 0,
-                                'totalKas' => 0,
-                                'saldoBuku' => 0,
-                                'perbedaan' => 0,
-                                'tanggalAkhirBulan' => \Carbon\Carbon::now(),
-                                'namaHariAkhirBulan' => 'Jumat',
-                                'namaBendahara' => 'Dra. MASITAH ABDULLAH',
-                                'namaKepalaSekolah' => 'Dra. MASITAH ABDULLAH',
-                                'nipBendahara' => '19690917 200701 2 017',
-                                'nipKepalaSekolah' => '19690917 200701 2 017'
-                                ])
+                                @if(isset($beritaAcaraData))
+                                @include('laporan.partials.ba-pemeriksaan-kas-table', $beritaAcaraData)
+                                @else
+                                <div class="alert alert-warning">
+                                    Data Berita Acara belum tersedia untuk bulan {{ $bulan }} {{ $tahun }}
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- REALISASI TAB -->
+                    <div class="tab-pane fade" id="Realisasi" role="tabpanel">
+                        <div class="p-4">
+                            <!-- Filter Section yang Disederhanakan -->
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div class="row g-3 align-items-end">
+                                        <!-- Tahun Anggaran (HIDDEN - diambil otomatis) -->
+                                        <input type="hidden" id="tahunAnggaranRealisasi" value="{{ $tahun }}">
+                    
+                                        <div class="col-md-6">
+                                            <label class="form-label">Periode Laporan</label>
+                                            <select name="periode" id="periodeSelectRealisasi" class="form-select form-select-sm">
+                                                <!-- Bulan -->
+                                                <option value="Januari">Januari</option>
+                                                <option value="Februari">Februari</option>
+                                                <option value="Maret">Maret</option>
+                                                <option value="April">April</option>
+                                                <option value="Mei">Mei</option>
+                                                <option value="Juni">Juni</option>
+                                                <option value="Juli">Juli</option>
+                                                <option value="Agustus">Agustus</option>
+                                                <option value="September">September</option>
+                                                <option value="Oktober">Oktober</option>
+                                                <option value="November">November</option>
+                                                <option value="Desember">Desember</option>
+                                                <!-- Tahap -->
+                                                <option value="Tahap 1">Tahap 1</option>
+                                                <option value="Tahap 2">Tahap 2</option>
+                                                <!-- Tahunan -->
+                                                <option value="Tahunan">Tahunan</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <button class="btn btn-primary btn-sm me-2" id="btnLoadRealisasi">
+                                                    <i class="bi bi-arrow-clockwise me-2"></i>Muat Data
+                                                </button>
+                                                <div class="text-muted small">
+                                                    <i class="bi bi-info-circle me-1"></i>
+                                                    Tahun: <strong>{{ $tahun }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            <i class="bi bi-lightbulb me-1"></i>
+                                            Tahun anggaran diambil otomatis dari tahun yang sedang aktif: <strong>{{ $tahun }}</strong>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                    
+                            <!-- Loading Indicator -->
+                            <div id="loadingIndicatorRealisasi" class="text-center d-none">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <span class="ms-2">Memuat data realisasi...</span>
+                            </div>
+                    
+                            <!-- Table Container -->
+                            <div id="realisasiTableContainer">
+                                <div class="text-center text-muted py-5">
+                                    <i class="bi bi-table display-4"></i>
+                                    <p class="mt-3">Pilih periode, lalu klik "Muat Data" untuk menampilkan rekapitulasi realisasi<br>
+                                        <small>Tahun Anggaran: <strong>{{ $tahun }}</strong></small>
+                                    </p>
+                                </div>
+                            </div>
+                    
+                            <!-- Tombol Cetak -->
+                            <div class="text-end mt-3">
+                                <button class="btn btn-success btn-sm" id="btnCetakRealisasi" data-bs-toggle="modal"
+                                    data-bs-target="#pengaturanCetakModalRealisasi">
+                                    <i class="bi bi-printer me-2"></i>Cetak Laporan
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -431,6 +492,8 @@
 @include('laporan.modal.pengaturan-cetak-bkp-umum')
 @include('laporan.modal.pengaturan-cetak-bkp-pajak')
 @include('laporan.modal.pengaturan-cetak-registrasi')
+@include('laporan.modal.pengaturan-cetak-ba')
+@include('laporan.modal.pengaturan-cetak-rekapitulasi')
 
 <style>
     /* Animasi loading */
@@ -547,7 +610,8 @@
     #bkpUmumTable,
     #bkpPajakTable,
     #bkpRobTable,
-    #bkpRegTable {
+    #bkpRegTable,
+    #realisasiTableContainer {
         transition: all 0.3s ease;
     }
 
@@ -556,7 +620,7 @@
         height: 1rem;
     }
 
-    /* Tambahan style untuk ROB table */
+    /* Style untuk ROB table */
     .table-rob {
         border: 1px solid #000 !important;
     }
@@ -571,283 +635,758 @@
         font-weight: bold !important;
     }
 
-    /* Style untuk tab Registrasi */
+    /* Style untuk tab */
     .nav-tabs .nav-link {
         font-size: 9pt;
         padding: 8px 12px;
+    }
+
+    /* Style khusus untuk tab Realisasi */
+    #realisasiTableContainer {
+        transition: all 0.3s ease;
+    }
+
+    .table-realisasi th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 9pt;
+    }
+
+    .table-realisasi td {
+        vertical-align: middle;
+        font-size: 9pt;
+    }
+
+    .text-right {
+        text-align: right;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .bg-total {
+        background-color: #e3f2fd !important;
+        font-weight: bold;
+    }
+
+    .bg-grand-total {
+        background-color: #d1ecf1 !important;
+        font-weight: bold;
+    }
+
+    .persentase-cell {
+        font-weight: bold;
+        color: #198754;
+    }
+
+    .program-header {
+        background-color: #f8f8f8;
+        font-weight: bold;
+    }
+
+    /* Notifikasi */
+    .alert {
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .alert-success {
+        background-color: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .table-realisasi {
+            font-size: 8pt;
+        }
+
+        #tahunSelectRealisasi,
+        #periodeSelectRealisasi {
+            margin-bottom: 10px;
+        }
+
+        .nav-tabs .nav-link {
+            font-size: 8pt;
+            padding: 6px 8px;
+        }
+
+        .btn-sm {
+            font-size: 8pt;
+            padding: 4px 8px;
+        }
+
+        /* Stack selects on mobile */
+        .row.g-3>.col-md-4 {
+            margin-bottom: 10px;
+        }
+    }
+
+    /* Small table untuk mobile */
+    .small-table table {
+        font-size: 8pt;
+    }
+
+    .small-table .btn {
+        font-size: 8pt;
+        padding: 2px 6px;
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    /* Custom scrollbar untuk table */
+    .table-responsive::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+
+    /* Hover effects */
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.075);
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Focus states untuk aksesibilitas */
+    .btn:focus,
+    .form-select:focus,
+    .form-control:focus {
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        border-color: #80bdff;
+    }
+
+    /* Transition untuk smooth interactions */
+    .btn,
+    .form-select,
+    .nav-link,
+    .tab-pane {
+        transition: all 0.3s ease;
     }
 </style>
 
 @push('scripts')
 <script>
     $(document).ready(function() {
-        // Fungsi untuk update URL cetak PDF
-        function updatePdfUrls(selectedBulan) {
-            // Update URL cetak BKP Bank
-            var bankPdfUrl = '{{ route("laporan.bkp-bank-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
-            bankPdfUrl = bankPdfUrl.replace(':bulan', selectedBulan);
-            $('#cetakPdfButton').attr('href', bankPdfUrl);
+    // ==================== FUNGSI UMUM ====================
+    
+    // Fungsi untuk update URL cetak PDF semua tab
+    function updatePdfUrls(selectedBulan) {
+        // Update URL cetak BKP Bank
+        var bankPdfUrl = '{{ route("laporan.bkp-bank-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
+        bankPdfUrl = bankPdfUrl.replace(':bulan', selectedBulan);
+        $('#cetakPdfButton').attr('href', bankPdfUrl);
 
-            // Update URL cetak BKP Pembantu Tunai
-            var pembantuPdfUrl = '{{ route("laporan.bku-pembantu-tunai-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
-            pembantuPdfUrl = pembantuPdfUrl.replace(':bulan', selectedBulan);
-            $('#cetakPdfButtonPembantu').attr('href', pembantuPdfUrl);
+        // Update URL cetak BKP Pembantu Tunai
+        var pembantuPdfUrl = '{{ route("laporan.bku-pembantu-tunai-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
+        pembantuPdfUrl = pembantuPdfUrl.replace(':bulan', selectedBulan);
+        $('#cetakPdfButtonPembantu').attr('href', pembantuPdfUrl);
 
-            // Update URL cetak BKP Umum
-            var umumPdfUrl = '{{ route("laporan.bkp-umum-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
-            umumPdfUrl = umumPdfUrl.replace(':bulan', selectedBulan);
-            $('#cetakPdfButtonUmum').attr('href', umumPdfUrl);
+        // Update URL cetak BKP Umum
+        var umumPdfUrl = '{{ route("laporan.bkp-umum-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
+        umumPdfUrl = umumPdfUrl.replace(':bulan', selectedBulan);
+        $('#cetakPdfButtonUmum').attr('href', umumPdfUrl);
 
-            // Update URL cetak BKP Pajak
-            var pajakPdfUrl = '{{ route("laporan.bkp-pajak-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
-            pajakPdfUrl = pajakPdfUrl.replace(':bulan', selectedBulan);
-            $('#cetakPdfButtonPajak').attr('href', pajakPdfUrl);
+        // Update URL cetak BKP Pajak
+        var pajakPdfUrl = '{{ route("laporan.bkp-pajak-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
+        pajakPdfUrl = pajakPdfUrl.replace(':bulan', selectedBulan);
+        $('#cetakPdfButtonPajak').attr('href', pajakPdfUrl);
 
-            // Update URL cetak ROB
-            var robPdfUrl = '{{ route("laporan.bkp-rob-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
-            robPdfUrl = robPdfUrl.replace(':bulan', selectedBulan);
-            $('#cetakPdfButtonRob').attr('href', robPdfUrl);
+        // Update URL cetak ROB
+        var robPdfUrl = '{{ route("laporan.bkp-rob-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
+        robPdfUrl = robPdfUrl.replace(':bulan', selectedBulan);
+        $('#cetakPdfButtonRob').attr('href', robPdfUrl);
 
-            // Update URL cetak Registrasi
-            var regPdfUrl = '{{ route("laporan.bkp-reg-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
-            regPdfUrl = regPdfUrl.replace(':bulan', selectedBulan);
-            $('#cetakPdfButtonReg').attr('href', regPdfUrl);
+        // Update URL cetak Registrasi
+        var regPdfUrl = '{{ route("laporan.bkp-reg-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
+        regPdfUrl = regPdfUrl.replace(':bulan', selectedBulan);
+        $('#cetakPdfButtonReg').attr('href', regPdfUrl);
 
-            // Update URL cetak Berita Acara
-            var regPdfUrl = '{{ route("laporan.berita-acara-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
-            regPdfUrl = regPdfUrl.replace(':bulan', selectedBulan);
-            $('#cetakPdfButtonBa').attr('href', regPdfUrl);
+        // Update URL cetak Berita Acara
+        var baPdfUrl = '{{ route("laporan.berita-acara-pdf", ["tahun" => $tahun, "bulan" => ":bulan"]) }}';
+        baPdfUrl = baPdfUrl.replace(':bulan', selectedBulan);
+        $('#cetakPdfButtonBa').attr('href', baPdfUrl);
+
+        // Update URL cetak Realisasi
+        var realisasiPdfUrl = '{{ route("laporan.realisasi-pdf", ["tahun" => $tahun, "periode" => ":periode"]) }}';
+        realisasiPdfUrl = realisasiPdfUrl.replace(':periode', selectedBulan);
+        $('#btnCetakRealisasi').data('pdf-url', realisasiPdfUrl);
+    }
+
+    // Fungsi untuk load table data berdasarkan tab
+    function loadTableData(selectedBulan, tabType) {
+        // Tentukan container ID berdasarkan tab type
+        var containerId = '';
+        var loadingIndicatorId = '';
+        
+        // Mapping container ID untuk setiap tab
+        switch(tabType) {
+            case 'Bank':
+                containerId = '#bkpBankTable';
+                loadingIndicatorId = '#loadingIndicatorBank';
+                break;
+            case 'Pembantu':
+                containerId = '#bkpPembantuTable';
+                loadingIndicatorId = '#loadingIndicatorPembantu';
+                break;
+            case 'Umum':
+                containerId = '#bkpUmumTable';
+                loadingIndicatorId = '#loadingIndicatorUmum';
+                break;
+            case 'Pajak':
+                containerId = '#bkpPajakTable';
+                loadingIndicatorId = '#loadingIndicatorPajak';
+                break;
+            case 'Rob':
+                containerId = '#bkpRobTable';
+                loadingIndicatorId = '#loadingIndicatorRob';
+                break;
+            case 'Reg':
+                containerId = '#bkpRegTable';
+                loadingIndicatorId = '#loadingIndicatorReg';
+                break;
+            case 'Ba':
+                containerId = '#beritaAcaraTable';
+                loadingIndicatorId = '#loadingIndicatorBa';
+                break;
+            case 'Realisasi':
+                containerId = '#realisasiTableContainer';
+                loadingIndicatorId = '#loadingIndicatorRealisasi';
+                break;
+            default:
+                containerId = '#bkpBankTable';
+                loadingIndicatorId = '#loadingIndicatorBank';
         }
 
-        function loadTableData(selectedBulan, tabType) {
-            // Tentukan container ID berdasarkan tab type
-            var containerId = '';
-            var loadingIndicatorId = '';
-            
-            // Mapping container ID untuk setiap tab
-            switch(tabType) {
-                case 'Bank':
-                    containerId = '#bkpBankTable';
-                    loadingIndicatorId = '#loadingIndicatorBank';
-                    break;
-                case 'Pembantu':
-                    containerId = '#bkpPembantuTable';
-                    loadingIndicatorId = '#loadingIndicatorPembantu';
-                    break;
-                case 'Umum':
-                    containerId = '#bkpUmumTable';
-                    loadingIndicatorId = '#loadingIndicatorUmum';
-                    break;
-                case 'Pajak':
-                    containerId = '#bkpPajakTable';
-                    loadingIndicatorId = '#loadingIndicatorPajak';
-                    break;
-                case 'Rob':
-                    containerId = '#bkpRobTable';
-                    loadingIndicatorId = '#loadingIndicatorRob';
-                    break;
-                case 'Reg':
-                    containerId = '#bkpRegTable';
-                    loadingIndicatorId = '#loadingIndicatorReg';
-                    break;
-                case 'Ba':
-                    containerId = '#beritaAcaraTable'; // INI YANG BERBEDA
-                    loadingIndicatorId = '#loadingIndicatorBa';
-                    break;
-                default:
-                    containerId = '#bkpBankTable';
-                    loadingIndicatorId = '#loadingIndicatorBank';
-            }
+        var loadingIndicator = $(loadingIndicatorId);
+        var tableContainer = $(containerId);
 
-            var loadingIndicator = $(loadingIndicatorId);
-            var tableContainer = $(containerId);
+        // Show loading
+        loadingIndicator.removeClass('d-none');
+        tableContainer.addClass('opacity-50');
 
-            // Show loading
-            loadingIndicator.removeClass('d-none');
-            tableContainer.addClass('opacity-50');
-
-            $.ajax({
-                url: '{{ route("laporan.rekapan-bku.ajax") }}',
-                type: 'GET',
-                data: {
-                    tahun: '{{ $tahun }}',
-                    bulan: selectedBulan,
-                    tab_type: tabType
-                },
-                success: function(response) {
-                    if (response.success) {
-                        tableContainer.html(response.html);
-                        updatePdfUrls(selectedBulan);
-                        
-                        // Animasi untuk feedback visual
-                        tableContainer.addClass('btn-pulse');
-                        setTimeout(function() {
-                            tableContainer.removeClass('btn-pulse');
-                        }, 500);
-                        
-                        console.log('Data loaded for tab:', tabType, 'bulan:', selectedBulan, 'container:', containerId);
-                    } else {
-                        alert('Gagal memuat data: ' + response.message);
-                    }
-                },
-                error: function(xhr) {
-                    alert('Terjadi kesalahan saat memuat data');
-                    console.error('AJAX Error:', xhr);
-                },
-                complete: function() {
-                    loadingIndicator.addClass('d-none');
-                    tableContainer.removeClass('opacity-50');
+        $.ajax({
+            url: '{{ route("laporan.rekapan-bku.ajax") }}',
+            type: 'GET',
+            data: {
+                tahun: '{{ $tahun }}',
+                bulan: selectedBulan,
+                tab_type: tabType
+            },
+            success: function(response) {
+                if (response.success) {
+                    tableContainer.html(response.html);
+                    updatePdfUrls(selectedBulan);
+                    
+                    // Animasi untuk feedback visual
+                    tableContainer.addClass('btn-pulse');
+                    setTimeout(function() {
+                        tableContainer.removeClass('btn-pulse');
+                    }, 500);
+                    
+                    console.log('Data loaded for tab:', tabType, 'bulan:', selectedBulan, 'container:', containerId);
+                } else {
+                    alert('Gagal memuat data: ' + response.message);
                 }
-            });
-        }
-
-        // Event untuk BKP Bank
-        $('#bulanSelect').change(function() {
-            var selectedBulan = $(this).val();
-            loadTableData(selectedBulan, 'Bank');
-            
-            // Update select di tab lain agar konsisten
-            $('#bulanSelectPembantu').val(selectedBulan);
-            $('#bulanSelectUmum').val(selectedBulan);
-            $('#bulanSelectPajak').val(selectedBulan);
-            $('#bulanSelectRob').val(selectedBulan);
-            $('#bulanSelectReg').val(selectedBulan);
-        });
-
-        // Event untuk BKP Pembantu
-        $('#bulanSelectPembantu').change(function() {
-            var selectedBulan = $(this).val();
-            loadTableData(selectedBulan, 'Pembantu');
-            
-            // Update select di tab lain agar konsisten
-            $('#bulanSelect').val(selectedBulan);
-            $('#bulanSelectUmum').val(selectedBulan);
-            $('#bulanSelectPajak').val(selectedBulan);
-            $('#bulanSelectRob').val(selectedBulan);
-            $('#bulanSelectReg').val(selectedBulan);
-        });
-
-        // Event untuk BKP Umum
-        $('#bulanSelectUmum').change(function() {
-            var selectedBulan = $(this).val();
-            loadTableData(selectedBulan, 'Umum');
-            
-            // Update select di tab lain agar konsisten
-            $('#bulanSelect').val(selectedBulan);
-            $('#bulanSelectPembantu').val(selectedBulan);
-            $('#bulanSelectPajak').val(selectedBulan);
-            $('#bulanSelectRob').val(selectedBulan);
-            $('#bulanSelectReg').val(selectedBulan);
-        });
-
-        // Event untuk BKP Pajak
-        $('#bulanSelectPajak').change(function() {
-            var selectedBulan = $(this).val();
-            loadTableData(selectedBulan, 'Pajak');
-            
-            // Update select di tab lain agar konsisten
-            $('#bulanSelect').val(selectedBulan);
-            $('#bulanSelectPembantu').val(selectedBulan);
-            $('#bulanSelectUmum').val(selectedBulan);
-            $('#bulanSelectRob').val(selectedBulan);
-            $('#bulanSelectReg').val(selectedBulan);
-        });
-
-        // Event untuk ROB
-        $('#bulanSelectRob').change(function() {
-            var selectedBulan = $(this).val();
-            loadTableData(selectedBulan, 'Rob');
-            
-            // Update select di tab lain agar konsisten
-            $('#bulanSelect').val(selectedBulan);
-            $('#bulanSelectPembantu').val(selectedBulan);
-            $('#bulanSelectUmum').val(selectedBulan);
-            $('#bulanSelectPajak').val(selectedBulan);
-            $('#bulanSelectReg').val(selectedBulan);
-        });
-
-        // Event untuk Registrasi
-        $('#bulanSelectReg').change(function() {
-            var selectedBulan = $(this).val();
-            loadTableData(selectedBulan, 'Reg');
-            
-            // Update select di tab lain agar konsisten
-            $('#bulanSelect').val(selectedBulan);
-            $('#bulanSelectPembantu').val(selectedBulan);
-            $('#bulanSelectUmum').val(selectedBulan);
-            $('#bulanSelectPajak').val(selectedBulan);
-            $('#bulanSelectRob').val(selectedBulan);
-        });
-
-        // Event untuk Berita Acara
-        $('#bulanSelectBa').change(function() {
-            var selectedBulan = $(this).val();
-            loadTableData(selectedBulan, 'Ba');
-            
-            // Update select di tab lain agar konsisten
-            $('#bulanSelect').val(selectedBulan);
-            $('#bulanSelectPembantu').val(selectedBulan);
-            $('#bulanSelectUmum').val(selectedBulan);
-            $('#bulanSelectPajak').val(selectedBulan);
-            $('#bulanSelectRob').val(selectedBulan);
-            $('#bulanSelectReg').val(selectedBulan);
-        });
-
-        // Event ketika tab diubah
-        $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-            var target = $(e.target).attr('data-bs-target');
-            var selectedBulan = $('#bulanSelect').val();
-            
-            console.log('Tab changed to:', target, 'selectedBulan:', selectedBulan);
-            
-            if (target === '#bkp-pembantu') {
-                // Load data BKP Pembantu ketika tab diaktifkan
-                loadTableData(selectedBulan, 'Pembantu');
-            } else if (target === '#bkp-bank') {
-                // Load data BKP Bank ketika tab diaktifkan
-                loadTableData(selectedBulan, 'Bank');
-            } else if (target === '#bkp-umum') {
-                // Load data BKP Umum ketika tab diaktifkan
-                loadTableData(selectedBulan, 'Umum');
-            } else if (target === '#bkp-pajak') {
-                // Load data BKP Pajak ketika tab diaktifkan
-                loadTableData(selectedBulan, 'Pajak');
-            } else if (target === '#Rob') {
-                // Load data ROB ketika tab diaktifkan
-                loadTableData(selectedBulan, 'Rob');
-            } else if (target === '#Reg') {
-                // Load data Registrasi ketika tab diaktifkan
-                loadTableData(selectedBulan, 'Reg');
-            } else if (target === '#Ba') {
-                // Load data Berita Acara ketika tab diaktifkan
-                loadTableData(selectedBulan, 'Ba');
+            },
+            error: function(xhr) {
+                alert('Terjadi kesalahan saat memuat data');
+                console.error('AJAX Error:', xhr);
+            },
+            complete: function() {
+                loadingIndicator.addClass('d-none');
+                tableContainer.removeClass('opacity-50');
             }
         });
+    }
 
-        // Load data untuk tab aktif saat pertama kali load
-        var activeTab = $('.nav-tabs .nav-link.active').attr('data-bs-target');
+    // ==================== EVENT HANDLERS UNTUK SEMUA TAB ====================
+
+    // Event untuk BKP Bank
+    $('#bulanSelect').change(function() {
+        var selectedBulan = $(this).val();
+        loadTableData(selectedBulan, 'Bank');
+        
+        // Update select di tab lain agar konsisten
+        $('#bulanSelectPembantu').val(selectedBulan);
+        $('#bulanSelectUmum').val(selectedBulan);
+        $('#bulanSelectPajak').val(selectedBulan);
+        $('#bulanSelectRob').val(selectedBulan);
+        $('#bulanSelectReg').val(selectedBulan);
+        $('#bulanSelectBa').val(selectedBulan);
+        $('#periodeSelectRealisasi').val(selectedBulan);
+    });
+
+    // Event untuk BKP Pembantu
+    $('#bulanSelectPembantu').change(function() {
+        var selectedBulan = $(this).val();
+        loadTableData(selectedBulan, 'Pembantu');
+        
+        // Update select di tab lain agar konsisten
+        $('#bulanSelect').val(selectedBulan);
+        $('#bulanSelectUmum').val(selectedBulan);
+        $('#bulanSelectPajak').val(selectedBulan);
+        $('#bulanSelectRob').val(selectedBulan);
+        $('#bulanSelectReg').val(selectedBulan);
+        $('#bulanSelectBa').val(selectedBulan);
+        $('#periodeSelectRealisasi').val(selectedBulan);
+    });
+
+    // Event untuk BKP Umum
+    $('#bulanSelectUmum').change(function() {
+        var selectedBulan = $(this).val();
+        loadTableData(selectedBulan, 'Umum');
+        
+        // Update select di tab lain agar konsisten
+        $('#bulanSelect').val(selectedBulan);
+        $('#bulanSelectPembantu').val(selectedBulan);
+        $('#bulanSelectPajak').val(selectedBulan);
+        $('#bulanSelectRob').val(selectedBulan);
+        $('#bulanSelectReg').val(selectedBulan);
+        $('#bulanSelectBa').val(selectedBulan);
+        $('#periodeSelectRealisasi').val(selectedBulan);
+    });
+
+    // Event untuk BKP Pajak
+    $('#bulanSelectPajak').change(function() {
+        var selectedBulan = $(this).val();
+        loadTableData(selectedBulan, 'Pajak');
+        
+        // Update select di tab lain agar konsisten
+        $('#bulanSelect').val(selectedBulan);
+        $('#bulanSelectPembantu').val(selectedBulan);
+        $('#bulanSelectUmum').val(selectedBulan);
+        $('#bulanSelectRob').val(selectedBulan);
+        $('#bulanSelectReg').val(selectedBulan);
+        $('#bulanSelectBa').val(selectedBulan);
+        $('#periodeSelectRealisasi').val(selectedBulan);
+    });
+
+    // Event untuk ROB
+    $('#bulanSelectRob').change(function() {
+        var selectedBulan = $(this).val();
+        loadTableData(selectedBulan, 'Rob');
+        
+        // Update select di tab lain agar konsisten
+        $('#bulanSelect').val(selectedBulan);
+        $('#bulanSelectPembantu').val(selectedBulan);
+        $('#bulanSelectUmum').val(selectedBulan);
+        $('#bulanSelectPajak').val(selectedBulan);
+        $('#bulanSelectReg').val(selectedBulan);
+        $('#bulanSelectBa').val(selectedBulan);
+        $('#periodeSelectRealisasi').val(selectedBulan);
+    });
+
+    // Event untuk Registrasi
+    $('#bulanSelectReg').change(function() {
+        var selectedBulan = $(this).val();
+        loadTableData(selectedBulan, 'Reg');
+        
+        // Update select di tab lain agar konsisten
+        $('#bulanSelect').val(selectedBulan);
+        $('#bulanSelectPembantu').val(selectedBulan);
+        $('#bulanSelectUmum').val(selectedBulan);
+        $('#bulanSelectPajak').val(selectedBulan);
+        $('#bulanSelectRob').val(selectedBulan);
+        $('#bulanSelectBa').val(selectedBulan);
+        $('#periodeSelectRealisasi').val(selectedBulan);
+    });
+
+    // Event untuk Berita Acara
+    $('#bulanSelectBa').change(function() {
+        var selectedBulan = $(this).val();
+        loadTableData(selectedBulan, 'Ba');
+        
+        // Update select di tab lain agar konsisten
+        $('#bulanSelect').val(selectedBulan);
+        $('#bulanSelectPembantu').val(selectedBulan);
+        $('#bulanSelectUmum').val(selectedBulan);
+        $('#bulanSelectPajak').val(selectedBulan);
+        $('#bulanSelectRob').val(selectedBulan);
+        $('#bulanSelectReg').val(selectedBulan);
+        $('#periodeSelectRealisasi').val(selectedBulan);
+    });
+
+    // Event ketika tab diubah
+    $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+        var target = $(e.target).attr('data-bs-target');
         var selectedBulan = $('#bulanSelect').val();
         
-        if (activeTab === '#bkp-pembantu') {
-            loadTableData(selectedBulan, 'Pembantu');
-        } else if (activeTab === '#bkp-umum') {
-            loadTableData(selectedBulan, 'Umum');
-        } else if (activeTab === '#bkp-pajak') {
-            loadTableData(selectedBulan, 'Pajak');
-        } else if (activeTab === '#Rob') {
-            loadTableData(selectedBulan, 'Rob');
-        } else if (activeTab === '#Reg') {
-            loadTableData(selectedBulan, 'Reg');
-        } else if (activeTab === '#Ba') {
-            loadTableData(selectedBulan, 'Ba');
-        } else {
-            // Default load BKP Bank
-            loadTableData(selectedBulan, 'Bank');
+        console.log('Tab changed to:', target, 'selectedBulan:', selectedBulan);
+        
+        switch(target) {
+            case '#bkp-pembantu':
+                loadTableData(selectedBulan, 'Pembantu');
+                break;
+            case '#bkp-bank':
+                loadTableData(selectedBulan, 'Bank');
+                break;
+            case '#bkp-umum':
+                loadTableData(selectedBulan, 'Umum');
+                break;
+            case '#bkp-pajak':
+                loadTableData(selectedBulan, 'Pajak');
+                break;
+            case '#Rob':
+                loadTableData(selectedBulan, 'Rob');
+                break;
+            case '#Reg':
+                loadTableData(selectedBulan, 'Reg');
+                break;
+            case '#Ba':
+                loadTableData(selectedBulan, 'Ba');
+                break;
+            case '#Realisasi':
+                // Untuk tab Realisasi, gunakan logika khusus
+                initRealisasiTab();
+                break;
+        }
+    });
+
+    // ==================== FUNGSI KHUSUS UNTUK TAB REALISASI ====================
+
+    function initRealisasiTab() {
+        // Inisialisasi nilai default untuk periode
+        var currentBulan = $('#bulanSelect').val();
+        $('#periodeSelectRealisasi').val(currentBulan);
+
+        // Auto load data jika belum ada
+        if ($('#realisasiTableContainer').find('.table').length === 0) {
+            loadRealisasiData();
+        }
+    }
+
+    // Event untuk tombol Muat Data Realisasi
+    $('#btnLoadRealisasi').click(function() {
+        loadRealisasiData();
+    });
+
+    // Event untuk tombol Cetak PDF Realisasi
+    $('#btnCetakRealisasiPDF').click(function() {
+        cetakRealisasiPDF();
+    });
+
+    // Event untuk Enter key pada select Realisasi
+    $('#periodeSelectRealisasi').keypress(function(e) {
+        if (e.which == 13) {
+            loadRealisasiData();
+        }
+    });
+
+    // Fungsi untuk load data Realisasi
+    function loadRealisasiData() {
+        // Ambil tahun dari hidden input atau dari variabel PHP
+        var tahun = $('#tahunAnggaranRealisasi').val();
+        var periode = $('#periodeSelectRealisasi').val();
+        
+        if (!tahun || !periode) {
+            alert('Tahun anggaran atau periode tidak ditemukan');
+            return;
         }
 
-        // Update URLs saat pertama kali load
-        updatePdfUrls('{{ $bulan }}');
+        var loadingIndicator = $('#loadingIndicatorRealisasi');
+        var tableContainer = $('#realisasiTableContainer');
+
+        // Show loading
+        loadingIndicator.removeClass('d-none');
+        tableContainer.addClass('opacity-50');
+
+        $.ajax({
+            url: '{{ route("laporan.realisasi.data") }}',
+            type: 'GET',
+            data: {
+                tahun: tahun,
+                periode: periode,
+                jenis_laporan: getJenisLaporan(periode)
+            },
+            success: function(response) {
+                if (response.success) {
+                    tableContainer.html(response.html);
+                    
+                    // Enable tombol cetak
+                    $('#btnCetakRealisasi').prop('disabled', false);
+                    
+                    // Update URL PDF
+                    updateRealisasiPdfUrl(tahun, periode);
+                    
+                    console.log('Data realisasi loaded successfully', {
+                        tahun: tahun,
+                        periode: periode,
+                        totalRealisasi: response.realisasiData?.total_realisasi
+                    });
+                } else {
+                    alert('Gagal memuat data: ' + response.message);
+                    tableContainer.html('<div class="alert alert-danger">Gagal memuat data realisasi: ' + response.message + '</div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = 'Terjadi kesalahan saat memuat data';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                alert(errorMessage);
+                tableContainer.html('<div class="alert alert-danger">' + errorMessage + '</div>');
+                console.error('AJAX Error:', error);
+            },
+            complete: function() {
+                loadingIndicator.addClass('d-none');
+                tableContainer.removeClass('opacity-50');
+            }
+        });
+    }
+
+    // Fungsi untuk cetak PDF Realisasi
+    function cetakRealisasiPDF() {
+        var tahun = $('#tahunAnggaranRealisasi').val();
+        var periode = $('#periodeSelectRealisasi').val();
+        var ukuranKertas = $('#ukuran_kertas_realisasi').val();
+        var orientasi = $('#orientasi_realisasi').val();
+        var fontSize = $('#font_size_realisasi').val();
+
+        if (!tahun || !periode) {
+            alert('Tahun anggaran atau periode tidak ditemukan');
+            return;
+        }
+
+        var pdfUrl = "{{ route('laporan.realisasi-pdf', ['tahun' => ':tahun', 'periode' => ':periode']) }}";
+        pdfUrl = pdfUrl.replace(':tahun', tahun).replace(':periode', encodeURIComponent(periode));
+        
+        // Tambahkan parameter cetak
+        pdfUrl += `?ukuran_kertas=${encodeURIComponent(ukuranKertas)}`;
+        pdfUrl += `&orientasi=${encodeURIComponent(orientasi)}`;
+        pdfUrl += `&font_size=${encodeURIComponent(fontSize)}`;
+        pdfUrl += `&jenis_laporan=${encodeURIComponent(getJenisLaporan(periode))}`;
+
+        console.log('PDF Realisasi URL:', pdfUrl);
+
+        // Buka PDF di tab baru
+        window.open(pdfUrl, '_blank');
+        
+        // Tutup modal
+        $('#pengaturanCetakModalRealisasi').modal('hide');
+    }
+
+    // Fungsi untuk update URL PDF Realisasi
+    function updateRealisasiPdfUrl(tahun, periode) {
+        var pdfUrl = "{{ route('laporan.realisasi-pdf', ['tahun' => ':tahun', 'periode' => ':periode']) }}";
+        pdfUrl = pdfUrl.replace(':tahun', tahun).replace(':periode', encodeURIComponent(periode));
+        $('#btnCetakRealisasi').data('pdf-url', pdfUrl);
+    }
+
+    // Fungsi untuk menentukan jenis laporan berdasarkan periode
+    function getJenisLaporan(periode) {
+        if (periode === 'Tahap 1' || periode === 'Tahap 2') {
+            return 'tahap';
+        } else if (periode === 'Tahunan') {
+            return 'tahunan';
+        } else {
+            return 'bulanan';
+        }
+    }
+
+    // ==================== INISIALISASI AWAL ====================
+
+    // Load data untuk tab aktif saat pertama kali load
+    var activeTab = $('.nav-tabs .nav-link.active').attr('data-bs-target');
+    var selectedBulan = $('#bulanSelect').val();
+    
+    switch(activeTab) {
+        case '#bkp-pembantu':
+            loadTableData(selectedBulan, 'Pembantu');
+            break;
+        case '#bkp-umum':
+            loadTableData(selectedBulan, 'Umum');
+            break;
+        case '#bkp-pajak':
+            loadTableData(selectedBulan, 'Pajak');
+            break;
+        case '#Rob':
+            loadTableData(selectedBulan, 'Rob');
+            break;
+        case '#Reg':
+            loadTableData(selectedBulan, 'Reg');
+            break;
+        case '#Ba':
+            loadTableData(selectedBulan, 'Ba');
+            break;
+        case '#Realisasi':
+            initRealisasiTab();
+            break;
+        default:
+            // Default load BKP Bank
+            loadTableData(selectedBulan, 'Bank');
+    }
+
+    // Update URLs saat pertama kali load
+    updatePdfUrls('{{ $bulan }}');
+
+    // Inisialisasi modal pengaturan cetak Realisasi
+    $('#pengaturanCetakModalRealisasi').on('show.bs.modal', function() {
+        // Set nilai default untuk modal Realisasi
+        $('#ukuran_kertas_realisasi').val('A4');
+        $('#orientasi_realisasi').val('landscape');
+        $('#font_size_realisasi').val('9pt');
     });
+
+    // ==================== FUNGSI TAMBAHAN UNTUK FEEDBACK VISUAL ====================
+
+    // Animasi untuk tombol yang diklik
+    $(document).on('click', '.btn', function() {
+        $(this).addClass('btn-pulse');
+        setTimeout(function() {
+            $('.btn').removeClass('btn-pulse');
+        }, 500);
+    });
+
+    // Handle error pada AJAX calls
+    $(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError) {
+        console.error('AJAX Error:', {
+            url: ajaxSettings.url,
+            status: jqXHR.status,
+            error: thrownError,
+            response: jqXHR.responseText
+        });
+        
+        // Tampilkan notifikasi error
+        if (jqXHR.status === 500) {
+            showNotification('Terjadi kesalahan server. Silakan coba lagi.', 'danger');
+        } else if (jqXHR.status === 404) {
+            showNotification('Data tidak ditemukan.', 'warning');
+        } else if (jqXHR.status === 403) {
+            showNotification('Anda tidak memiliki akses.', 'danger');
+        }
+    });
+
+    // Fungsi untuk menampilkan notifikasi
+    function showNotification(message, type) {
+        var alertClass = 'alert-' + type;
+        var notification = $('<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+                            message +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                            '</div>');
+        
+        $('.content-area').prepend(notification);
+        
+        // Auto hide setelah 5 detik
+        setTimeout(function() {
+            notification.alert('close');
+        }, 5000);
+    }
+
+    // ==================== FUNGSI UNTUK RESPONSIVE BEHAVIOR ====================
+
+    // Handle window resize
+    $(window).resize(function() {
+        // Adjust table responsiveness
+        $('.table-responsive').each(function() {
+            if ($(this).width() < 768) {
+                $(this).addClass('small-table');
+            } else {
+                $(this).removeClass('small-table');
+            }
+        });
+    });
+
+    // Trigger initial resize check
+    $(window).trigger('resize');
+
+    // ==================== KEYBOARD SHORTCUTS ====================
+
+    $(document).keydown(function(e) {
+        // Ctrl + P untuk cetak (jika di tab yang mendukung)
+        if (e.ctrlKey && e.keyCode === 80) {
+            e.preventDefault();
+            var activeTab = $('.nav-tabs .nav-link.active').attr('data-bs-target');
+            
+            switch(activeTab) {
+                case '#Realisasi':
+                    $('#btnCetakRealisasi').click();
+                    break;
+                case '#bkp-bank':
+                    $('#cetakPdfButton').click();
+                    break;
+                // Tambahkan case untuk tab lainnya sesuai kebutuhan
+            }
+        }
+
+        // F5 untuk refresh data tab aktif
+        if (e.keyCode === 116) {
+            e.preventDefault();
+            var activeTab = $('.nav-tabs .nav-link.active').attr('data-bs-target');
+            var selectedBulan = $('#bulanSelect').val();
+            
+            switch(activeTab) {
+                case '#Realisasi':
+                    loadRealisasiData();
+                    break;
+                case '#bkp-bank':
+                    loadTableData(selectedBulan, 'Bank');
+                    break;
+                case '#bkp-pembantu':
+                    loadTableData(selectedBulan, 'Pembantu');
+                    break;
+                case '#bkp-umum':
+                    loadTableData(selectedBulan, 'Umum');
+                    break;
+                case '#bkp-pajak':
+                    loadTableData(selectedBulan, 'Pajak');
+                    break;
+                case '#Rob':
+                    loadTableData(selectedBulan, 'Rob');
+                    break;
+                case '#Reg':
+                    loadTableData(selectedBulan, 'Reg');
+                    break;
+                case '#Ba':
+                    loadTableData(selectedBulan, 'Ba');
+                    break;
+            }
+        }
+    });
+
+    console.log('Rekapan BKU JavaScript initialized successfully');
+});
 </script>
 @endpush
 @endsection

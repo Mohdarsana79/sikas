@@ -22,6 +22,7 @@ use App\Http\Controllers\BeritaAcaraPenutupanController;
 use App\Http\Controllers\RegistrasiPenutupanKasController;
 use App\Http\Controllers\BukuKasPembantuTunaiController;
 use App\Http\Controllers\BukuRobController;
+use App\Http\Controllers\RekapitulasiRealisasiController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
@@ -360,4 +361,13 @@ Route::middleware(['auth'])->prefix('laporan')->group(function () {
         ->name('laporan.berita-acara.data');
     Route::get('/laporan/berita-acara-pdf/{tahun}/{bulan}', [BeritaAcaraPenutupanController::class, 'generateBeritaAcaraPdf'])
         ->name('laporan.berita-acara-pdf');
+
+    // Route untuk rekapitulasi realisasi
+    Route::get('/realisasi/data', [RekapitulasiRealisasiController::class, 'getRealisasiData'])
+        ->name('laporan.realisasi.data');
+    Route::get('/realisasi-pdf/{tahun}/{periode?}', [RekapitulasiRealisasiController::class, 'generateRealisasiPdf'])
+        ->name('laporan.realisasi-pdf');
+    Route::get('/realisasi-rekapan/{tahun}/{bulan}', [RekapitulasiRealisasiController::class, 'getRealisasiForRekapanBku'])
+        ->name('laporan.realisasi-rekapan');
+    
 });
