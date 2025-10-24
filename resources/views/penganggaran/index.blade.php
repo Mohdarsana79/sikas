@@ -26,7 +26,6 @@
         @endif
 
         {{-- Modal Tambah --}}
-        {{-- Modal Tambah --}}
         <div class="modal fade" id="tambahAnggaranModal" tabindex="-1" aria-labelledby="tambahAnggaranModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-lg">
@@ -45,34 +44,36 @@
                                 <!-- Informasi Anggaran -->
                                 <div class="col-md-6">
                                     <div class="border-bottom pb-2 mb-3">
-                                        <h6 class="text-primary"><i class="bi bi-cash-coin me-2"></i>Informasi Anggaran</h6>
+                                        <h6 class="text-primary"><i class="bi bi-cash-coin me-2"></i>Informasi Anggaran
+                                        </h6>
                                     </div>
-        
+
                                     <div class="mb-3">
                                         <label for="pagu_anggaran" class="form-label">Pagu Anggaran <span
                                                 class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light">Rp</span>
-                                            <input type="text" class="form-control" id="pagu_anggaran" name="pagu_anggaran"
-                                                required placeholder="Masukkan pagu anggaran">
+                                            <input type="text" class="form-control" id="pagu_anggaran"
+                                                name="pagu_anggaran" required placeholder="Masukkan pagu anggaran">
                                         </div>
                                         <div class="form-text">Contoh: 1.000.000</div>
                                     </div>
-        
+
                                     <div class="mb-3">
                                         <label for="tahun_anggaran" class="form-label">Tahun Anggaran <span
                                                 class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" id="tahun_anggaran" name="tahun_anggaran"
-                                            min="2000" max="{{ date('Y') + 5 }}" required placeholder="{{ date('Y') }}">
+                                        <input type="number" class="form-control" id="tahun_anggaran"
+                                            name="tahun_anggaran" min="2000" max="{{ date('Y') + 5 }}" required
+                                            placeholder="{{ date('Y') }}">
                                     </div>
                                 </div>
-        
+
                                 <!-- Informasi Komite -->
                                 <div class="col-md-6">
                                     <div class="border-bottom pb-2 mb-3">
                                         <h6 class="text-primary"><i class="bi bi-people me-2"></i>Informasi Komite</h6>
                                     </div>
-        
+
                                     <div class="mb-3">
                                         <label for="komite" class="form-label">Nama Komite <span
                                                 class="text-danger">*</span></label>
@@ -81,12 +82,13 @@
                                     </div>
                                 </div>
                             </div>
-        
+
                             <!-- Informasi Kepala Sekolah -->
                             <div class="row mt-3">
                                 <div class="col-12">
                                     <div class="border-bottom pb-2 mb-3">
-                                        <h6 class="text-primary"><i class="bi bi-person-badge me-2"></i>Informasi Kepala Sekolah
+                                        <h6 class="text-primary"><i class="bi bi-person-badge me-2"></i>Informasi Kepala
+                                            Sekolah
                                         </h6>
                                     </div>
                                 </div>
@@ -94,8 +96,8 @@
                                     <div class="mb-3">
                                         <label for="kepala_sekolah" class="form-label">Nama Kepala Sekolah <span
                                                 class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="kepala_sekolah" name="kepala_sekolah"
-                                            required placeholder="Nama Lengkap Kepala Sekolah">
+                                        <input type="text" class="form-control" id="kepala_sekolah"
+                                            name="kepala_sekolah" required placeholder="Nama Lengkap Kepala Sekolah">
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -110,17 +112,18 @@
                                     <div class="mb-3">
                                         <label for="sk_kepala_sekolah" class="form-label">SK Pelantikan <span
                                                 class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="sk_kepala_sekolah" name="sk_kepala_sekolah"
-                                            required placeholder="Nomor SK Pelantikan">
+                                        <input type="text" class="form-control" id="sk_kepala_sekolah"
+                                            name="sk_kepala_sekolah" required placeholder="Nomor SK Pelantikan">
                                     </div>
                                 </div>
                             </div>
-        
+
                             <!-- Informasi Bendahara -->
                             <div class="row mt-3">
                                 <div class="col-12">
                                     <div class="border-bottom pb-2 mb-3">
-                                        <h6 class="text-primary"><i class="bi bi-person-check me-2"></i>Informasi Bendahara</h6>
+                                        <h6 class="text-primary"><i class="bi bi-person-check me-2"></i>Informasi
+                                            Bendahara</h6>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -135,36 +138,40 @@
                                     <div class="mb-3">
                                         <label for="nip_bendahara" class="form-label">NIP <span
                                                 class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="nip_bendahara" name="nip_bendahara" required
-                                            placeholder="Nomor Induk Pegawai">
+                                        <input type="text" class="form-control" id="nip_bendahara" name="nip_bendahara"
+                                            required placeholder="Nomor Induk Pegawai">
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label for="sk_bendahara" class="form-label">SK Bendahara <span
                                                 class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="sk_bendahara" name="sk_bendahara" required
-                                            placeholder="Nomor SK Bendahara">
+                                        <input type="text" class="form-control" id="sk_bendahara" name="sk_bendahara"
+                                            required placeholder="Nomor SK Bendahara">
                                     </div>
                                 </div>
                             </div>
-        
+
                             <!-- Informasi Tambahan -->
                             <div class="row mt-3">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label for="tanggal_sk_bendahara" class="form-label">Tanggal SK Bendahara</label>
-                                        <input type="date" class="form-control" id="tanggal_sk_bendahara" name="tanggal_sk_bendahara">
+                                        <label for="tanggal_sk_bendahara" class="form-label">Tanggal SK
+                                            Bendahara</label>
+                                        <input type="date" class="form-control" id="tanggal_sk_bendahara"
+                                            name="tanggal_sk_bendahara">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label for="tanggal_sk_kepala_sekolah" class="form-label">Tanggal SK Pelantikan Kepsek</label>
-                                        <input type="date" class="form-control" id="tanggal_sk_kepala_sekolah" name="tanggal_sk_kepala_sekolah">
+                                        <label for="tanggal_sk_kepala_sekolah" class="form-label">Tanggal SK Pelantikan
+                                            Kepsek</label>
+                                        <input type="date" class="form-control" id="tanggal_sk_kepala_sekolah"
+                                            name="tanggal_sk_kepala_sekolah">
                                     </div>
                                 </div>
                             </div>
-        
+
                             <div class="alert alert-info mt-3">
                                 <small>
                                     <i class="bi bi-info-circle me-2"></i>
@@ -184,38 +191,6 @@
                 </div>
             </div>
         </div>
-
-        @foreach ($anggarans as $anggaran)
-        <!-- Modal Delete untuk setiap anggaran -->
-        <div class="modal fade" id="deleteAnggaranModal{{ $anggaran->id }}" tabindex="-1"
-            aria-labelledby="deleteAnggaranModalLabel{{ $anggaran->id }}" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title" id="deleteAnggaranModalLabel{{ $anggaran->id }}">Hapus Anggaran
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <form action="{{ route('penganggaran.destroy', $anggaran->id) }}" method="POST">
-                        @csrf
-                        @method('DELETE')
-                        <div class="modal-body">
-                            <p>Apakah Anda yakin ingin menghapus anggaran tahun
-                                <strong>{{ $anggaran->tahun_anggaran }}</strong> dengan pagu <strong>Rp
-                                    {{ number_format($anggaran->pagu_anggaran, 0, ',', '.') }}</strong>?
-                            </p>
-                            <p class="text-danger">Data yang dihapus tidak dapat dikembalikan!</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-danger">Hapus</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        @endforeach
 
         <!-- Card Penganggaran -->
         <div class="card">
@@ -270,10 +245,6 @@
                                         </h6>
                                         <p class="mb-1">Pagu: Rp {{ number_format($anggaran->pagu_anggaran, 0, ',', '.')
                                             }}</p>
-                                        {{-- <button class="btn btn-success btn-sm" data-bs-toggle="modal"
-                                            data-bs-target="#editAnggaranModal{{ $anggaran->id }}">
-                                            <i class="bi bi-pencil me-2"></i>Edit Anggaran
-                                        </button> --}}
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">
@@ -293,8 +264,9 @@
                                         <i class="bi bi-printer"></i>
                                     </button>
                                     @endif
-                                    <button class="btn btn-sm btn-outline-danger" title="Hapus" data-bs-toggle="modal"
-                                        data-bs-target="#deleteAnggaranModal{{ $anggaran->id }}">
+                                    <button class="btn btn-sm btn-outline-danger btn-hapus-anggaran" title="Hapus"
+                                        data-id="{{ $anggaran->id }}" data-tahun="{{ $anggaran->tahun_anggaran }}"
+                                        data-pagu="{{ number_format($anggaran->pagu_anggaran, 0, ',', '.') }}">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -326,6 +298,14 @@
                                         title="Cetak RKAS Perubahan">
                                         <i class="bi bi-printer"></i>
                                     </a>
+                                    <!-- Tombol Hapus RKAS Perubahan -->
+                                    @if($anggaran->has_perubahan)
+                                    <button class="btn btn-sm btn-outline-warning btn-hapus-rkas-perubahan"
+                                        title="Hapus RKAS Perubahan" data-id="{{ $anggaran->id }}"
+                                        data-tahun="{{ $anggaran->tahun_anggaran }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    @endif
                                 </div>
                             </div>
                             @empty
@@ -416,48 +396,204 @@
 @endpush
 
 @push('scripts')
-<!-- PERBAIKAN: Memuat jQuery dari CDN -->
-{{-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> --}}
 <script>
     $(document).ready(function() {
-        // Format input angka tambah anggaran
-        $('#pagu_anggaran').on('keyup', function() {
-            let value = $(this).val().replace(/[^\d]/g, '');
-            if (value.length > 0) {
-                value = parseInt(value).toLocaleString('id-ID');
-                $(this).val(value);
-            }
-        });
+    // Format input angka tambah anggaran
+    $('#pagu_anggaran').on('keyup', function() {
+        let value = $(this).val().replace(/[^\d]/g, '');
+        if (value.length > 0) {
+            value = parseInt(value).toLocaleString('id-ID');
+            $(this).val(value);
+        }
+    });
 
-        // Reset form ketika modal ditutup
-        $('#tambahAnggaranModal').on('hidden.bs.modal', function () {
-            $('#formTambahAnggaran')[0].reset();
-        });
+    // Reset form ketika modal ditutup
+    $('#tambahAnggaranModal').on('hidden.bs.modal', function () {
+        $('#formTambahAnggaran')[0].reset();
+    });
 
-        // Validasi form sebelum submit
-        $('#formTambahAnggaran').on('submit', function(e) {
-            let isValid = true;
-            $(this).find('input[required]').each(function() {
-                if ($(this).val().trim() === '') {
-                    isValid = false;
-                    $(this).addClass('is-invalid');
-                } else {
-                    $(this).removeClass('is-invalid');
-                }
-            });
-            
-            if (!isValid) {
-                e.preventDefault();
-                alert('Harap lengkapi semua field yang wajib diisi!');
-            }
-        });
-
-        // Hapus validasi ketika user mulai mengetik
-        $('input[required]').on('input', function() {
-            if ($(this).val().trim() !== '') {
+    // Validasi form sebelum submit
+    $('#formTambahAnggaran').on('submit', function(e) {
+        let isValid = true;
+        $(this).find('input[required]').each(function() {
+            if ($(this).val().trim() === '') {
+                isValid = false;
+                $(this).addClass('is-invalid');
+            } else {
                 $(this).removeClass('is-invalid');
             }
         });
+        
+        if (!isValid) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Perhatian',
+                text: 'Harap lengkapi semua field yang wajib diisi!',
+                confirmButtonColor: '#3085d6',
+            });
+        }
     });
+
+    // Hapus validasi ketika user mulai mengetik
+    $('input[required]').on('input', function() {
+        if ($(this).val().trim() !== '') {
+            $(this).removeClass('is-invalid');
+        }
+    });
+
+    // SweetAlert untuk Hapus Anggaran
+    $(document).on('click', '.btn-hapus-anggaran', function() {
+        const id = $(this).data('id');
+        const tahun = $(this).data('tahun');
+        const pagu = $(this).data('pagu');
+
+        Swal.fire({
+            title: 'Hapus Anggaran?',
+            html: `Apakah Anda yakin ingin menghapus anggaran tahun <strong>${tahun}</strong> dengan pagu <strong>Rp ${pagu}</strong>?<br><br><span class="text-danger">Data yang dihapus tidak dapat dikembalikan!</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading
+                Swal.fire({
+                    title: 'Menghapus...',
+                    text: 'Sedang menghapus data anggaran',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Submit form via AJAX
+                $.ajax({
+                    url: `{{ url('penganggaran/penganggaran') }}/${id}`,
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        _method: 'DELETE'
+                    },
+                    success: function(response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: `Data anggaran tahun ${tahun} beserta semua data RKAS terkait berhasil dihapus`,
+                            confirmButtonColor: '#10b981',
+                            timer: 3000,
+                            showConfirmButton: true
+                        }).then(() => {
+                            // Refresh halaman untuk update data
+                            location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'Gagal menghapus data anggaran';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal!',
+                            text: errorMessage,
+                            confirmButtonColor: '#ef4444',
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // SweetAlert untuk Hapus RKAS Perubahan
+    $(document).on('click', '.btn-hapus-rkas-perubahan', function() {
+        const id = $(this).data('id');
+        const tahun = $(this).data('tahun');
+
+        Swal.fire({
+            title: 'Hapus RKAS Perubahan?',
+            html: `Apakah Anda yakin ingin menghapus <strong>RKAS Perubahan</strong> tahun <strong>${tahun}</strong>?<br><br><span class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Hanya data RKAS Perubahan yang akan dihapus. Data RKAS awal tetap tersimpan.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading
+                Swal.fire({
+                    title: 'Menghapus...',
+                    text: 'Sedang menghapus data RKAS Perubahan',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Submit form via AJAX
+                $.ajax({
+                    url: `{{ url('penganggaran/rkas-perubahan') }}/${id}`,
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        _method: 'DELETE'
+                    },
+                    success: function(response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: `Data RKAS Perubahan tahun ${tahun} berhasil dihapus`,
+                            confirmButtonColor: '#10b981',
+                            timer: 3000,
+                            showConfirmButton: true
+                        }).then(() => {
+                            // Refresh halaman untuk update data
+                            location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'Gagal menghapus data RKAS Perubahan';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal!',
+                            text: errorMessage,
+                            confirmButtonColor: '#ef4444',
+                        });
+                    }
+                });
+            }
+        });
+    });
+});
+
+// Handle SweetAlert untuk pesan sukses dari session
+@if (session('success'))
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: '{{ session('success') }}',
+        confirmButtonColor: '#10b981',
+        timer: 3000
+    });
+@endif
+
+@if (session('error'))
+    Swal.fire({
+        icon: 'error',
+        title: 'Gagal!',
+        text: '{{ session('error') }}',
+        confirmButtonColor: '#ef4444',
+    });
+@endif
 </script>
 @endpush

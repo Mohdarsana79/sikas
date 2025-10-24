@@ -1,23 +1,11 @@
 <div class="container container-custom">
-    <!-- Header Dokumen -->
-    <div class="text-center mb-4">
-        <h1 class="display-6 fw-bold text-primary">REKAPITULASI REALISASI PENGGUNAAN DANA BOS</h1>
-        <h2 class="h4">SMP MUHAMMADIYAH SONI</h2>
-        <p class="lead">PERIODE: {{ strtoupper($periode) }} | TAHUN ANGGARAN {{ $tahun }}</p>
-    </div>
-
-    <!-- Informasi Lembaga -->
-    <div class="card shadow-sm mb-4 rounded-3">
-        <div class="card-body">
-            <div class="row g-2">
-                <div class="col-md-6"><span class="info-badge">LEMBAGA: SMP MUHAMMADIYAH SONI</span></div>
-                <div class="col-md-6"><span class="info-badge">ALAMAT: Jl. Santa No. 150 Desa Paddumpu</span></div>
-                <div class="col-md-6"><span class="info-badge">KABUPATEN: TOLITOLI</span></div>
-                <div class="col-md-6"><span class="info-badge">PROVINSI: SULAWESI TENGAH</span></div>
-            </div>
-        </div>
-    </div>
-
+    @php
+    $periode_info = $periode_info ?? [
+    'periode_awal' => '01 Januari ' . $tahun,
+    'periode_akhir' => '31 Desember ' . $tahun,
+    'tahap' => 'Tahunan'
+    ];
+    @endphp
     <!-- Tabel Utama Realisasi Dana -->
     <div class="table-responsive table-responsive-custom">
         <table class="table table-bordered table-striped align-middle caption-top table-realisasi">
@@ -110,7 +98,7 @@
         </table>
     </div>
 
-    <!-- Debug Information (Hanya tampil di development) -->
+    {{-- <!-- Debug Information (Hanya tampil di development) -->
     @if(env('APP_DEBUG') && isset($realisasiData['debug_mapping']))
     <div class="card mt-4 border-warning">
         <div class="card-header bg-warning text-dark">
@@ -143,15 +131,15 @@
             </div>
         </div>
     </div>
-    @endif
+    @endif --}}
 
     <!-- Bagian Saldo dan Tanda Tangan -->
     <div class="row mt-4">
         <!-- Informasi Saldo -->
-        <div class="col-md-6">
+        <div class="col-md-12 signiture-section">
             <div class="card border-primary shadow-sm rounded-3">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">RINGKASAN KEUANGAN</h5>
+                    <h5 class="mb-0 text-white text-sm">RINGKASAN KEUANGAN</h5>
                 </div>
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
@@ -191,15 +179,6 @@
                 </div>
             </div>
         </div>
-    
-        <!-- Tanda Tangan -->
-        <div class="col-md-6 mt-4 mt-md-0 d-flex flex-column justify-content-end align-items-end">
-            <p class="mb-0">Paddumpu, {{ \Carbon\Carbon::now()->format('d F Y') }}</p>
-            <p class="fw-bold">Kepala Sekolah,</p>
-            <div style="height: 60px;"></div>
-            <p class="fw-bold mb-0">Dra. Masitah Abdullah</p>
-            <p class="small text-muted">NIP. 19690917 200701 2 017</p>
-        </div>
     </div>
 </div>
 
@@ -209,6 +188,10 @@
     }
 
     .table-responsive-custom {
+        font-size: 9pt;
+    }
+
+    .signiture-section, h5 {
         font-size: 9pt;
     }
 

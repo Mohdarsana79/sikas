@@ -438,10 +438,11 @@
                                                 <button class="btn btn-primary btn-sm me-2" id="btnLoadRealisasi">
                                                     <i class="bi bi-arrow-clockwise me-2"></i>Muat Data
                                                 </button>
-                                                <div class="text-muted small">
-                                                    <i class="bi bi-info-circle me-1"></i>
-                                                    Tahun: <strong>{{ $tahun }}</strong>
-                                                </div>
+                                                <button class="btn btn-success btn-sm" id="btnCetakRealisasi" data-bs-toggle="modal"
+                                                    data-bs-target="#pengaturanCetakModalRealisasi">
+                                                    <i class="bi bi-printer me-2"></i>Cetak Laporan
+                                                </button>
+                                                
                                             </div>
                                         </div>
                                     </div>
@@ -472,13 +473,7 @@
                                 </div>
                             </div>
                     
-                            <!-- Tombol Cetak -->
-                            <div class="text-end mt-3">
-                                <button class="btn btn-success btn-sm" id="btnCetakRealisasi" data-bs-toggle="modal"
-                                    data-bs-target="#pengaturanCetakModalRealisasi">
-                                    <i class="bi bi-printer me-2"></i>Cetak Laporan
-                                </button>
-                            </div>
+                            
                         </div>
                     </div>
                 </div>
@@ -1143,6 +1138,9 @@
             },
             success: function(response) {
                 if (response.success) {
+                    if (response.periode_info) {
+                        response.html = response.html.replace('__PERIODE_INFO__', JSON.stringify(response.periode_info));
+                    }
                     tableContainer.html(response.html);
                     
                     // Enable tombol cetak
@@ -1154,7 +1152,8 @@
                     console.log('Data realisasi loaded successfully', {
                         tahun: tahun,
                         periode: periode,
-                        totalRealisasi: response.realisasiData?.total_realisasi
+                        totalRealisasi: response.realisasiData?.total_realisasi,
+                        periodeInfo: response.periode_info
                     });
                 } else {
                     alert('Gagal memuat data: ' + response.message);

@@ -78,6 +78,10 @@ Route::middleware(['auth'])->prefix('penganggaran')->group(function () {
     Route::post('/', [PenganggaranController::class, 'store'])->name('penganggaran.store');
     Route::put('/penganggaran/{id}', [PenganggaranController::class, 'update'])->name('penganggaran.update');
     Route::delete('/penganggaran/{id}', [PenganggaranController::class, 'destroy'])->name('penganggaran.destroy');
+
+    //untuk hapus RKAS Perubahan
+    Route::delete('/rkas-perubahan/{id}', [PenganggaranController::class, 'destroyRkasPerubahan'])
+        ->name('penganggaran.destroy-rkas-perubahan');
 });
 
 // Rkas Perubahan

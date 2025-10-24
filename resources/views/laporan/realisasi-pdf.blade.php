@@ -6,15 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>REKAPITULASI REALISASI PENGGUNAAN DANA BOS</title>
     <style>
-        /* Reset dan base styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        @page {
+            page: {
+                { $printSettings['orientasi']}
+            }
+        };
+        /* GLOBAL STYLES */
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Arial-Narow', sans-serif;
 
             font-size: {
                     {
@@ -23,354 +22,311 @@
             }
 
             ;
-            line-height: 1.4;
+            line-height: 2;
             color: #000;
+            background: #fff;
+            margin: 15px;
+            padding: 0;
         }
 
         .container {
             width: 100%;
             margin: 0 auto;
-            padding: 10px;
+            padding: 0;
         }
 
-        /* Header Styles */
+        /* HEADER STYLES */
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
+            border-bottom: none;
+            padding-bottom: 0;
         }
 
         .header h1 {
-            font-size: 14pt;
+            font-size: 13pt;
             font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .header h2 {
-            font-size: 11pt;
-            font-weight: bold;
+            color: #000;
+            margin-top: 10px;
             margin-bottom: 5px;
         }
 
         .header .periode {
-            font-size: 10pt;
+            font-size: 9pt;
             font-weight: bold;
+            line-height: 2;
         }
 
-        /* Info Lembaga Styles */
-        .info-lembaga {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            padding: 12px;
-            margin-bottom: 20px;
+        /* INFO LEMBAGA STYLES (Disesuaikan agar lebih rapat) */
+        .info-lembaga-table {
+            width: 50%;
+            border: none;
+            margin-bottom: 15px;
+            /* font-size: 8.5pt; */
         }
 
-        .info-row {
-            display: flex;
-            flex-wrap: wrap;
-            margin-bottom: 5px;
+        .info-lembaga-table td {
+            border: none;
+            padding: 5px 5px 0px 0;
+            /* Mengurangi padding vertikal */
+            text-align: left;
+            vertical-align: top;
+            line-height: 1.5;
+            /* Lebih rapat */
         }
 
-        .info-item {
-            flex: 1 0 50%;
-            margin-bottom: 5px;
+        .info-lembaga-table td:nth-child(2) {
+            /* width: 10px; */
+            padding-right: 2px;
         }
 
-        .info-badge {
-            font-weight: 500;
+        .info-lembaga-table td:nth-child(1) {
+            font-weight: normal;
+            width: 30%;
         }
 
-        /* Table Styles */
+
+        /* TABLE STYLES (UTAMA) */
         .table-container {
             width: 100%;
             margin-bottom: 20px;
-            page-break-inside: avoid;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-
-            font-size: {
-                    {
-                    $printSettings['font_size'] ?? '9pt'
-                }
-            }
-
-            ;
+            /* table-layout: fixed; */
         }
 
         th,
         td {
             border: 1px solid #000;
-            padding: 6px 4px;
-            text-align: left;
-            vertical-align: middle;
+            padding: 10px 3px;
+            text-align: center;
+            /* vertical-align: middle; */
+            line-height: 1.15;
+            /* Kerapatan baris yang disesuaikan */
+            /* overflow: hidden; */
+            /* word-wrap: break-word; */
         }
 
         th {
             background-color: #f8f9fa;
             font-weight: bold;
-            text-align: center;
+            font-size: 7.5pt;
         }
 
-        .text-center {
-            text-align: center;
-        }
-
-        .text-right {
-            text-align: right;
-        }
-
-        .text-left {
-            text-align: left;
-        }
-
-        /* Table Header Complex */
-        .table-header-complex {
-            background-color: #e9ecef;
-        }
-
+        /* Header Specific Styles */
         .table-header-complex th {
-            border: 1px solid #000;
-            font-weight: bold;
+            /* padding: 6px 3px; */
+            /* font-size: 8pt; */
+            /* height: 40px; */
+            /* vertical-align: middle; */
+            line-height: 2;
         }
 
-        /* Program Rows */
-        .program-row td {
-            font-weight: 500;
+        .program-name {
+            /* font-size: 8pt; */
+            text-align: left;
+            padding-left: 5px;
+            line-height: 2;
+        }
+
+        /* Number Formatting */
+        .number-cell {
+            text-align: right;
+            font-family: 'Arial', sans-serif;
+            font-size: 8pt;
+            padding-right: 5px;
+            white-space: nowrap;
         }
 
         /* Total Row */
         .total-row {
-            background-color: #d1ecf1 !important;
+            background-color: #d1ecf1;
             font-weight: bold;
         }
 
-        .total-row td {
-            border: 1px solid #000;
-        }
-
-        /* Summary Section */
+        /* SUMMARY SECTION (Ringkasan Keuangan) */
         .summary-section {
-            margin-top: 30px;
+            width: 55%;
             margin-bottom: 30px;
-        }
-
-        .summary-card {
-            border: 1px solid #007bff;
-            border-radius: 5px;
-            padding: 15px;
-            background: #f8f9fa;
-        }
-
-        .summary-header {
-            background: #007bff;
-            color: white;
-            padding: 8px 12px;
-            margin: -15px -15px 15px -15px;
-            border-radius: 5px 5px 0 0;
-            font-weight: bold;
-        }
-
-        .summary-list {
-            list-style: none;
+            text-align:left;
         }
 
         .summary-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #dee2e6;
+            padding: 2px 0;
+            /* Lebih rapat */
+            line-height: 1.5;
         }
 
-        .summary-item:last-child {
-            border-bottom: none;
+        .summary-label {
+            float: left;
+            width: 60%;
+            font-weight: normal;
         }
 
-        /* Signature Section */
-        .signature-section {
-            margin-top: 40px;
+        .summary-value {
+            float: right;
+            width: 38%;
+            font-weight: bold;
             text-align: right;
         }
 
+        /* TANDA TANGAN SECTION (Disesuaikan menggunakan float untuk kompatibilitas PDF) */
+        .signature-area {
+            width: 100%;
+            margin-top: 15px;
+            /* Clearfix */
+        }
+
         .signature-date {
-            margin-bottom: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            
+        }
+
+        .signature-column {
+            width: 45%;
+            text-align: center;
+            float: left;
+            /* Menggunakan float untuk tata letak kolom */
+            margin-left: 5%;
+            /* Jarak di tengah */
+        }
+
+        /* Kolom Bendahara di kanan */
+        .signature-column:nth-child(2) {
+            float: right;
+            margin-left: 0;
+            margin-right: 5%;
+        }
+
+        .signature-column p {
+            margin: 0;
+            padding: 0;
+            line-height: 2;
+            /* Merapatkan baris TTD */
+        }
+
+        .signature-title {
+            margin-top: 5px;
+            margin-bottom: 50px;
+            /* Jarak untuk tanda tangan */
+            font-weight: normal;
         }
 
         .signature-name {
             font-weight: bold;
-            margin-top: 60px;
+            padding: 0 5px;
+            /* margin-bottom: 60px; */
         }
 
         .signature-nip {
-            font-size: 8pt;
-            color: #666;
-        }
-
-        /* Page Break */
-        .page-break {
-            page-break-before: always;
-        }
-
-        /* No Data */
-        .no-data {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-style: italic;
-        }
-
-        /* Komponen Number */
-        .komponen-number {
-            font-size: 8pt;
-            color: #666;
-        }
-
-        /* Caption */
-        .table-caption {
-            caption-side: top;
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #2c3e50;
+            margin-top: 2px;
         }
 
         /* Print Optimizations */
         @media print {
-            body {
-                margin: 0;
-                padding: 10px;
-                font-size: 9pt;
-            }
 
-            .container {
-                padding: 0;
-            }
-
-            .header {
-                margin-bottom: 15px;
-            }
-
-            .info-lembaga {
-                margin-bottom: 15px;
-            }
-
-            .table-container {
-                margin-bottom: 15px;
-            }
-
-            .summary-section {
-                margin-top: 20px;
-                margin-bottom: 20px;
-            }
-
-            .signature-section {
-                margin-top: 30px;
-            }
-
-            /* Ensure tables break properly */
-            table {
-                page-break-inside: auto;
-            }
-
-            tr {
-                page-break-inside: avoid;
-                page-break-after: auto;
-            }
-
-            thead {
-                display: table-header-group;
-            }
-
-            tfoot {
-                display: table-footer-group;
-            }
-
-            /* No background color in print */
-            th {
-                background-color: #f8f9fa !important;
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }
-
+            th,
             .total-row {
-                background-color: #d1ecf1 !important;
+                background-color: #fff !important;
                 -webkit-print-color-adjust: exact;
-                color-adjust: exact;
+                print-color-adjust: exact;
             }
         }
     </style>
 </head>
 
-<body>
+<body style="font-size: {{ $printSettings['font_size'] ?? '9pt' }};">
     <div class="container">
-        <!-- Header Dokumen -->
+
+        <!-- HEADER DOKUMEN -->
         <div class="header">
-            <h1>REKAPITULASI REALISASI PENGGUNAAN DANA BOS</h1>
-            <h2>SMP MUHAMMADIYAH SONI</h2>
-            <p class="periode">PERIODE: {{ strtoupper($periode) }} | TAHUN ANGGARAN {{ $tahun }}</p>
+            <h1>REKAPITULASI REALISASI PENGGUNAAN DANA BOSP</h1>
+            <p class="periode">PERIODE TANGGAL: {{ $periode_info['periode_awal'] ?? '01 Januari 2025' }} s/d {{
+                $periode_info['periode_akhir'] ?? '31 Desember 2025' }}
+                @if(($periode_info['tahap'] ?? 'Tahunan') !== 'Tahunan')
+                <br>TAHAP {{ $periode_info['tahap'] ?? '1' }}
+                @endif
+                TAHUN {{ $tahun }}
+            </p>
+            <div style="text-align: left;">
+                <table class="info-lembaga-table">
+                    <tr>
+                        <td>NPSN</td>
+                        <td width="2%">:</td>
+                        <td>{{ $sekolah->npsn ?? '40202255' }}</td>
+                    </tr>
+                    <tr>
+                        <td>Nama Sekolah</td>
+                        <td>:</td>
+                        <td>{{ strtoupper($sekolah->nama_sekolah ?? 'SMP MUHAMMADIYAH SONI') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Kecamatan</td>
+                        <td>:</td>
+                        <td>{{ $sekolah->kecamatan ?? 'Kec. Dampal Selatan' }}</td>
+                    </tr>
+                    <tr>
+                        <td>Kabupaten/Kota</td>
+                        <td>:</td>
+                        <td>{{ $sekolah->kabupaten_kota ?? 'Kab. Tolitoli' }}</td>
+                    </tr>
+                    <tr>
+                        <td>Provinsi</td>
+                        <td>:</td>
+                        <td>{{ $sekolah->provinsi ?? 'Prov. Sulawesi Tengah' }}</td>
+                    </tr>
+                    <tr>
+                        <td>Sumber Dana</td>
+                        <td>:</td>
+                        <td>{{ $sekolah->sumber_dana ?? 'BOS Reguler' }}</td>
+                    </tr>
+                </table>
+            </div>
         </div>
 
-        <!-- Informasi Lembaga -->
-        <div class="info-lembaga">
-            <div class="info-row">
-                <div class="info-item">
-                    <span class="info-badge">LEMBAGA: SMP MUHAMMADIYAH SONI</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-badge">ALAMAT: Jl. Santa No. 150 Desa Paddumpu</span>
-                </div>
-            </div>
-            <div class="info-row">
-                <div class="info-item">
-                    <span class="info-badge">KABUPATEN: TOLITOLI</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-badge">PROVINSI: SULAWESI TENGAH</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabel Utama Realisasi Dana -->
+        <!-- TABEL UTAMA REALISASI DANA -->
         <div class="table-container">
             <table class="table-realisasi">
-                <caption class="table-caption">Rincian Penggunaan Dana per Komponen Standar</caption>
                 <thead>
                     <tr class="table-header-complex">
-                        <th rowspan="3" style="width: 40px;">No Urut</th>
-                        <th rowspan="3" style="width: 180px;">PROGRAM/KEGIATAN</th>
-                        <th colspan="{{ count($realisasiData['komponen_bos']) }}">KOMPONEN PENGGUNAAN DANA BOS</th>
-                        <th rowspan="3" style="width: 100px;">JUMLAH (Rp)</th>
+                        <th rowspan="3" class="col-no text-center" style="width: 3%;">No<br>Urut</th>
+                        <th rowspan="3" class="col-program text-center" style="width: 15%;">8 STANDAR</th>
+                        <th colspan="{{ count($realisasiData['komponen_bos']) }}" class="text-center">SUB PROGRAM</th>
+                        <th rowspan="3" class="col-jumlah text-center" style="width: 8%;">Jumlah</th>
                     </tr>
                     <tr class="table-header-complex">
+                        {{-- Nama Komponen --}}
                         @foreach($realisasiData['komponen_bos'] as $komponenId => $namaKomponen)
-                        <th style="width: 80px; font-size: 7pt;">{{ $namaKomponen }}</th>
+                        <th class="col-komponen" style="width: {{ 74 / count($realisasiData['komponen_bos']) }}%;">{!!
+                            str_replace(' ', '<br>', $namaKomponen) !!}</th>
                         @endforeach
                     </tr>
                     <tr class="table-header-complex">
+                        {{-- Kode Komponen --}}
                         @foreach($realisasiData['komponen_bos'] as $komponenId => $namaKomponen)
-                        <th style="width: 80px; font-size: 8pt;">{{ $komponenId }}</th>
+                        <th class="col-komponen">{{ $komponenId }}</th>
                         @endforeach
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($realisasiData['realisasi_data'] as $data)
                     <tr class="program-row">
-                        <td class="text-center">{{ $data['no_urut'] }}</td>
-                        <td class="text-left">{{ $data['program_kegiatan'] }}</td>
+                        <td class="col-no text-center">{{ $data['no_urut'] }}</td>
+                        <td class="col-program program-name">{{ $data['program_kegiatan'] }}</td>
                         @foreach($realisasiData['komponen_bos'] as $komponenId => $namaKomponen)
-                        <td class="text-right">
-                            @if(isset($realisasiData['debug_mapping']) && $realisasiData['debug_mapping'])
+                        <td class="col-komponen number-cell">
                             @php
+                            $nilaiKomponen = $data['realisasi_komponen'][$komponenId] ?? 0;
+                            if(isset($realisasiData['debug_mapping']) && $realisasiData['debug_mapping']) {
                             $nilaiKomponen = 0;
                             foreach($realisasiData['debug_mapping'] as $mapping) {
                             if ($mapping['program'] == $data['no_urut'] && $mapping['komponen'] == $komponenId) {
                             $nilaiKomponen += $mapping['nilai'];
+                            }
                             }
                             }
                             @endphp
@@ -379,26 +335,18 @@
                             @else
                             -
                             @endif
-                            @else
-                            @if($data['realisasi_komponen'][$komponenId] > 0)
-                            {{ number_format($data['realisasi_komponen'][$komponenId], 0, ',', '.') }}
-                            @else
-                            -
-                            @endif
-                            @endif
                         </td>
                         @endforeach
-                        <td class="text-right">
+                        <td class="col-jumlah number-cell">
                             @php
-                            $totalProgram = 0;
+                            $totalProgram = $data['total_kegiatan'] ?? 0;
                             if(isset($realisasiData['debug_mapping'])) {
+                            $totalProgram = 0;
                             foreach($realisasiData['debug_mapping'] as $mapping) {
                             if ($mapping['program'] == $data['no_urut']) {
                             $totalProgram += $mapping['nilai'];
                             }
                             }
-                            } else {
-                            $totalProgram = $data['total_kegiatan'];
                             }
                             @endphp
                             @if($totalProgram > 0)
@@ -412,11 +360,13 @@
                 </tbody>
                 <tfoot>
                     <tr class="total-row">
-                        <td colspan="2" class="text-center"><strong>JUMLAH TOTAL</strong></td>
+                        <td colspan="2" class="program-name" style="text-align: center !important;">
+                            <strong>JUMLAH</strong></td>
                         @foreach($realisasiData['komponen_bos'] as $komponenId => $namaKomponen)
-                        <td class="text-right">
+                        <td class="col-komponen number-cell">
                             <strong>
-                                @if($realisasiData['realisasi_per_komponen'][$komponenId] > 0)
+                                @if(isset($realisasiData['realisasi_per_komponen'][$komponenId]) &&
+                                $realisasiData['realisasi_per_komponen'][$komponenId] > 0)
                                 {{ number_format($realisasiData['realisasi_per_komponen'][$komponenId], 0, ',', '.') }}
                                 @else
                                 -
@@ -424,7 +374,7 @@
                             </strong>
                         </td>
                         @endforeach
-                        <td class="text-right">
+                        <td class="col-jumlah number-cell">
                             <strong>{{ number_format($totalRealisasi, 0, ',', '.') }}</strong>
                         </td>
                     </tr>
@@ -432,90 +382,61 @@
             </table>
         </div>
 
-        <!-- Bagian Saldo dan Tanda Tangan -->
-        <div style="display: flex; justify-content: space-between; margin-top: 30px;">
-            <!-- Informasi Saldo -->
-            <div style="width: 48%;">
-                <div class="summary-card">
-                    <div class="summary-header">RINGKASAN KEUANGAN</div>
-                    <ul class="summary-list">
-                        <li class="summary-item">
-                            <span>Saldo periode sebelumnya</span>
-                            <span class="text-right"><strong>Rp. {{
-                                    number_format($realisasiData['ringkasan_keuangan']['saldo_periode_sebelumnya'] ?? 0, 0, ',',
-                                    '.') }}</strong></span>
-                        </li>
-                        <li class="summary-item">
-                            <span>Total penerimaan dana BOSP periode ini</span>
-                            <span class="text-right" style="color: #28a745;"><strong>Rp. {{
-                                    number_format($realisasiData['ringkasan_keuangan']['total_penerimaan_periode_ini'] ?? 0, 0,
-                                    ',', '.') }}</strong></span>
-                        </li>
-                        <li class="summary-item">
-                            <span>Total penggunaan dana BOSP periode ini</span>
-                            <span class="text-right" style="color: #17a2b8;"><strong>Rp. {{
-                                    number_format($realisasiData['ringkasan_keuangan']['total_penggunaan_periode_ini'] ?? 0, 0,
-                                    ',', '.') }}</strong></span>
-                        </li>
-                        <li class="summary-item">
-                            <span>Akhir saldo BOSP periode ini</span>
-                            <span class="text-right" style="color: #dc3545;"><strong>Rp. {{
-                                    number_format($realisasiData['ringkasan_keuangan']['akhir_saldo_periode_ini'] ?? 0, 0, ',',
-                                    '.') }}</strong></span>
-                        </li>
-                    </ul>
-        
-                    <!-- Informasi Tambahan -->
-                    <div style="margin-top: 10px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-                        <small style="color: #6c757d;">
-                            <strong>Periode:</strong> {{ strtoupper($periode) }} {{ $tahun }}
-                        </small>
-                    </div>
-                </div>
+        <!-- BAGIAN SALDO (Ringkasan Keuangan) -->
+        <div>
+            <table class="summary-table" style="border:none; border-collapse:collapse; !important;">
+                <tr>
+                    <td>Saldo periode sebelumnya</td>
+                    <td width="2%">:</td>
+                    <td>Rp. {{
+                        number_format($realisasiData['ringkasan_keuangan']['saldo_periode_sebelumnya'] ?? 0, 0, ',', '.')
+                        }}</td>
+                </tr>
+                <tr>
+                    <td>Total penerimaan dana BOSP periode ini</td>
+                    <td>:</td>
+                    <td>Rp. {{
+                        number_format($realisasiData['ringkasan_keuangan']['total_penerimaan_periode_ini'] ?? 0, 0, ',',
+                        '.') }}</td>
+                </tr>
+                <tr>
+                    <td>Total penggunaan dana BOSP periode ini</td>
+                    <td>:</td>
+                    <td>Rp. {{
+                        number_format($realisasiData['ringkasan_keuangan']['total_penggunaan_periode_ini'] ?? 0, 0, ',',
+                        '.') }}</td>
+                </tr>
+                <tr>
+                    <td>Akhir saldo BOSP periode ini</td>
+                    <td>:</td>
+                    <td>Rp. {{
+                        number_format($realisasiData['ringkasan_keuangan']['akhir_saldo_periode_ini'] ?? 0, 0, ',', '.')
+                        }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- TANDA TANGAN SECTION (Menggunakan Float untuk kerapihan dan kompatibilitas) -->
+        <div class="signature-area">
+            {{-- Kolom Kepala Sekolah --}}
+            <div class="signature-column" style="margin-left: 0;">
+                <p>Menyetujui,</p>
+                <p class="signature-title">Kepala Sekolah</p>
+                <br><br><br><br><br><br>
+                <p class="signature-name">{{ $penganggaran->kepala_sekolah ?? '-' }}</p>
+                <p class="signature-nip">NIP. {{ $penganggaran->nip_kepala_sekolah ?? '-' }}</p>
             </div>
-        
-            <!-- Tanda Tangan -->
-            <div style="width: 48%; text-align: right;">
-                <div class="signature-section">
-                    <p class="signature-date">Paddumpu, {{ $tanggal_cetak ?? \Carbon\Carbon::now()->format('d/m/Y') }}</p>
-                    <p style="font-weight: bold; margin-bottom: 60px;">Kepala Sekolah,</p>
-                    <p class="signature-name">Dra. Masitah Abdullah</p>
-                    <p class="signature-nip">NIP. 19690917 200701 2 017</p>
-                </div>
+
+            {{-- Kolom Bendahara/Penanggungjawab --}}
+            <div class="signature-column">
+                <br><br>
+                <p class="signature-title">Bendahara / Penanggungjawab Kegiatan</p>
+                <br><br><br><br><br><br>
+                <p class="signature-name">{{ $penganggaran->bendahara ?? '-' }}</p>
+                <p class="signature-nip">NIP. {{ $penganggaran->nip_bendahara ?? '-' }}</p>
             </div>
         </div>
 
-        <!-- Debug Information (Hanya untuk development) -->
-        @if(env('APP_DEBUG', false) && isset($realisasiData['debug_mapping']) && count($realisasiData['debug_mapping'])
-        > 0)
-        <div class="page-break"></div>
-        <div style="margin-top: 20px;">
-            <h3 style="text-align: center; margin-bottom: 15px;">DEBUG INFORMATION</h3>
-            <table style="width: 100%; font-size: 8pt; border: 1px solid #ccc;">
-                <thead>
-                    <tr style="background-color: #f8f9fa;">
-                        <th style="border: 1px solid #ccc; padding: 4px;">Kode Kegiatan</th>
-                        <th style="border: 1px solid #ccc; padding: 4px;">Program</th>
-                        <th style="border: 1px solid #ccc; padding: 4px;">Komponen</th>
-                        <th style="border: 1px solid #ccc; padding: 4px;">Nilai (Rp)</th>
-                        <th style="border: 1px solid #ccc; padding: 4px;">Uraian</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($realisasiData['debug_mapping'] as $debug)
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 4px;">{{ $debug['kode_kegiatan'] }}</td>
-                        <td style="border: 1px solid #ccc; padding: 4px;">{{ $debug['program'] }}</td>
-                        <td style="border: 1px solid #ccc; padding: 4px;">{{ $debug['komponen'] }}</td>
-                        <td style="border: 1px solid #ccc; padding: 4px; text-align: right;">{{
-                            number_format($debug['nilai'], 0, ',', '.') }}</td>
-                        <td style="border: 1px solid #ccc; padding: 4px;">{{ $debug['uraian'] }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-        @endif
     </div>
 </body>
 

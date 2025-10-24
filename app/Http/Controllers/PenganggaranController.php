@@ -6,6 +6,7 @@ use App\Models\Penganggaran;
 use Illuminate\Http\Request;
 use App\Models\Rkas;
 use App\Models\RkasPerubahan;
+use App\Models\RekamanPerubahan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -138,12 +139,6 @@ class PenganggaranController extends Controller
     //         ->with('success', 'Data anggaran berhasil diperbaharui');
     // }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy($id)
     {
         try {
@@ -153,23 +148,62 @@ class PenganggaranController extends Controller
             $tahunAnggaran = $anggaran->tahun_anggaran;
 
             // Hapus data RKAS Perubahan terkait
-            RkasPerubahan::where('penganggaran_id', $anggaran->id)->delete();
+            RkasPerubahan::where('penganggaran_id', $anggaran->id)->forceDelete();
 
             // Delete all RKAS data related to this penganggaran
-            Rkas::where('penganggaran_id', $anggaran->id)->delete();
+            Rkas::where('penganggaran_id', $anggaran->id)->forceDelete();
 
             // Delete the penganggaran
             $anggaran->delete();
 
             DB::commit();
 
-            return redirect()->route('penganggaran.index')
-                ->with('success', 'Data anggaran tahun ' . $tahunAnggaran . ' beserta semua data RKAS terkait berhasil dihapus');
+            return response()->json([
+                'success' => true,
+                'message' => 'Data anggaran tahun ' . $tahunAnggaran . ' beserta semua data RKAS terkait berhasil dihapus'
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error deleting Penganggaran: ' . $e->getMessage());
-            return redirect()->route('penganggaran.index')
-                ->with('error', 'Gagal menghapus data anggaran: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus data anggaran: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove RKAS Perubahan for specified resource.
+     */
+    public function destroyRkasPerubahan($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $anggaran = Penganggaran::findOrFail($id);
+            $tahunAnggaran = $anggaran->tahun_anggaran;
+
+            // FORCE DELETE - Hapus permanen data RKAS Perubahan
+            RkasPerubahan::where('penganggaran_id', $anggaran->id)->forceDelete();
+
+            // Reset tanggal_perubahan menjadi null
+            $anggaran->update([
+                'tanggal_perubahan' => null
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data RKAS Perubahan tahun ' . $tahunAnggaran . ' berhasil dihapus permanen'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error deleting RKAS Perubahan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus data RKAS Perubahan: ' . $e->getMessage()
+            ], 500);
         }
     }
 
