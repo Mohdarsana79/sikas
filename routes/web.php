@@ -95,6 +95,14 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
     Route::post('/rkas-perubahan/salin', [RkasPerubahanController::class, 'salinDariRkas'])
         ->name('rkas-perubahan.salin');
 
+    Route::get('/show/{id}', [RkasPerubahanController::class, 'show'])->name('rkas-perubahan.show');
+    // Route untuk delete semua data dengan kriteria yang sama
+    Route::delete('/delete-all/{id}', [RkasPerubahanController::class, 'deleteAll'])->name('rkas-perubahan.delete-all');
+
+
+    // Route khusus untuk edit - TAMBAHKAN INI
+    Route::get('/{id}/edit', [RkasPerubahanController::class, 'edit'])->name('rkas-perubahan.edit');
+
     Route::post('/', [RkasPerubahanController::class, 'store'])->name('rkas-perubahan.store');
     Route::get('/bulan/{bulan}', [RkasPerubahanController::class, 'getByMonth'])->name('rkas-perubahan.getByMonth');
     Route::get('/all-data', [RkasPerubahanController::class, 'getAllData'])->name('rkas-perubahan.getAllData');
@@ -103,7 +111,7 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
         ->name('penganggaran.update-tanggal-perubahan');
     Route::post('/sisipkan', [RkasPerubahanController::class, 'sisipkan'])
         ->name('rkas-perubahan.sisipkan');
-    Route::get('/{id}', [RkasPerubahanController::class, 'show'])->name('rkas-perubahan.show');
+    
     Route::delete('/{id}', [RkasPerubahanController::class, 'destroy'])->name('rkas-perubahan.destroy');
     Route::get('/total/per-bulan', [RkasPerubahanController::class, 'getTotalPerBulan'])->name('rkas-perubahan.getTotalPerBulan');
     // Routes for Tahap 1 and Tahap 2 functionality

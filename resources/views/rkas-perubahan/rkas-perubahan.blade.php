@@ -340,25 +340,23 @@
                                     <td style="font-size: 8pt; position: relative;">
                                         <!-- Dropdown Action Button -->
                                         <div class="dropdown" style="position: relative; z-index: 1050;">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                                                type="button" id="actionDropdown{{ $rkas->id }}"
-                                                data-bs-toggle="dropdown" aria-expanded="false"
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                                id="actionDropdown{{ $rkas->id }}" data-bs-toggle="dropdown" aria-expanded="false"
                                                 style="border: 1px solid #dee2e6; background: white; color: #6c757d; font-size: 8pt; padding: 4px 8px; min-width: 40px;">
                                                 <i class="bi bi-three-dots-vertical"></i>
                                             </button>
                                             @if(!$isLocked)
-                                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
-                                                aria-labelledby="actionDropdown{{ $rkas->id }}"
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="actionDropdown{{ $rkas->id }}"
                                                 style="z-index: 1060; min-width: 120px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;">
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#"
-                                                        onclick="showDetailModal({{ $rkas->id }})"
+                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showDetailModal({{ $rkas->id }})"
                                                         style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                         <i class="bi bi-eye me-2 text-primary"></i>Detail
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showSisipkanModal(
+                                                    <a class="dropdown-item d-flex align-items-center" href="#"
+                                                        onclick="showSisipkanModal(
                                                            {{ $rkas->kode_id }},
                                                            '{{ $rkas->kodeKegiatan ? addslashes($rkas->kodeKegiatan->program) : '-' }}',
                                                            '{{ $rkas->kodeKegiatan ? addslashes($rkas->kodeKegiatan->sub_program) : '-' }}',
@@ -369,17 +367,10 @@
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#"
-                                                        onclick="showEditModal({{ $rkas->id }})"
+                                                    <!-- PERBAIKAN: Tombol Edit yang benar -->
+                                                    <a class="dropdown-item d-flex align-items-center" href="#" onclick="showEditModal({{ $rkas->id }})"
                                                         style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                         <i class="bi bi-pencil me-2 text-warning"></i>Edit
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center text-danger"
-                                                        href="#" onclick="showDeleteModal({{ $rkas->id }})"
-                                                        style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
-                                                        <i class="bi bi-trash me-2"></i>Hapus
                                                     </a>
                                                 </li>
                                             </ul>
@@ -431,7 +422,7 @@
 @include('rkas-perubahan.modal.edit-rkas-perubahan')
 @include('rkas-perubahan.modal.detail-rkas-perubahan')
 @include('rkas-perubahan.modal.sisipkan-rkas-perubahan')
-@include('rkas-perubahan.modal.delete-rkas-perubahan')
+{{-- @include('rkas-perubahan.modal.delete-rkas-perubahan') --}}
 
 <!-- CSS Styles -->
 <style>

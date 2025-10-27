@@ -315,10 +315,10 @@ class RkasPerubahanController extends Controller
         try {
             $rkas = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])->find($id);
 
-            if (! $rkas) {
+            if (!$rkas) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data RKAS tidak ditemukan.',
+                    'message' => 'Data RKAS Perubahan tidak ditemukan.',
                 ], 404);
             }
 
@@ -326,17 +326,17 @@ class RkasPerubahanController extends Controller
                 'id' => $rkas->id,
                 'kode_id' => $rkas->kode_id,
                 'kode_rekening_id' => $rkas->kode_rekening_id,
-                'program_kegiatan' => $rkas->kodeKegiatan->program,
-                'kegiatan' => $rkas->kodeKegiatan->sub_program,
-                'rekening_belanja' => $rkas->rekeningBelanja->rincian_objek,
+                'program_kegiatan' => $rkas->kodeKegiatan->program ?? '-',
+                'kegiatan' => $rkas->kodeKegiatan->sub_program ?? '-',
+                'rekening_belanja' => $rkas->rekeningBelanja->rincian_objek ?? '-',
                 'uraian' => $rkas->uraian,
                 'bulan' => $rkas->bulan,
                 'dianggaran' => $rkas->jumlah,
                 'dibelanjakan' => 0,
                 'satuan' => $rkas->satuan,
-                'harga_satuan' => 'Rp '.number_format($rkas->harga_satuan, 0, ',', '.'),
+                'harga_satuan' => 'Rp ' . number_format($rkas->harga_satuan, 0, ',', '.'),
                 'harga_satuan_raw' => $rkas->harga_satuan,
-                'total' => 'Rp '.number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
+                'total' => 'Rp ' . number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
             ];
 
             return response()->json([
@@ -344,7 +344,7 @@ class RkasPerubahanController extends Controller
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error showing RKAS: '.$e->getMessage());
+            Log::error('Error showing RKAS Perubahan: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -353,90 +353,303 @@ class RkasPerubahanController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Menampilkan form untuk mengedit data RKAS Perubahan (SEMUA BULAN).
+     */
+    public function edit($id)
     {
-        $lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
-
-        // Validasi bulan yang dikunci
-        if (in_array($request->bulan, $lockedMonths)) {
-            return response()->json([
-                'success' => false,
-                'message' => "Tidak dapat mengupdate data untuk bulan {$request->bulan} karena bulan tersebut terkunci.",
-            ], 422);
-        }
         try {
-            $request->validate([
-                'kode_id' => 'required|exists:kode_kegiatans,id',
-                'kode_rekening_id' => 'required|exists:rekening_belanjas,id',
-                'uraian' => 'required|string',
-                'harga_satuan' => 'nullable|numeric|min:0',
-                'bulan' => 'required|in:Juli,Agustus,September,Oktober,November,Desember',
-                'jumlah' => 'nullable|integer|min:1',
-                'satuan' => 'nullable|string',
-            ]);
+            Log::info('🔧 [EDIT DEBUG] Fetching ALL monthly data for edit, ID: ' . $id);
 
-            $rkasPerubahan = RkasPerubahan::findOrFail($id);
+            // Dapatkan data utama berdasarkan ID
+            $mainRkas = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])->find($id);
 
-            // Check if combination already exists (excluding current record)
-            $exists = RkasPerubahan::where('kode_id', $request->kode_id)
-                ->where('kode_rekening_id', $request->kode_rekening_id)
-                ->where('bulan', $request->bulan)
-                ->where('uraian', $request->uraian)
-                ->where('id', '!=', $id)
-                ->exists();
-
-            if ($exists) {
+            if (!$mainRkas) {
+                Log::warning('❌ [EDIT DEBUG] Main data not found for ID: ' . $id);
                 return response()->json([
                     'success' => false,
-                    'message' => "Data untuk bulan {$request->bulan} sudah ada dengan kegiatan dan rekening yang sama.",
-                ], 422);
+                    'message' => 'Data RKAS Perubahan tidak ditemukan.',
+                ], 404);
             }
 
-            // Simpan data sebelum diubah
-            $dataSebelum = [
-                'kode_id' => $rkasPerubahan->kode_id,
-                'kode_rekening_id' => $rkasPerubahan->kode_rekening_id,
-                'uraian' => $rkasPerubahan->uraian,
-                'harga_satuan' => $rkasPerubahan->harga_satuan,
-                'bulan' => $rkasPerubahan->bulan,
-                'jumlah' => $rkasPerubahan->jumlah,
-                'satuan' => $rkasPerubahan->satuan,
-            ];
+            // Dapatkan SEMUA data dengan kode_id, kode_rekening_id, dan uraian yang sama
+            $allRkasData = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $mainRkas->penganggaran_id)
+                ->where('kode_id', $mainRkas->kode_id)
+                ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
+                ->where('uraian', $mainRkas->uraian)
+                ->where('harga_satuan', $mainRkas->harga_satuan)
+                ->get();
 
-            $rkasPerubahan->update([
-                'kode_id' => $request->kode_id,
-                'kode_rekening_id' => $request->kode_rekening_id,
-                'uraian' => $request->uraian,
-                'harga_satuan' => $request->harga_satuan,
-                'bulan' => $request->bulan,
-                'jumlah' => $request->jumlah,
-                'satuan' => $request->satuan,
+            Log::info('🔧 [EDIT DEBUG] Found ' . $allRkasData->count() . ' monthly records for:', [
+                'kode_id' => $mainRkas->kode_id,
+                'kode_rekening_id' => $mainRkas->kode_rekening_id,
+                'uraian' => $mainRkas->uraian
             ]);
 
-            // Simpan data sesudah diubah
-            $dataSesudah = [
-                'kode_id' => $rkasPerubahan->fresh()->kode_id,
-                'kode_rekening_id' => $rkasPerubahan->fresh()->kode_rekening_id,
-                'uraian' => $rkasPerubahan->fresh()->uraian,
-                'harga_satuan' => $rkasPerubahan->fresh()->harga_satuan,
-                'bulan' => $rkasPerubahan->fresh()->bulan,
-                'jumlah' => $rkasPerubahan->fresh()->jumlah,
-                'satuan' => $rkasPerubahan->fresh()->satuan,
+            // Format data untuk semua bulan
+            $bulanData = [];
+            $totalAnggaran = 0;
+
+            foreach ($allRkasData as $rkas) {
+                $bulanData[] = [
+                    'bulan' => $rkas->bulan,
+                    'jumlah' => $rkas->jumlah,
+                    'satuan' => $rkas->satuan,
+                    'total' => $rkas->jumlah * $rkas->harga_satuan
+                ];
+                $totalAnggaran += $rkas->jumlah * $rkas->harga_satuan;
+            }
+
+            // Data utama untuk form
+            $data = [
+                'id' => $mainRkas->id,
+                'kode_id' => $mainRkas->kode_id,
+                'kode_rekening_id' => $mainRkas->kode_rekening_id,
+                'program_kegiatan' => $mainRkas->kodeKegiatan->program ?? '-',
+                'kegiatan' => $mainRkas->kodeKegiatan->sub_program ?? '-',
+                'rekening_belanja' => $mainRkas->rekeningBelanja->rincian_objek ?? '-',
+                'uraian' => $mainRkas->uraian,
+                'harga_satuan' => 'Rp ' . number_format($mainRkas->harga_satuan, 0, ',', '.'),
+                'harga_satuan_raw' => $mainRkas->harga_satuan,
+                'total_anggaran' => 'Rp ' . number_format($totalAnggaran, 0, ',', '.'),
+
+                // DATA SEMUA BULAN
+                'bulan_data' => $bulanData,
+
+                // INFORMASI BULAN TERKUNCI
+                'locked_months' => ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'],
+                'allowed_months' => ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+
+                // Data tambahan untuk select2
+                'kode_kegiatan_data' => [
+                    'kode' => $mainRkas->kodeKegiatan->kode ?? '',
+                    'program' => $mainRkas->kodeKegiatan->program ?? '',
+                    'sub_program' => $mainRkas->kodeKegiatan->sub_program ?? '',
+                    'uraian' => $mainRkas->kodeKegiatan->uraian ?? '',
+                ],
+                'rekening_belanja_data' => [
+                    'kode_rekening' => $mainRkas->rekeningBelanja->kode_rekening ?? '',
+                    'rincian_objek' => $mainRkas->rekeningBelanja->rincian_objek ?? '',
+                ]
             ];
 
-            // Catat perubahan
-            RekamanPerubahanService::catatUpdate($id, $dataSebelum, $dataSesudah);
+            Log::info('🔧 [EDIT DEBUG] Sending data with ' . count($bulanData) . ' months');
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data RKAS Perubahan berhasil diupdate.',
+                'data' => $data,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error updating RKAS Perubahan: '.$e->getMessage());
+            Log::error('❌ [EDIT DEBUG] Error in edit method: ' . $e->getMessage());
+            Log::error('❌ [EDIT DEBUG] Stack trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mengupdate data.',
+                'message' => 'Terjadi kesalahan saat mengambil data untuk edit: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        $lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+        $allowedMonths = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+        try {
+            Log::info('🔧 [UPDATE DEBUG] Starting update process for ID: ' . $id);
+            Log::info('🔧 [UPDATE DEBUG] Request data:', [
+                'bulan' => $request->bulan,
+                'jumlah' => $request->jumlah,
+                'satuan' => $request->satuan,
+                'harga_satuan' => $request->harga_satuan
+            ]);
+
+            // VALIDASI MANUAL - Hanya validasi bulan yang tidak terkunci
+            $errors = [];
+            
+            // Validasi required fields
+            if (!$request->kode_id) $errors['kode_id'] = ['Kegiatan harus dipilih'];
+            if (!$request->kode_rekening_id) $errors['kode_rekening_id'] = ['Rekening Belanja harus dipilih'];
+            if (!$request->uraian) $errors['uraian'] = ['Uraian harus diisi'];
+            if (!$request->harga_satuan || $request->harga_satuan <= 0) $errors['harga_satuan'] = ['Harga satuan harus lebih dari 0'];
+            
+            // Validasi array bulan - hanya untuk bulan yang tidak terkunci
+            $validBulan = [];
+            $validJumlah = [];
+            $validSatuan = [];
+            
+            if ($request->bulan && is_array($request->bulan)) {
+                foreach ($request->bulan as $index => $bulan) {
+                    // ABAIKAN BULAN TERKUNCI - hanya proses bulan Juli-Desember
+                    if (in_array($bulan, $lockedMonths)) {
+                        Log::info('🔧 [UPDATE DEBUG] Skipping locked month: ' . $bulan);
+                        continue;
+                    }
+                    
+                    // Validasi bulan yang diperbolehkan
+                    if (!in_array($bulan, $allowedMonths)) {
+                        $errors["bulan.$index"] = ["Bulan $bulan tidak valid. Hanya bulan Juli-Desember yang diperbolehkan."];
+                        continue;
+                    }
+                    
+                    // Validasi jumlah untuk bulan yang diperbolehkan
+                    if (!isset($request->jumlah[$index]) || $request->jumlah[$index] <= 0) {
+                        $errors["jumlah.$index"] = ["Jumlah untuk bulan $bulan harus lebih dari 0"];
+                        continue;
+                    }
+                    
+                    // Validasi satuan untuk bulan yang diperbolehkan
+                    if (!isset($request->satuan[$index]) || empty(trim($request->satuan[$index]))) {
+                        $errors["satuan.$index"] = ["Satuan untuk bulan $bulan harus diisi"];
+                        continue;
+                    }
+                    
+                    // Tambahkan ke array valid
+                    $validBulan[] = $bulan;
+                    $validJumlah[] = $request->jumlah[$index];
+                    $validSatuan[] = $request->satuan[$index];
+                }
+            }
+            
+            
+            // Validasi minimal satu bulan aktif tidak di pakai karena harus di izinkan
+            // if (count($validBulan) === 0) {
+            //     $errors['bulan'] = ['Minimal satu bulan (Juli-Desember) harus dipilih'];
+            // }
+            
+            // Validasi duplikasi bulan (hanya untuk bulan aktif)
+            if (count($validBulan) !== count(array_unique($validBulan))) {
+                $errors['bulan'] = ['Tidak boleh ada bulan yang sama dalam satu kegiatan.'];
+            }
+            
+            // Jika ada error validasi
+            if (!empty($errors)) {
+                Log::error('❌ [UPDATE DEBUG] Validation errors:', $errors);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $errors,
+                ], 422);
+            }
+
+            // Dapatkan data utama
+            $mainRkas = RkasPerubahan::find($id);
+            if (!$mainRkas) {
+                Log::error('❌ [UPDATE DEBUG] Data not found for ID: ' . $id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data RKAS Perubahan tidak ditemukan.',
+                ], 404);
+            }
+
+            DB::beginTransaction();
+
+            try {
+                // Simpan data sebelum diubah untuk rekaman perubahan
+                $oldData = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
+                    ->where('penganggaran_id', $mainRkas->penganggaran_id)
+                    ->where('kode_id', $mainRkas->kode_id)
+                    ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
+                    ->where('uraian', $mainRkas->uraian)
+                    ->get();
+
+                $dataSebelum = [];
+                foreach ($oldData as $item) {
+                    $dataSebelum[] = [
+                        'kode_kegiatan' => $item->kodeKegiatan->kode ?? '-',
+                        'program' => $item->kodeKegiatan->program ?? '-',
+                        'sub_program' => $item->kodeKegiatan->sub_program ?? '-',
+                        'kode_rekening' => $item->rekeningBelanja->kode_rekening ?? '-',
+                        'rincian_objek' => $item->rekeningBelanja->rincian_objek ?? '-',
+                        'uraian' => $item->uraian,
+                        'jumlah' => $item->jumlah,
+                        'satuan' => $item->satuan,
+                        'harga_satuan' => $item->harga_satuan,
+                        'bulan' => $item->bulan,
+                        'total' => $item->jumlah * $item->harga_satuan,
+                    ];
+                }
+
+                Log::info('🔧 [UPDATE DEBUG] Processing update for months:', $validBulan);
+
+                // HAPUS HANYA DATA BULAN AKTIF (Juli-Desember) dengan kriteria yang sama
+                $deletedCount = RkasPerubahan::where('penganggaran_id', $mainRkas->penganggaran_id)
+                    ->where('kode_id', $mainRkas->kode_id)
+                    ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
+                    ->where('uraian', $mainRkas->uraian)
+                    ->whereIn('bulan', $allowedMonths) // Hanya hapus bulan Juli-Desember
+                    ->delete();
+
+                Log::info('🔧 [UPDATE DEBUG] Deleted ' . $deletedCount . ' active month records');
+
+                // BUAT DATA BARU UNTUK BULAN AKTIF YANG MASIH ADA
+                $createdRecords = [];
+
+                Log::info('🔧 [UPDATE DEBUG] Creating new records for active months:', $validBulan);
+
+                for ($i = 0; $i < count($validBulan); $i++) {
+                    $newRkas = RkasPerubahan::create([
+                        'penganggaran_id' => $mainRkas->penganggaran_id,
+                        'kode_id' => $request->kode_id,
+                        'kode_rekening_id' => $request->kode_rekening_id,
+                        'uraian' => $request->uraian,
+                        'harga_satuan' => $request->harga_satuan,
+                        'bulan' => $validBulan[$i],
+                        'jumlah' => $validJumlah[$i],
+                        'satuan' => $validSatuan[$i],
+                        'rkas_id' => $mainRkas->rkas_id,
+                    ]);
+
+                    $createdRecords[] = $newRkas;
+                    Log::info('🔧 [UPDATE DEBUG] Created record for bulan: ' . $validBulan[$i]);
+                }
+
+                // Catat perubahan untuk rekaman
+                foreach ($createdRecords as $record) {
+                    RekamanPerubahanService::catatPerubahan(
+                        $record->id,
+                        'update',
+                        [
+                            'kode_kegiatan' => $record->kodeKegiatan->kode ?? '-',
+                            'program' => $record->kodeKegiatan->program ?? '-',
+                            'sub_program' => $record->kodeKegiatan->sub_program ?? '-',
+                            'kode_rekening' => $record->rekeningBelanja->kode_rekening ?? '-',
+                            'rincian_objek' => $record->rekeningBelanja->rincian_objek ?? '-',
+                            'uraian' => $record->uraian,
+                            'jumlah' => $record->jumlah,
+                            'satuan' => $record->satuan,
+                            'harga_satuan' => $record->harga_satuan,
+                            'bulan' => $record->bulan,
+                            'total' => $record->jumlah * $record->harga_satuan,
+                        ],
+                        $dataSebelum
+                    );
+                }
+
+                DB::commit();
+
+                Log::info('🔧 [UPDATE DEBUG] Update completed successfully. Created ' . count($createdRecords) . ' active month records');
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data RKAS Perubahan berhasil diupdate untuk ' . count($createdRecords) . ' bulan aktif (Juli-Desember).',
+                    'redirect' => route('rkas-perubahan.index', ['tahun' => $request->tahun_anggaran]),
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('❌ [UPDATE DEBUG] Database error: ' . $e->getMessage());
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('❌ [UPDATE DEBUG] Error updating RKAS Perubahan: ' . $e->getMessage());
+            Log::error('❌ [UPDATE DEBUG] Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengupdate data: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -501,6 +714,98 @@ class RkasPerubahanController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat menghapus data.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Menghapus semua data RKAS Perubahan dengan kriteria yang sama (kecuali bulan terkunci)
+     */
+    public function deleteAll($id)
+    {
+        $lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+        
+        try {
+            Log::info('🔧 [DELETE ALL] Starting delete all process for ID: ' . $id);
+
+            // Dapatkan data utama
+            $mainRkas = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])->find($id);
+
+            if (!$mainRkas) {
+                Log::error('❌ [DELETE ALL] Main data not found for ID: ' . $id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data RKAS Perubahan tidak ditemukan.',
+                ], 404);
+            }
+
+            Log::info('🔧 [DELETE ALL] Found main data:', [
+                'kode_id' => $mainRkas->kode_id,
+                'kode_rekening_id' => $mainRkas->kode_rekening_id,
+                'uraian' => $mainRkas->uraian
+            ]);
+
+            DB::beginTransaction();
+
+            // Simpan data sebelum dihapus untuk rekaman perubahan
+            $dataToDelete = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $mainRkas->penganggaran_id)
+                ->where('kode_id', $mainRkas->kode_id)
+                ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
+                ->where('uraian', $mainRkas->uraian)
+                ->whereNotIn('bulan', $lockedMonths) // Hanya data bulan aktif
+                ->get();
+
+            Log::info('🔧 [DELETE ALL] Found ' . $dataToDelete->count() . ' records to delete');
+
+            // Catat data yang akan dihapus untuk rekaman perubahan
+            foreach ($dataToDelete as $item) {
+                RekamanPerubahanService::catatPerubahan(
+                    $item->id,
+                    'delete_all',
+                    [
+                        'kode_kegiatan' => $item->kodeKegiatan->kode ?? '-',
+                        'program' => $item->kodeKegiatan->program ?? '-',
+                        'sub_program' => $item->kodeKegiatan->sub_program ?? '-',
+                        'kode_rekening' => $item->rekeningBelanja->kode_rekening ?? '-',
+                        'rincian_objek' => $item->rekeningBelanja->rincian_objek ?? '-',
+                        'uraian' => $item->uraian,
+                        'jumlah' => $item->jumlah,
+                        'satuan' => $item->satuan,
+                        'harga_satuan' => $item->harga_satuan,
+                        'bulan' => $item->bulan,
+                        'total' => $item->jumlah * $item->harga_satuan,
+                        'action' => 'Delete semua data melalui modal edit'
+                    ]
+                );
+            }
+
+            // Hapus data (hanya bulan aktif)
+            $deletedCount = RkasPerubahan::where('penganggaran_id', $mainRkas->penganggaran_id)
+                ->where('kode_id', $mainRkas->kode_id)
+                ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
+                ->where('uraian', $mainRkas->uraian)
+                ->whereNotIn('bulan', $lockedMonths) // Hanya hapus bulan aktif
+                ->delete();
+
+            DB::commit();
+
+            Log::info('🔧 [DELETE ALL] Successfully deleted ' . $deletedCount . ' records');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil menghapus ' . $deletedCount . ' data untuk kegiatan ini (kecuali bulan terkunci).',
+                'deleted_count' => $deletedCount,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('❌ [DELETE ALL] Error deleting all data: ' . $e->getMessage());
+            Log::error('❌ [DELETE ALL] Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage(),
             ], 500);
         }
     }
