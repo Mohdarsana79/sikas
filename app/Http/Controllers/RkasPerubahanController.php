@@ -313,42 +313,97 @@ class RkasPerubahanController extends Controller
     public function show($id)
     {
         try {
-            $rkas = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])->find($id);
+            Log::info('🔧 [DETAIL DEBUG] Fetching ALL monthly data for detail, ID: ' . $id);
 
-            if (!$rkas) {
+            // Dapatkan data utama berdasarkan ID dengan select spesifik
+            $mainRkas = RkasPerubahan::select(['id', 'penganggaran_id', 'kode_id', 'kode_rekening_id', 'uraian', 'harga_satuan'])
+                ->with([
+                    'kodeKegiatan' => function ($query) {
+                        $query->select(['id', 'kode', 'program', 'sub_program', 'uraian']);
+                    },
+                    'rekeningBelanja' => function ($query) {
+                        $query->select(['id', 'kode_rekening', 'rincian_objek']);
+                    }
+                ])
+                ->find($id);
+
+            if (! $mainRkas) {
+                Log::warning('❌ [DETAIL DEBUG] Main data not found for ID: ' . $id);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data RKAS Perubahan tidak ditemukan.',
-                ], 404);
+                    'message' => 'Data Rkas Perubahan tidak ditemukan.',
+                ], 400);
             }
 
+            // Dapatkan Semua Data Dengan Kode_id, Kode_rekening_id, dan uraian yang sama
+            // Hanya ambil kolom yang diperlukan
+            $allRkasData = RkasPerubahan::select(['id', 'bulan', 'jumlah', 'satuan', 'harga_satuan'])
+                ->where('penganggaran_id', $mainRkas->penganggaran_id)
+                ->where('kode_id', $mainRkas->kode_id)
+                ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
+                ->where('uraian', $mainRkas->uraian)
+                ->where('harga_satuan', $mainRkas->harga_satuan)
+                ->get();
+
+            Log::info('🔧 [DETAIL DEBUG] Found ' . $allRkasData->count() . ' monthly records');
+
+            // format data untuk semua bulan
+            $bulanData = [];
+            $totalAnggaran = 0;
+
+            foreach ($allRkasData as $rkas) {
+                $totalPerBulan = $rkas->jumlah * $rkas->harga_satuan;
+                $bulanData[] = [
+                    'bulan' => $rkas->bulan,
+                    'jumlah' => $rkas->jumlah,
+                    'satuan' => $rkas->satuan,
+                    'total' => $totalPerBulan,
+                ];
+                $totalAnggaran += $totalPerBulan;
+            }
+
+            // Data utama untuk form
             $data = [
-                'id' => $rkas->id,
-                'kode_id' => $rkas->kode_id,
-                'kode_rekening_id' => $rkas->kode_rekening_id,
-                'program_kegiatan' => $rkas->kodeKegiatan->program ?? '-',
-                'kegiatan' => $rkas->kodeKegiatan->sub_program ?? '-',
-                'rekening_belanja' => $rkas->rekeningBelanja->rincian_objek ?? '-',
-                'uraian' => $rkas->uraian,
-                'bulan' => $rkas->bulan,
-                'dianggaran' => $rkas->jumlah,
-                'dibelanjakan' => 0,
-                'satuan' => $rkas->satuan,
-                'harga_satuan' => 'Rp ' . number_format($rkas->harga_satuan, 0, ',', '.'),
-                'harga_satuan_raw' => $rkas->harga_satuan,
-                'total' => 'Rp ' . number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
+                'id' => $mainRkas->id,
+                'kode_id' => $mainRkas->kode_id,
+                'kode_rekening_id' => $mainRkas->kode_rekening_id,
+                'program_kegiatan' => $mainRkas->kodeKegiatan->program ?? '-',
+                'kegiatan' => $mainRkas->kodeKegiatan->sub_program ?? '-',
+                'rekening_belanja' => $mainRkas->rekeningBelanja->rincian_objek ?? '-',
+                'uraian' => $mainRkas->uraian,
+                'harga_satuan' => 'Rp ' . number_format($mainRkas->harga_satuan, 0, ',', '.'),
+                'harga_satuan_raw' => $mainRkas->harga_satuan,
+                'total_anggaran' => 'Rp ' . number_format($totalAnggaran, 0, ',', '.'),
+
+                // DATA SEMUA BULAN
+                'bulan_data' => $bulanData,
+
+                // Data tambahan untuk select2
+                'kode_kegiatan_data' => [
+                    'kode' => $mainRkas->kodeKegiatan->kode ?? '',
+                    'program' => $mainRkas->kodeKegiatan->program ?? '',
+                    'sub_program' => $mainRkas->kodeKegiatan->sub_program ?? '',
+                    'uraian' => $mainRkas->kodeKegiatan->uraian ?? '',
+                ],
+                'rekening_belanja_data' => [
+                    'kode_rekening' => $mainRkas->rekeningBelanja->kode_rekening ?? '',
+                    'rincian_objek' => $mainRkas->rekeningBelanja->rincian_objek ?? '',
+                ],
             ];
+
+            Log::info('🔧 [DETAIL DEBUG] Sending data with ' . count($bulanData) . ' months');
 
             return response()->json([
                 'success' => true,
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error showing RKAS Perubahan: ' . $e->getMessage());
+            Log::error('❌ [DETAIL DEBUG] Error in show method: ' . $e->getMessage());
+            Log::error('❌ [DETAIL DEBUG] Stack trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mengambil data.',
+                'message' => 'Terjadi kesalahan saat mengambil data untuk detail: ' . $e->getMessage(),
             ], 500);
         }
     }
