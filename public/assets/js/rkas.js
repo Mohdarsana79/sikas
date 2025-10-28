@@ -1888,44 +1888,174 @@ function deleteAllData(mainDataId) {
             .catch(error => console.error('Error updating Tahap 2:', error));
     }
 
-    // Fungsi-fungsi global yang dipanggil dari HTML
     window.showDetailModal = function(id) {
-        currentRkasId = id;
+    console.log('🔧 [DETAIL DEBUG] Opening detail modal for ID:', id);
+    
+    currentRkasId = id;
 
-        fetch(`/rkas/${id}`, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json',
+    Swal.fire({
+        title: 'Memuat detail...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`/rkas/${id}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+        }
+    })
+    .then(response => {
+        console.log('🔧 [DETAIL DEBUG] Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('🔧 [DETAIL DEBUG] API Response:', data);
+        Swal.close();
+        
+        if (data.success && data.data) {
+            console.log('🔧 [DETAIL DEBUG] Data loaded successfully:', data.data);
+            populateDetailForm(data.data);
+        } else {
+            throw new Error(data.message || 'Gagal memuat detail data');
+        }
+    })
+    .catch(error => {
+        Swal.close();
+        console.error('❌ [DETAIL DEBUG] Error fetching detail data:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error Memuat Detail',
+            text: 'Terjadi kesalahan saat memuat data detail: ' + error.message,
+            confirmButtonText: 'Mengerti'
+        });
+    });
+};
+
+// Fungsi untuk mengisi form detail
+function populateDetailForm(data) {
+    console.log('🔧 [DETAIL DEBUG] Populating detail form with data:', data);
+    console.log('🔧 [DETAIL DEBUG] Month data received:', data.bulan_data);
+    
+    // Set informasi dasar
+    setElementText('detail_program_kegiatan', data.program_kegiatan || '-');
+    setElementText('detail_kegiatan', data.kegiatan || '-');
+    setElementText('detail_rekening_belanja', data.rekening_belanja || '-');
+    setElementText('detail_uraian', data.uraian || '-');
+    setElementText('detail_harga_satuan', data.harga_satuan || 'Rp 0');
+    setElementText('detail_total_anggaran', data.total_anggaran || 'Rp 0');
+    setElementText('detail_total_anggaran_display', data.total_anggaran || 'Rp 0');
+
+    // Set data bulan
+    initializeDetailAnggaranList(data.bulan_data, data.harga_satuan_raw || 0);
+    
+    // Show modal
+    const detailModalElement = document.getElementById('detailRkasModal');
+    if (detailModalElement) {
+        const detailModal = new bootstrap.Modal(detailModalElement);
+        detailModal.show();
+        console.log('🔧 [DETAIL DEBUG] Detail modal shown successfully');
+    } else {
+        console.error('❌ [DETAIL DEBUG] Detail modal element not found');
+        Swal.fire('Error', 'Modal detail tidak ditemukan', 'error');
+    }
+}
+
+// Fungsi helper untuk set text content
+function setElementText(elementId, text) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = text;
+    }
+}
+
+// Fungsi untuk inisialisasi list bulan di detail
+function initializeDetailAnggaranList(data = [], hargaSatuan = 0) {
+    const container = document.getElementById('detail_bulanContainer');
+    if (!container) {
+        console.error('❌ [DETAIL DEBUG] Detail bulan container not found');
+        return;
+    }
+
+    console.log('🔧 [DETAIL DEBUG] Initializing detail bulan list with data:', data);
+    console.log('🔧 [DETAIL DEBUG] Harga satuan:', hargaSatuan);
+    
+    // Clear container
+    container.innerHTML = '';
+    
+    let totalAnggaran = 0;
+
+    // Jika ada data bulan, buat card untuk setiap bulan
+    if (data && Array.isArray(data) && data.length > 0) {
+        console.log('🔧 [DETAIL DEBUG] Creating detail cards for', data.length, 'months');
+        data.forEach((item, index) => {
+            try {
+                const card = createDetailAnggaranCard(item.bulan, item.jumlah, item.satuan, hargaSatuan);
+                if (card) {
+                    container.appendChild(card);
+                    console.log('🔧 [DETAIL DEBUG] Created detail card for bulan:', item.bulan);
+                    
+                    // Hitung total
+                    const itemTotal = item.jumlah * hargaSatuan;
+                    totalAnggaran += itemTotal;
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const rkas = data.data;
+            } catch (error) {
+                console.error('❌ [DETAIL DEBUG] Error creating detail card for item:', item, error);
+            }
+        });
+    } else {
+        // Jika tidak ada data, tampilkan pesan
+        console.log('🔧 [DETAIL DEBUG] No month data for detail');
+        container.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-inbox display-4"></i>
+                <p class="mt-2">Tidak ada data bulan</p>
+            </div>
+        `;
+    }
 
-                    // Populate detail modal
-                    document.getElementById('detail-program').textContent = rkas.program_kegiatan || '-';
-                    document.getElementById('detail-kegiatan').textContent = rkas.kegiatan || '-';
-                    document.getElementById('detail-rekening').textContent = rkas.rekening_belanja || '-';
-                    document.getElementById('detail-bulan').textContent = rkas.bulan || '-';
-                    document.getElementById('detail-uraian').textContent = rkas.uraian || '-';
-                    document.getElementById('detail-jumlah').textContent = rkas.dianggaran || '-';
-                    document.getElementById('detail-satuan').textContent = rkas.satuan || '-';
-                    document.getElementById('detail-harga-satuan').textContent = rkas.harga_satuan || '-';
-                    document.getElementById('detail-total').textContent = rkas.total || '-';
+    // Update total display
+    const totalDisplay = document.getElementById('detail_total_anggaran_display');
+    if (totalDisplay) {
+        totalDisplay.textContent = 'Rp ' + formatNumber(totalAnggaran);
+    }
 
-                    // Show modal
-                    new bootstrap.Modal(document.getElementById('detailRkasModal')).show();
-                } else {
-                    Swal.fire('Error', 'Gagal memuat detail data', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire('Error', 'Terjadi kesalahan saat memuat detail data', 'error');
-            });
-    };
+    console.log('🔧 [DETAIL DEBUG] Total cards created:', container.querySelectorAll('.detail-bulan-card').length);
+    console.log('🔧 [DETAIL DEBUG] Total anggaran:', totalAnggaran);
+}
+
+// Fungsi untuk membuat card bulan di detail
+function createDetailAnggaranCard(bulan = '', jumlah = '', satuan = '', hargaSatuan = 0) {
+    const card = document.createElement('div');
+    card.className = 'detail-bulan-card';
+    
+    const total = jumlah * hargaSatuan;
+    
+    card.innerHTML = `
+        <div class="bulan-input-group">
+            <div class="bulan-display">${bulan || '-'}</div>
+            <span class="month-total">Rp ${formatNumber(total)}</span>
+        </div>
+        <div class="jumlah-satuan-group">
+            <div>
+                <small class="text-muted">Jumlah</small>
+                <div class="input-display">${jumlah || '0'}</div>
+            </div>
+            <div>
+                <small class="text-muted">Satuan</small>
+                <div class="input-display">${satuan || '-'}</div>
+            </div>
+        </div>
+    `;
+
+    return card;
+}
 
     window.showDeleteModal = function(id) {
         currentRkasId = id;
