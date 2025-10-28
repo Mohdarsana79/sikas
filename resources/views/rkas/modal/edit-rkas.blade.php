@@ -145,4 +145,25 @@
             transform: rotate(360deg);
         }
     }
+
+    /* Style untuk input satuan yang readonly */
+    .satuan-input:read-only {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+    }
+    
+    .satuan-input:read-only:focus {
+    border-color: #e9ecef;
+    box-shadow: none;
+    }
+    
+    /* Style untuk card pertama */
+    .anggaran-bulan-card:first-child .satuan-input {
+    background-color: #ffffff;
+    border-color: #ced4da;
+    color: #212529;
+    cursor: text;
+    }
 </style>

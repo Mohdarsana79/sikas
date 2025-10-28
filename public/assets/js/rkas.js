@@ -427,6 +427,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Reset first card flag
+        let isFirstCard = true;
+        
         // Jika ada data bulan, buat card untuk setiap bulan
         if (data && Array.isArray(data) && data.length > 0) {
             console.log('🔧 [EDIT DEBUG] Creating cards for', data.length, 'months');
@@ -436,6 +439,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (card) {
                         container.appendChild(card);
                         console.log('🔧 [EDIT DEBUG] Created card for bulan:', item.bulan);
+                        
+                        // Set satuan otomatis setelah semua card dibuat
+                        if (isFirstCard && item.satuan) {
+                            setTimeout(() => {
+                                updateEditSatuanOtomatis(item.satuan);
+                            }, 100);
+                            isFirstCard = false;
+                        }
                     }
                 } catch (error) {
                     console.error('❌ [EDIT DEBUG] Error creating card for item:', item, error);
@@ -473,6 +484,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const card = document.createElement('div');
         card.className = 'anggaran-bulan-card';
         
+        // Cek apakah ini card pertama
+        const isFirstCard = document.querySelectorAll('#edit_bulanContainer .anggaran-bulan-card').length === 0;
+        const shouldBeReadonly = !isFirstCard && document.querySelector('#edit_bulanContainer .satuan-input')?.value;
+        
         card.innerHTML = `
             <button type="button" class="delete-btn" title="Hapus bulan">
                 <i class="bi bi-x"></i>
@@ -491,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         placeholder="Jumlah" min="1" value="${jumlah || ''}" required>
                 </div>
                 <input type="text" class="form-control satuan-input" name="satuan[]" 
-                    placeholder="Satuan" value="${satuan || ''}" required>
+                    placeholder="Satuan" value="${satuan || ''}" ${shouldBeReadonly ? 'readonly' : ''}>
             </div>
         `;
         
@@ -503,6 +518,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     card.remove();
                     updateEditTotalAnggaran();
                     checkEditTambahButtonVisibility();
+                    
+                    // Reset satuan otomatis setelah menghapus card
+                    resetEditSatuanOtomatis();
                 } else {
                     Swal.fire('Peringatan', 'Minimal harus ada satu bulan yang aktif', 'warning');
                 }
@@ -511,6 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const jumlahInput = card.querySelector('.jumlah-input');
         const bulanSelect = card.querySelector('.bulan-input');
+        const satuanInput = card.querySelector('.satuan-input');
         
         if (jumlahInput) {
             jumlahInput.addEventListener('input', updateEditTotalAnggaran);
@@ -518,9 +537,55 @@ document.addEventListener('DOMContentLoaded', function() {
         if (bulanSelect) {
             bulanSelect.addEventListener('change', updateEditTotalAnggaran);
         }
+        
+        // Event listener untuk satuan input - hanya pada card pertama
+        if (satuanInput && isFirstCard) {
+            satuanInput.addEventListener('input', function(e) {
+                updateEditSatuanOtomatis(e.target.value);
+            });
+        }
 
         return card;
     }
+
+    // Fungsi untuk cek apakah card pertama
+    function isFirstCard() {
+        const cards = document.querySelectorAll('#edit_bulanContainer .anggaran-bulan-card');
+        return cards.length === 0; // Akan true untuk card pertama yang dibuat
+    }
+
+    // Fungsi untuk update satuan otomatis di modal edit
+function updateEditSatuanOtomatis(satuanValue) {
+    console.log('🔧 [SATUAN DEBUG] Updating satuan otomatis:', satuanValue);
+    
+    if (!satuanValue) return;
+    
+    const allSatuanInputs = document.querySelectorAll('#edit_bulanContainer .satuan-input');
+    let firstCardProcessed = false;
+    
+    allSatuanInputs.forEach((input, index) => {
+        if (!firstCardProcessed) {
+            // Card pertama - biarkan editable dan tidak readonly
+            input.readOnly = false;
+            firstCardProcessed = true;
+        } else {
+            // Card selanjutnya - set nilai dan readonly
+            input.value = satuanValue;
+            input.readOnly = true;
+        }
+    });
+}
+
+// Fungsi untuk reset satuan otomatis setelah menghapus card
+function resetEditSatuanOtomatis() {
+    const allSatuanInputs = document.querySelectorAll('#edit_bulanContainer .satuan-input');
+    if (allSatuanInputs.length > 0) {
+        const firstSatuanValue = allSatuanInputs[0].value;
+        if (firstSatuanValue) {
+            updateEditSatuanOtomatis(firstSatuanValue);
+        }
+    }
+}
 
     function createEditTambahButtonCard() {
         const btnCard = document.createElement('div');
@@ -557,6 +622,12 @@ document.addEventListener('DOMContentLoaded', function() {
             container.insertBefore(newCard, tambahBtnCard);
             setTimeout(updateEditTotalAnggaran, 50);
             checkEditTambahButtonVisibility();
+            
+            // Set satuan otomatis untuk card baru
+            const firstSatuanInput = document.querySelector('#edit_bulanContainer .satuan-input');
+            if (firstSatuanInput && firstSatuanInput.value) {
+                updateEditSatuanOtomatis(firstSatuanInput.value);
+            }
         }
     }
 
