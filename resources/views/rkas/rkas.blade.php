@@ -416,14 +416,14 @@
                                                                         <i class="bi bi-pencil me-2 text-warning"></i>Edit
                                                                     </a>
                                                                 </li>
-                                                                <li>
+                                                                {{-- <li>
                                                                     <a class="dropdown-item d-flex align-items-center text-danger"
                                                                         href="#"
                                                                         onclick="showDeleteModal({{ $rkas->id }})"
                                                                         style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
                                                                         <i class="bi bi-trash me-2"></i>Hapus
                                                                     </a>
-                                                                </li>
+                                                                </li> --}}
                                                             </ul>
                                                         </div>
                                                     </td>

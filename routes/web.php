@@ -156,8 +156,16 @@ Route::middleware(['auth'])->prefix('rkas')->group(function () {
     Route::get('/', [RkasController::class, 'index'])->name('rkas.index');
     Route::post('/', [RkasController::class, 'store'])->name('rkas.store');
     Route::get('/bulan/{bulan}', [RkasController::class, 'getByMonth'])->name('rkas.getByMonth');
-    Route::get('/all-data', [RkasController::class, 'getAllData'])->name('rkas.getAllData');
+
+    // Route untuk delete semua data dengan kriteria yang sama
+    Route::delete('/delete-all/{id}', [RkasController::class, 'deleteAll'])->name('rkas.delete-all');
+
+    // Route khusus untuk edit - TAMBAHKAN INI
+    Route::get('/{id}/edit', [RkasController::class, 'edit'])->name('rkas.edit');
+
     Route::put('/{id}', [RkasController::class, 'update'])->name('rkas.update');
+    Route::get('/all-data', [RkasController::class, 'getAllData'])->name('rkas.getAllData');
+
     Route::put('/{id}/update-tanggal-cetak', [PenganggaranController::class, 'updateTanggalCetak'])
         ->name('penganggaran.update-tanggal-cetak');
     Route::get('/{id}', [RkasController::class, 'show'])->name('rkas.show');

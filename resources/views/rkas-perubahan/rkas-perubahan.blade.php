@@ -422,7 +422,6 @@
 @include('rkas-perubahan.modal.edit-rkas-perubahan')
 @include('rkas-perubahan.modal.detail-rkas-perubahan')
 @include('rkas-perubahan.modal.sisipkan-rkas-perubahan')
-{{-- @include('rkas-perubahan.modal.delete-rkas-perubahan') --}}
 
 <!-- CSS Styles -->
 <style>

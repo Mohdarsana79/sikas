@@ -304,55 +304,196 @@ class RkasController extends Controller
         }
     }
 
+    public function edit($id)
+    {
+        try{
+            Log::info('🔧 [EDIT DEBUG] Fetching ALL monthly data for edit, ID: ' . $id);
+
+            // Dapatkan data utama berdasarkan ID
+            $mainRkas = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])->find($id);
+
+            if (!$mainRkas) {
+                Log::warning('❌ [EDIT DEBUG] Main data not found for ID: ' . $id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data Rkas tidak ditemukan.'
+                ], 400);
+            }
+
+            // Dapatkan Semua Data Dengan Kode_id, Kode_rekening_id, dan uraian yang sama
+            $allRkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $mainRkas->penganggaran_id)
+                ->where('kode_id', $mainRkas->kode_id)
+                ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
+                ->where('uraian', $mainRkas->uraian)
+                ->where('harga_satuan', $mainRkas->harga_satuan)
+                ->get();
+
+                Log::info('🔧 [EDIT DEBUG] Found ' . $allRkasData->count() . ' monthly records for:', [
+                    'kode_id' => $mainRkas->kode_id,
+                    'kode_rekening_id' => $mainRkas->kode_rekening_id,
+                    'uraian' => $mainRkas->uraian
+                ]);
+
+                // format data untuk semua bulan
+                $bulanData = [];
+                $totalAnggaran = 0;
+
+                foreach ($allRkasData as $rkas) {
+                    $bulanData[] = [
+                        'bulan' => $rkas->bulan,
+                        'jumlah' => $rkas->jumlah,
+                        'satuan' => $rkas->satuan,
+                        'total' => $rkas->jumlah * $rkas->harga_satuan
+                    ];
+                    $totalAnggaran += $rkas->jumlah * $rkas->harga_satuan;
+                }
+
+            // Data utama untuk form
+            $data = [
+                'id' => $mainRkas->id,
+                'kode_id' => $mainRkas->kode_id,
+                'kode_rekening_id' => $mainRkas->kode_rekening_id,
+                'program_kegiatan' => $mainRkas->kodeKegiatan->program ?? '-',
+                'kegiatan' => $mainRkas->kodeKegiatan->sub_program ?? '-',
+                'rekening_belanja' => $mainRkas->rekeningBelanja->rincian_objek ?? '-',
+                'uraian' => $mainRkas->uraian,
+                'harga_satuan' => 'Rp ' . number_format($mainRkas->harga_satuan, 0, ',', '.'),
+                'harga_satuan_raw' => $mainRkas->harga_satuan,
+                'total_anggaran' => 'Rp ' . number_format($totalAnggaran, 0, ',', '.'),
+
+                // DATA SEMUA BULAN
+                'bulan_data' => $bulanData,
+
+                // Data tambahan untuk select2
+                'kode_kegiatan_data' => [
+                    'kode' => $mainRkas->kodeKegiatan->kode ?? '',
+                    'program' => $mainRkas->kodeKegiatan->program ?? '',
+                    'sub_program' => $mainRkas->kodeKegiatan->sub_program ?? '',
+                    'uraian' => $mainRkas->kodeKegiatan->uraian ?? '',
+                ],
+                'rekening_belanja_data' => [
+                    'kode_rekening' => $mainRkas->rekeningBelanja->kode_rekening ?? '',
+                    'rincian_objek' => $mainRkas->rekeningBelanja->rincian_objek ?? '',
+                ]
+            ];
+
+            Log::info('🔧 [EDIT DEBUG] Sending data with ' . count($bulanData) . ' months');
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ [EDIT DEBUG] Error in edit method: ' . $e->getMessage());
+            Log::error('❌ [EDIT DEBUG] Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data untuk edit: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function update(Request $request, $id)
     {
         try {
+            Log::info('🔧 [UPDATE DEBUG] Starting update process for ID: ' . $id);
+            Log::info('🔧 [UPDATE DEBUG] Request data:', [
+                'bulan' => $request->bulan,
+                'jumlah' => $request->jumlah,
+                'satuan' => $request->satuan,
+                'harga_satuan' => $request->harga_satuan
+            ]);
+
+            // Validasi data
             $request->validate([
                 'kode_id' => 'required|exists:kode_kegiatans,id',
                 'kode_rekening_id' => 'required|exists:rekening_belanjas,id',
                 'uraian' => 'required|string',
                 'harga_satuan' => 'required|numeric|min:0',
-                'bulan' => 'required|string',
-                'jumlah' => 'required|integer|min:1',
-                'satuan' => 'required|string',
+                'bulan' => 'required|array',
+                'bulan.*' => 'required|string|in:Januari,Februari,Maret,April,Mei,Juni,Juli,Agustus,September,Oktober,November,Desember',
+                'jumlah' => 'required|array',
+                'jumlah.*' => 'required|integer|min:1',
+                'satuan' => 'required|array',
+                'satuan.*' => 'required|string',
             ]);
 
-            $rkas = Rkas::findOrFail($id);
-
-            // Check if combination already exists (excluding current record)
-            $exists = Rkas::where('kode_id', $request->kode_id)
-                ->where('kode_rekening_id', $request->kode_rekening_id)
-                ->where('bulan', $request->bulan)
-                ->where('uraian', $request->uraian)
-                ->where('id', '!=', $id)
-                ->exists();
-
-            if ($exists) {
+            // Dapatkan data utama
+            $mainRkas = Rkas::find($id);
+            if (!$mainRkas) {
+                Log::error('❌ [UPDATE DEBUG] Data not found for ID: ' . $id);
                 return response()->json([
                     'success' => false,
-                    'message' => "Data untuk bulan {$request->bulan} sudah ada dengan kegiatan dan rekening yang sama."
+                    'message' => 'Data RKAS tidak ditemukan.',
+                ], 404);
+            }
+
+            // Validasi duplikasi bulan
+            if (count($request->bulan) !== count(array_unique($request->bulan))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak boleh ada bulan yang sama dalam satu kegiatan.',
                 ], 422);
             }
 
-            $rkas->update([
-                'kode_id' => $request->kode_id,
-                'kode_rekening_id' => $request->kode_rekening_id,
-                'uraian' => $request->uraian,
-                'harga_satuan' => $request->harga_satuan,
-                'bulan' => $request->bulan,
-                'jumlah' => $request->jumlah,
-                'satuan' => $request->satuan,
-            ]);
+            DB::beginTransaction();
+
+            try {
+                // HAPUS SEMUA DATA LAMA dengan kriteria yang sama
+                $deletedCount = Rkas::where('penganggaran_id', $mainRkas->penganggaran_id)
+                    ->where('kode_id', $request->kode_id)
+                    ->where('kode_rekening_id', $request->kode_rekening_id)
+                    ->where('uraian', $request->uraian)
+                    ->where('harga_satuan', $mainRkas->harga_satuan) // Harga satuan lama
+                    ->delete();
+
+                Log::info('🔧 [UPDATE DEBUG] Deleted ' . $deletedCount . ' old records');
+
+                // BUAT DATA BARU untuk semua bulan yang dipilih
+                $createdRecords = [];
+                $bulanArray = $request->bulan;
+                $jumlahArray = $request->jumlah;
+                $satuanArray = $request->satuan;
+
+                Log::info('🔧 [UPDATE DEBUG] Creating new records for months:', $bulanArray);
+
+                for ($i = 0; $i < count($bulanArray); $i++) {
+                    $newRkas = Rkas::create([
+                        'penganggaran_id' => $mainRkas->penganggaran_id,
+                        'kode_id' => $request->kode_id,
+                        'kode_rekening_id' => $request->kode_rekening_id,
+                        'uraian' => $request->uraian,
+                        'harga_satuan' => $request->harga_satuan,
+                        'bulan' => $bulanArray[$i],
+                        'jumlah' => $jumlahArray[$i],
+                        'satuan' => $satuanArray[$i],
+                    ]);
+
+                    $createdRecords[] = $newRkas;
+                    Log::info('🔧 [UPDATE DEBUG] Created record for bulan: ' . $bulanArray[$i]);
+                }
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data RKAS berhasil diupdate untuk ' . count($createdRecords) . ' bulan.',
+                    'redirect' => route('rkas.index', ['tahun' => $request->tahun_anggaran]),
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('❌ [UPDATE DEBUG] Database error: ' . $e->getMessage());
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ [UPDATE DEBUG] Error updating RKAS: ' . $e->getMessage());
+            Log::error('❌ [UPDATE DEBUG] Stack trace: ' . $e->getTraceAsString());
 
             return response()->json([
-                'success' => true,
-                'message' => 'Data RKAS berhasil diupdate.'
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error updating RKAS: ' . $e->getMessage());
-            return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mengupdate data.'
+                'message' => 'Terjadi kesalahan saat mengupdate data: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -372,6 +513,58 @@ class RkasController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat menghapus data.'
+            ], 500);
+        }
+    }
+
+    public function deleteAll($id)
+    {
+        try {
+            Log::info('🔧 [DELETE ALL] Starting delete all process for ID: ' . $id);
+
+            // Dapat data utama
+            $mainRkas = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])->find($id);
+
+            if (!$mainRkas) {
+                Log::error('❌ [DELETE ALL] Main data not found for ID: ' . $id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data RKAS tidak ditemukan.',
+                ], 404);
+            }
+
+            Log::info('🔧 [DELETE ALL] Found main data:', [
+                'kode_id' => $mainRkas->kode_id,
+                'kode_rekening_id' => $mainRkas->kode_rekening_id,
+                'uraian' => $mainRkas->uraian
+            ]);
+
+            DB::beginTransaction();
+
+            // Hapus Data - GUNAKAN MODEL RKAS, BUKAN RKAS PERUBAHAN
+            $deletedCount = Rkas::where('penganggaran_id', $mainRkas->penganggaran_id)
+                ->where('kode_id', $mainRkas->kode_id)
+                ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
+                ->where('uraian', $mainRkas->uraian)
+                ->delete();
+
+            DB::commit();
+
+            Log::info('🔧 [DELETE ALL] Successfully deleted ' . $deletedCount . ' records');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil menghapus ' . $deletedCount . ' data untuk kegiatan ini.',
+                'deleted_count' => $deletedCount,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('❌ [DELETE ALL] Error deleting all data: ' . $e->getMessage());
+            Log::error('❌ [DELETE ALL] Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage(),
             ], 500);
         }
     }
