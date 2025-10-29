@@ -144,4 +144,21 @@
             transform: rotate(360deg);
         }
     }
+
+    /* PERBAIKAN: Style untuk error state yang lebih jelas */
+    .is-invalid {
+        border-color: #dc3545 !important;
+        background-color: #fff5f5 !important;
+    }
+
+    .anggaran-bulan-card.error {
+        border: 2px solid #dc3545 !important;
+        background-color: #fff5f5 !important;
+    }
+
+    .error-message {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
 </style>

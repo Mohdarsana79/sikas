@@ -601,15 +601,53 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessages.push('Harga satuan harus lebih dari 0');
         }
 
-        const selectedMonths = [];
-        const monthSelects = document.querySelectorAll('#edit_bulanContainer .bulan-input');
+        // PERBAIKAN PENTING: Validasi hanya bulan yang dipilih (tidak kosong)
+        const bulanInputs = document.querySelectorAll('#edit_bulanContainer select[name="bulan[]"]');
+        const jumlahInputs = document.querySelectorAll('#edit_bulanContainer input[name="jumlah[]"]');
+        const satuanInputs = document.querySelectorAll('#edit_bulanContainer input[name="satuan[]"]');
 
-        if (monthSelects.length === 0) {
+        console.log('🔧 [VALIDATION DEBUG] All inputs before filtering:', {
+            bulan: Array.from(bulanInputs).map(input => input.value),
+            jumlah: Array.from(jumlahInputs).map(input => input.value),
+            satuan: Array.from(satuanInputs).map(input => input.value)
+        });
+
+        // Filter hanya bulan yang dipilih (tidak kosong)
+        const filledBulanInputs = Array.from(bulanInputs).filter(input => input.value !== '');
+        const filledJumlahInputs = Array.from(jumlahInputs).filter((input, index) => {
+            const correspondingBulan = bulanInputs[index];
+            return correspondingBulan && correspondingBulan.value !== '';
+        });
+        const filledSatuanInputs = Array.from(satuanInputs).filter((input, index) => {
+            const correspondingBulan = bulanInputs[index];
+            return correspondingBulan && correspondingBulan.value !== '';
+        });
+
+        console.log('🔧 [VALIDATION DEBUG] After filtering empty months:', {
+            filledBulan: filledBulanInputs.map(input => input.value),
+            filledJumlah: filledJumlahInputs.map(input => input.value),
+            filledSatuan: filledSatuanInputs.map(input => input.value),
+            filledBulanCount: filledBulanInputs.length,
+            filledJumlahCount: filledJumlahInputs.length,
+            filledSatuanCount: filledSatuanInputs.length
+        });
+
+        // Validasi konsistensi hanya untuk bulan yang dipilih
+        if (filledBulanInputs.length !== filledJumlahInputs.length || filledBulanInputs.length !== filledSatuanInputs.length) {
             isValid = false;
-            errorMessages.push('Minimal harus ada satu bulan yang diisi');
+            errorMessages.push('Data tidak konsisten: untuk setiap bulan yang dipilih, jumlah dan satuan harus diisi');
+            console.error('❌ [VALIDATION DEBUG] Inconsistent filled data detected');
+            
+            // Highlight problematic inputs
+            filledBulanInputs.forEach(input => input.classList.add('is-invalid'));
+            filledJumlahInputs.forEach(input => input.classList.add('is-invalid'));
+            filledSatuanInputs.forEach(input => input.classList.add('is-invalid'));
         }
 
-        monthSelects.forEach(function(select) {
+        const selectedMonths = [];
+        
+        // Validasi bulan yang dipilih
+        filledBulanInputs.forEach(function(select) {
             if (select) {
                 select.classList.remove('is-invalid');
                 const month = select.value;
@@ -629,30 +667,38 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        const jumlahInputs = document.querySelectorAll('#edit_bulanContainer .jumlah-input');
-        jumlahInputs.forEach(function(input) {
-            if (input && !input.readOnly) { // Hanya validasi yang tidak read-only (bukan bulan terkunci)
+        // Validasi jumlah untuk bulan yang dipilih
+        filledJumlahInputs.forEach(function(input, index) {
+            if (input && !input.readOnly) {
                 input.classList.remove('is-invalid');
                 const value = parseInt(input.value);
                 if (isNaN(value) || value <= 0) {
                     isValid = false;
                     input.classList.add('is-invalid');
-                    errorMessages.push('Jumlah harus lebih dari 0 untuk semua bulan');
+                    const bulanValue = filledBulanInputs[index] ? filledBulanInputs[index].value : 'unknown';
+                    errorMessages.push(`Jumlah harus lebih dari 0 untuk bulan ${bulanValue}`);
                 }
             }
         });
 
-        const satuanInputs = document.querySelectorAll('#edit_bulanContainer .satuan-input');
-        satuanInputs.forEach(function(input) {
-            if (input && !input.readOnly) { // Hanya validasi yang tidak read-only (bukan bulan terkunci)
+        // Validasi satuan untuk bulan yang dipilih
+        filledSatuanInputs.forEach(function(input, index) {
+            if (input && !input.readOnly) {
                 input.classList.remove('is-invalid');
                 if (!input.value || !input.value.toString().trim()) {
                     isValid = false;
                     input.classList.add('is-invalid');
-                    errorMessages.push('Satuan harus diisi untuk semua bulan');
+                    const bulanValue = filledBulanInputs[index] ? filledBulanInputs[index].value : 'unknown';
+                    errorMessages.push(`Satuan harus diisi untuk bulan ${bulanValue}`);
                 }
             }
         });
+
+        // Validasi minimal satu bulan aktif
+        if (filledBulanInputs.length === 0) {
+            isValid = false;
+            errorMessages.push('Minimal harus ada satu bulan aktif (Juli-Desember) yang diisi');
+        }
 
         if (!isValid) {
             const uniqueMessages = [...new Set(errorMessages)];
@@ -1329,10 +1375,29 @@ function createDetailAnggaranCard(bulan = '', jumlah = '', satuan = '', hargaSat
                 return false;
             }
             
-            // Debug detail data form
-            const bulanInputs = Array.from(document.querySelectorAll('#edit_bulanContainer select[name="bulan[]"]'));
-            const jumlahInputs = Array.from(document.querySelectorAll('#edit_bulanContainer input[name="jumlah[]"]'));
-            const satuanInputs = Array.from(document.querySelectorAll('#edit_bulanContainer input[name="satuan[]"]'));
+            // PERBAIKAN: Ambil hanya data bulan yang dipilih (tidak kosong)
+            const allBulanInputs = Array.from(document.querySelectorAll('#edit_bulanContainer select[name="bulan[]"]'));
+            const allJumlahInputs = Array.from(document.querySelectorAll('#edit_bulanContainer input[name="jumlah[]"]'));
+            const allSatuanInputs = Array.from(document.querySelectorAll('#edit_bulanContainer input[name="satuan[]"]'));
+            
+            // Filter hanya bulan yang dipilih
+            const filledData = allBulanInputs
+                .map((bulanInput, index) => {
+                    if (bulanInput.value !== '') {
+                        return {
+                            bulan: bulanInput.value,
+                            jumlah: allJumlahInputs[index] ? allJumlahInputs[index].value : '',
+                            satuan: allSatuanInputs[index] ? allSatuanInputs[index].value : ''
+                        };
+                    }
+                    return null;
+                })
+                .filter(item => item !== null);
+            
+            console.log('🔧 [SUBMIT DEBUG] Filtered form data (only filled months):', {
+                filledData: filledData,
+                filledCount: filledData.length
+            });
             
             // PERBAIKAN: Dapatkan nilai harga satuan yang sudah diformat
             const hargaSatuanInput = document.getElementById('edit_harga_satuan');
@@ -1344,18 +1409,18 @@ function createDetailAnggaranCard(bulan = '', jumlah = '', satuan = '', hargaSat
             });
             
             const formData = {
-                bulan: bulanInputs.map(input => input.value),
-                jumlah: jumlahInputs.map(input => input.value),
-                satuan: satuanInputs.map(input => input.value),
+                bulan: filledData.map(item => item.bulan),
+                jumlah: filledData.map(item => item.jumlah),
+                satuan: filledData.map(item => item.satuan),
                 kode_id: document.getElementById('edit_kegiatan')?.value,
                 kode_rekening_id: document.getElementById('edit_rekening_belanja')?.value,
                 uraian: document.getElementById('edit_uraian')?.value,
                 harga_satuan: hargaSatuanActual?.value || this.querySelector('input[name="harga_satuan"]')?.value
             };
             
-            console.log('🔧 [UPDATE DEBUG] Form data to be sent:', formData);
+            console.log('🔧 [UPDATE DEBUG] Final form data to be sent:', formData);
             
-            // Validasi harga satuan sebelum kirim - PERBAIKAN
+            // Validasi harga satuan sebelum kirim
             const hargaSatuanValue = getEditHargaSatuanValue();
             console.log('🔧 [UPDATE DEBUG] Final harga satuan validation:', {
                 value: hargaSatuanValue,
@@ -1364,13 +1429,6 @@ function createDetailAnggaranCard(bulan = '', jumlah = '', satuan = '', hargaSat
 
             if (!hargaSatuanValue || hargaSatuanValue <= 0 || isNaN(hargaSatuanValue)) {
                 console.error('❌ [UPDATE DEBUG] Harga satuan invalid:', hargaSatuanValue);
-                
-                // Debug detail
-                console.log('🔧 [UPDATE DEBUG] Debug all harga satuan elements:', {
-                    display: document.getElementById('edit_harga_satuan')?.value,
-                    actual: document.getElementById('edit_harga_satuan_actual')?.value,
-                    formData: formData.harga_satuan
-                });
                 
                 Swal.fire({
                     icon: 'error',
@@ -1387,9 +1445,16 @@ function createDetailAnggaranCard(bulan = '', jumlah = '', satuan = '', hargaSat
                 return false;
             }
             
+            // PERBAIKAN: Validasi data yang sudah difilter
+            if (formData.bulan.length === 0) {
+                console.error('❌ [UPDATE DEBUG] No filled months detected');
+                Swal.fire('Error', 'Minimal harus ada satu bulan yang diisi.', 'error');
+                return false;
+            }
+            
             const emptyMonths = formData.bulan.filter(month => !month);
             if (emptyMonths.length > 0) {
-                console.error('❌ [UPDATE DEBUG] Empty months detected:', emptyMonths);
+                console.error('❌ [UPDATE DEBUG] Empty months detected in filtered data:', emptyMonths);
                 Swal.fire('Error', 'Ada bulan yang belum dipilih. Silakan pilih bulan untuk semua card.', 'error');
                 return false;
             }
@@ -1403,20 +1468,34 @@ function createDetailAnggaranCard(bulan = '', jumlah = '', satuan = '', hargaSat
             // Buat FormData object
             const formDataObj = new FormData(this);
             
-            // PERBAIKAN: Pastikan harga_satuan ada di FormData
+            // PERBAIKAN: Hapus data array yang lama dan tambahkan yang sudah difilter
+            formDataObj.delete('bulan[]');
+            formDataObj.delete('jumlah[]');
+            formDataObj.delete('satuan[]');
+            
+            // Tambahkan data yang sudah difilter
+            formData.bulan.forEach(bulan => {
+                formDataObj.append('bulan[]', bulan);
+            });
+            formData.jumlah.forEach(jumlah => {
+                formDataObj.append('jumlah[]', jumlah);
+            });
+            formData.satuan.forEach(satuan => {
+                formDataObj.append('satuan[]', satuan);
+            });
+            
+            // Pastikan harga_satuan ada di FormData
             if (!formDataObj.has('harga_satuan')) {
                 console.log('🔧 [UPDATE DEBUG] harga_satuan missing in FormData, adding manually');
                 if (formData.harga_satuan) {
                     formDataObj.append('harga_satuan', formData.harga_satuan);
                     console.log('🔧 [UPDATE DEBUG] Added harga_satuan to FormData:', formData.harga_satuan);
                 } else {
-                    // Coba dapatkan dari hidden field
                     const actualValue = document.getElementById('edit_harga_satuan_actual')?.value;
                     if (actualValue) {
                         formDataObj.append('harga_satuan', actualValue);
                         console.log('🔧 [UPDATE DEBUG] Added harga_satuan from hidden field:', actualValue);
                     } else {
-                        // Fallback ke display value
                         const displayValue = document.getElementById('edit_harga_satuan')?.value.replace(/[^\d]/g, '');
                         if (displayValue) {
                             formDataObj.append('harga_satuan', displayValue);
@@ -1424,11 +1503,9 @@ function createDetailAnggaranCard(bulan = '', jumlah = '', satuan = '', hargaSat
                         }
                     }
                 }
-            } else {
-                console.log('🔧 [UPDATE DEBUG] harga_satuan already in FormData');
             }
             
-            console.log('🔧 [UPDATE DEBUG] Actual FormData content:');
+            console.log('🔧 [UPDATE DEBUG] Final FormData content:');
             for (let [key, value] of formDataObj.entries()) {
                 console.log(`  ${key}:`, value);
             }
@@ -1468,7 +1545,6 @@ function createDetailAnggaranCard(bulan = '', jumlah = '', satuan = '', hargaSat
                         location.reload();
                     });
                 } else {
-                    // Tampilkan error detail dari server
                     let errorMessage = data.message || 'Gagal mengupdate data';
                     if (data.errors) {
                         errorMessage += '\n\n' + Object.values(data.errors).flat().join('\n');

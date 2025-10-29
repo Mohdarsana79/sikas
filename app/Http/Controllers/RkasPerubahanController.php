@@ -513,14 +513,42 @@ class RkasPerubahanController extends Controller
 
         try {
             Log::info('🔧 [UPDATE DEBUG] Starting update process for ID: ' . $id);
-            Log::info('🔧 [UPDATE DEBUG] Request data:', [
-                'bulan' => $request->bulan,
-                'jumlah' => $request->jumlah,
-                'satuan' => $request->satuan,
+            Log::info('🔧 [UPDATE DEBUG] Full request data:', $request->all());
+
+            // DEBUG: Log detailed array information
+            Log::info('🔧 [UPDATE DEBUG] Array details:', [
+                'bulan_count' => count($request->bulan ?? []),
+                'jumlah_count' => count($request->jumlah ?? []),
+                'satuan_count' => count($request->satuan ?? []),
+                'bulan_values' => $request->bulan,
+                'jumlah_values' => $request->jumlah,
+                'satuan_values' => $request->satuan,
+                'kode_id' => $request->kode_id,
+                'kode_rekening_id' => $request->kode_rekening_id,
+                'uraian' => $request->uraian,
                 'harga_satuan' => $request->harga_satuan
             ]);
 
-            // VALIDASI MANUAL - Hanya validasi bulan yang tidak terkunci
+            // PERBAIKAN: Validasi konsistensi array - hanya untuk data yang ada
+            if (count($request->bulan ?? []) !== count($request->jumlah ?? []) || 
+                count($request->bulan ?? []) !== count($request->satuan ?? [])) {
+                
+                Log::error('❌ [UPDATE DEBUG] Array inconsistency detected', [
+                    'bulan_count' => count($request->bulan ?? []),
+                    'jumlah_count' => count($request->jumlah ?? []),
+                    'satuan_count' => count($request->satuan ?? [])
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data tidak konsisten: jumlah bulan, jumlah, dan satuan harus sama',
+                    'errors' => [
+                        'bulan' => ['Data tidak konsisten: jumlah bulan ('.count($request->bulan ?? []).'), jumlah ('.count($request->jumlah ?? []).'), dan satuan ('.count($request->satuan ?? []).') tidak sama']
+                    ]
+                ], 422);
+            }
+
+            // VALIDASI MANUAL
             $errors = [];
             
             // Validasi required fields
@@ -534,8 +562,14 @@ class RkasPerubahanController extends Controller
             $validJumlah = [];
             $validSatuan = [];
             
-            if ($request->bulan && is_array($request->bulan)) {
+            if ($request->bulan && is_array($request->bulan) && count($request->bulan) > 0) {
                 foreach ($request->bulan as $index => $bulan) {
+                    // PERBAIKAN: Skip jika bulan kosong (tidak dipilih)
+                    if (empty($bulan)) {
+                        Log::info('🔧 [UPDATE DEBUG] Skipping empty bulan at index: ' . $index);
+                        continue;
+                    }
+                    
                     // ABAIKAN BULAN TERKUNCI - hanya proses bulan Juli-Desember
                     if (in_array($bulan, $lockedMonths)) {
                         Log::info('🔧 [UPDATE DEBUG] Skipping locked month: ' . $bulan);
@@ -548,14 +582,27 @@ class RkasPerubahanController extends Controller
                         continue;
                     }
                     
-                    // Validasi jumlah untuk bulan yang diperbolehkan
-                    if (!isset($request->jumlah[$index]) || $request->jumlah[$index] <= 0) {
+                    // PERBAIKAN: Pastikan index untuk jumlah dan satuan ada
+                    if (!isset($request->jumlah[$index])) {
+                        Log::error('❌ [UPDATE DEBUG] Missing jumlah for index: ' . $index);
+                        $errors["jumlah.$index"] = ["Jumlah untuk bulan $bulan harus diisi"];
+                        continue;
+                    }
+                    
+                    if ($request->jumlah[$index] <= 0) {
+                        Log::error('❌ [UPDATE DEBUG] Invalid jumlah for index: ' . $index . ': ' . $request->jumlah[$index]);
                         $errors["jumlah.$index"] = ["Jumlah untuk bulan $bulan harus lebih dari 0"];
                         continue;
                     }
                     
-                    // Validasi satuan untuk bulan yang diperbolehkan
-                    if (!isset($request->satuan[$index]) || empty(trim($request->satuan[$index]))) {
+                    if (!isset($request->satuan[$index])) {
+                        Log::error('❌ [UPDATE DEBUG] Missing satuan for index: ' . $index);
+                        $errors["satuan.$index"] = ["Satuan untuk bulan $bulan harus diisi"];
+                        continue;
+                    }
+                    
+                    if (empty(trim($request->satuan[$index]))) {
+                        Log::error('❌ [UPDATE DEBUG] Empty satuan for index: ' . $index);
                         $errors["satuan.$index"] = ["Satuan untuk bulan $bulan harus diisi"];
                         continue;
                     }
@@ -564,18 +611,25 @@ class RkasPerubahanController extends Controller
                     $validBulan[] = $bulan;
                     $validJumlah[] = $request->jumlah[$index];
                     $validSatuan[] = $request->satuan[$index];
+                    
+                    Log::info('🔧 [UPDATE DEBUG] Added valid data for bulan: ' . $bulan, [
+                        'index' => $index,
+                        'jumlah' => $request->jumlah[$index],
+                        'satuan' => $request->satuan[$index]
+                    ]);
                 }
             }
             
-            
-            // Validasi minimal satu bulan aktif tidak di pakai karena harus di izinkan
-            // if (count($validBulan) === 0) {
-            //     $errors['bulan'] = ['Minimal satu bulan (Juli-Desember) harus dipilih'];
-            // }
+            // PERBAIKAN: Validasi minimal satu bulan aktif (setelah filtering)
+            if (count($validBulan) === 0) {
+                $errors['bulan'] = ['Minimal harus ada satu bulan aktif (Juli-Desember) yang diisi'];
+                Log::error('❌ [UPDATE DEBUG] No active months after filtering');
+            }
             
             // Validasi duplikasi bulan (hanya untuk bulan aktif)
             if (count($validBulan) !== count(array_unique($validBulan))) {
                 $errors['bulan'] = ['Tidak boleh ada bulan yang sama dalam satu kegiatan.'];
+                Log::error('❌ [UPDATE DEBUG] Duplicate months detected:', $validBulan);
             }
             
             // Jika ada error validasi
@@ -627,6 +681,12 @@ class RkasPerubahanController extends Controller
                 }
 
                 Log::info('🔧 [UPDATE DEBUG] Processing update for months:', $validBulan);
+                Log::info('🔧 [UPDATE DEBUG] Valid data arrays:', [
+                    'validBulan' => $validBulan,
+                    'validJumlah' => $validJumlah,
+                    'validSatuan' => $validSatuan,
+                    'validCount' => count($validBulan)
+                ]);
 
                 // HAPUS HANYA DATA BULAN AKTIF (Juli-Desember) dengan kriteria yang sama
                 $deletedCount = RkasPerubahan::where('penganggaran_id', $mainRkas->penganggaran_id)
@@ -657,7 +717,11 @@ class RkasPerubahanController extends Controller
                     ]);
 
                     $createdRecords[] = $newRkas;
-                    Log::info('🔧 [UPDATE DEBUG] Created record for bulan: ' . $validBulan[$i]);
+                    Log::info('🔧 [UPDATE DEBUG] Created record for bulan: ' . $validBulan[$i], [
+                        'jumlah' => $validJumlah[$i],
+                        'satuan' => $validSatuan[$i],
+                        'harga_satuan' => $request->harga_satuan
+                    ]);
                 }
 
                 // Catat perubahan untuk rekaman
@@ -689,6 +753,7 @@ class RkasPerubahanController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Data RKAS Perubahan berhasil diupdate untuk ' . count($createdRecords) . ' bulan aktif (Juli-Desember).',
+                    'data_created' => count($createdRecords),
                     'redirect' => route('rkas-perubahan.index', ['tahun' => $request->tahun_anggaran]),
                 ]);
 
@@ -708,6 +773,7 @@ class RkasPerubahanController extends Controller
             ], 500);
         }
     }
+
 
     public function sisipkan(Request $request)
     {

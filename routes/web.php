@@ -105,8 +105,12 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
 
     Route::post('/', [RkasPerubahanController::class, 'store'])->name('rkas-perubahan.store');
     Route::get('/bulan/{bulan}', [RkasPerubahanController::class, 'getByMonth'])->name('rkas-perubahan.getByMonth');
+    // Route untuk mendapatkan semua data RKAS Perubahan
     Route::get('/all-data', [RkasPerubahanController::class, 'getAllData'])->name('rkas-perubahan.getAllData');
+    
+    // route untuk update RKAS Perubahan
     Route::put('/{id}', [RkasPerubahanController::class, 'update'])->name('rkas-perubahan.update');
+
     Route::put('/{id}/update-tanggal-perubahan', [PenganggaranController::class, 'updateTanggalPerubahan'])
         ->name('penganggaran.update-tanggal-perubahan');
     Route::post('/sisipkan', [RkasPerubahanController::class, 'sisipkan'])
