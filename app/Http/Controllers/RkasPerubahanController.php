@@ -24,7 +24,7 @@ class RkasPerubahanController extends Controller
         try {
             $tahun = $request->input('tahun');
 
-            Log::info('Check status perubahan untuk tahun: '.$tahun);
+            Log::info('Check status perubahan untuk tahun: ' . $tahun);
 
             if (! $tahun) {
                 return response()->json([
@@ -36,17 +36,17 @@ class RkasPerubahanController extends Controller
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
             if (! $penganggaran) {
-                Log::warning('Penganggaran tidak ditemukan untuk tahun: '.$tahun);
+                Log::warning('Penganggaran tidak ditemukan untuk tahun: ' . $tahun);
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan untuk tahun '.$tahun,
+                    'message' => 'Data penganggaran tidak ditemukan untuk tahun ' . $tahun,
                 ], 404);
             }
 
             $perubahanExists = RkasPerubahan::where('penganggaran_id', $penganggaran->id)->exists();
 
-            Log::info('Status perubahan untuk tahun '.$tahun.': '.($perubahanExists ? 'ADA' : 'TIDAK ADA'));
+            Log::info('Status perubahan untuk tahun ' . $tahun . ': ' . ($perubahanExists ? 'ADA' : 'TIDAK ADA'));
 
             return response()->json([
                 'success' => true,
@@ -55,7 +55,7 @@ class RkasPerubahanController extends Controller
                 'penganggaran_id' => $penganggaran->id,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in checkStatusPerubahan: '.$e->getMessage());
+            Log::error('Error in checkStatusPerubahan: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -84,7 +84,7 @@ class RkasPerubahanController extends Controller
             if (! $penganggaran) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data penganggaran untuk tahun '.$tahun.' tidak ditemukan.',
+                    'message' => 'Data penganggaran untuk tahun ' . $tahun . ' tidak ditemukan.',
                 ], 404);
             }
 
@@ -104,7 +104,7 @@ class RkasPerubahanController extends Controller
             if ($rkasAsli->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak ada data RKAS yang dapat disalin untuk tahun '.$tahun,
+                    'message' => 'Tidak ada data RKAS yang dapat disalin untuk tahun ' . $tahun,
                 ]);
             }
 
@@ -140,11 +140,11 @@ class RkasPerubahanController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error saat menyalin data RKAS ke Perubahan: '.$e->getMessage());
+            Log::error('Error saat menyalin data RKAS ke Perubahan: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat memproses data perubahan: '.$e->getMessage(),
+                'message' => 'Terjadi kesalahan saat memproses data perubahan: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -172,6 +172,11 @@ class RkasPerubahanController extends Controller
 
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
+            $sekolah = Sekolah::first();
+
+            // Ambil data untuk grafik
+            $grafikData = $this->getGrafikData($penganggaran->id);
+
             // Ambil data yang sudah disalin ke tabel RkasPerubahan
             $rkasData = collect($this->getAllRkasPerubahanDataGroupedByMonth($penganggaran->id));
 
@@ -192,10 +197,12 @@ class RkasPerubahanController extends Controller
                 'totalTahap2',
                 'paguAnggaranTahap1',
                 'paguAnggaranTahap2',
-                'tahun'
+                'tahun',
+                'grafikData',
+                'sekolah'
             ));
         } catch (\Exception $e) {
-            Log::error('Error di RkasPerubahanController@index: '.$e->getMessage());
+            Log::error('Error di RkasPerubahanController@index: ' . $e->getMessage());
 
             return back()->with('error', 'Terjadi kesalahan saat memuat data RKAS Perubahan.');
         }
@@ -232,7 +239,7 @@ class RkasPerubahanController extends Controller
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
             if (! $penganggaran) {
-                return back()->with('error', 'Data penganggaran untuk tahun '.$tahun.' belum tersedia.');
+                return back()->with('error', 'Data penganggaran untuk tahun ' . $tahun . ' belum tersedia.');
             }
 
             DB::beginTransaction();
@@ -304,9 +311,9 @@ class RkasPerubahanController extends Controller
             return redirect()->route('rkas-perubahan.index', ['tahun' => $tahun])->with('success', 'Data RKAS Perubahan berhasil ditambahkan.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error storing RKAS Perubahan: '.$e->getMessage());
+            Log::error('Error storing RKAS Perubahan: ' . $e->getMessage());
 
-            return back()->withErrors(['error' => 'Terjadi kesalahan saat menyimpan data:'.$e->getMessage()]);
+            return back()->withErrors(['error' => 'Terjadi kesalahan saat menyimpan data:' . $e->getMessage()]);
         }
     }
 
@@ -472,9 +479,9 @@ class RkasPerubahanController extends Controller
                 // DATA SEMUA BULAN
                 'bulan_data' => $bulanData,
 
-                // INFORMASI BULAN TERKUNCI
-                'locked_months' => ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'],
-                'allowed_months' => ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+                // INFORMASI BULAN TERKUNCI UNTUK FRONTEND SAJA
+                'locked_months' => ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'], // Hanya untuk UI
+                'allowed_months' => ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'], // Hanya untuk UI
 
                 // Data tambahan untuk select2
                 'kode_kegiatan_data' => [
@@ -508,7 +515,6 @@ class RkasPerubahanController extends Controller
 
     public function update(Request $request, $id)
     {
-        $lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
         $allowedMonths = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
         try {
@@ -530,38 +536,40 @@ class RkasPerubahanController extends Controller
             ]);
 
             // PERBAIKAN: Validasi konsistensi array - hanya untuk data yang ada
-            if (count($request->bulan ?? []) !== count($request->jumlah ?? []) || 
-                count($request->bulan ?? []) !== count($request->satuan ?? [])) {
-                
+            if (
+                count($request->bulan ?? []) !== count($request->jumlah ?? []) ||
+                count($request->bulan ?? []) !== count($request->satuan ?? [])
+            ) {
+
                 Log::error('❌ [UPDATE DEBUG] Array inconsistency detected', [
                     'bulan_count' => count($request->bulan ?? []),
                     'jumlah_count' => count($request->jumlah ?? []),
                     'satuan_count' => count($request->satuan ?? [])
                 ]);
-                
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Data tidak konsisten: jumlah bulan, jumlah, dan satuan harus sama',
                     'errors' => [
-                        'bulan' => ['Data tidak konsisten: jumlah bulan ('.count($request->bulan ?? []).'), jumlah ('.count($request->jumlah ?? []).'), dan satuan ('.count($request->satuan ?? []).') tidak sama']
+                        'bulan' => ['Data tidak konsisten: jumlah bulan (' . count($request->bulan ?? []) . '), jumlah (' . count($request->jumlah ?? []) . '), dan satuan (' . count($request->satuan ?? []) . ') tidak sama']
                     ]
                 ], 422);
             }
 
             // VALIDASI MANUAL
             $errors = [];
-            
+
             // Validasi required fields
             if (!$request->kode_id) $errors['kode_id'] = ['Kegiatan harus dipilih'];
             if (!$request->kode_rekening_id) $errors['kode_rekening_id'] = ['Rekening Belanja harus dipilih'];
             if (!$request->uraian) $errors['uraian'] = ['Uraian harus diisi'];
             if (!$request->harga_satuan || $request->harga_satuan <= 0) $errors['harga_satuan'] = ['Harga satuan harus lebih dari 0'];
-            
-            // Validasi array bulan - hanya untuk bulan yang tidak terkunci
+
+            // Validasi array bulan - untuk semua bulan
             $validBulan = [];
             $validJumlah = [];
             $validSatuan = [];
-            
+
             if ($request->bulan && is_array($request->bulan) && count($request->bulan) > 0) {
                 foreach ($request->bulan as $index => $bulan) {
                     // PERBAIKAN: Skip jika bulan kosong (tidak dipilih)
@@ -569,49 +577,37 @@ class RkasPerubahanController extends Controller
                         Log::info('🔧 [UPDATE DEBUG] Skipping empty bulan at index: ' . $index);
                         continue;
                     }
-                    
-                    // ABAIKAN BULAN TERKUNCI - hanya proses bulan Juli-Desember
-                    if (in_array($bulan, $lockedMonths)) {
-                        Log::info('🔧 [UPDATE DEBUG] Skipping locked month: ' . $bulan);
-                        continue;
-                    }
-                    
-                    // Validasi bulan yang diperbolehkan
-                    if (!in_array($bulan, $allowedMonths)) {
-                        $errors["bulan.$index"] = ["Bulan $bulan tidak valid. Hanya bulan Juli-Desember yang diperbolehkan."];
-                        continue;
-                    }
-                    
+
                     // PERBAIKAN: Pastikan index untuk jumlah dan satuan ada
                     if (!isset($request->jumlah[$index])) {
                         Log::error('❌ [UPDATE DEBUG] Missing jumlah for index: ' . $index);
                         $errors["jumlah.$index"] = ["Jumlah untuk bulan $bulan harus diisi"];
                         continue;
                     }
-                    
+
                     if ($request->jumlah[$index] <= 0) {
                         Log::error('❌ [UPDATE DEBUG] Invalid jumlah for index: ' . $index . ': ' . $request->jumlah[$index]);
                         $errors["jumlah.$index"] = ["Jumlah untuk bulan $bulan harus lebih dari 0"];
                         continue;
                     }
-                    
+
                     if (!isset($request->satuan[$index])) {
                         Log::error('❌ [UPDATE DEBUG] Missing satuan for index: ' . $index);
                         $errors["satuan.$index"] = ["Satuan untuk bulan $bulan harus diisi"];
                         continue;
                     }
-                    
+
                     if (empty(trim($request->satuan[$index]))) {
                         Log::error('❌ [UPDATE DEBUG] Empty satuan for index: ' . $index);
                         $errors["satuan.$index"] = ["Satuan untuk bulan $bulan harus diisi"];
                         continue;
                     }
-                    
+
                     // Tambahkan ke array valid
                     $validBulan[] = $bulan;
                     $validJumlah[] = $request->jumlah[$index];
                     $validSatuan[] = $request->satuan[$index];
-                    
+
                     Log::info('🔧 [UPDATE DEBUG] Added valid data for bulan: ' . $bulan, [
                         'index' => $index,
                         'jumlah' => $request->jumlah[$index],
@@ -619,19 +615,13 @@ class RkasPerubahanController extends Controller
                     ]);
                 }
             }
-            
-            // PERBAIKAN: Validasi minimal satu bulan aktif (setelah filtering)
-            if (count($validBulan) === 0) {
-                $errors['bulan'] = ['Minimal harus ada satu bulan aktif (Juli-Desember) yang diisi'];
-                Log::error('❌ [UPDATE DEBUG] No active months after filtering');
-            }
-            
-            // Validasi duplikasi bulan (hanya untuk bulan aktif)
+
+            // Validasi duplikasi bulan (untuk semua bulan)
             if (count($validBulan) !== count(array_unique($validBulan))) {
                 $errors['bulan'] = ['Tidak boleh ada bulan yang sama dalam satu kegiatan.'];
                 Log::error('❌ [UPDATE DEBUG] Duplicate months detected:', $validBulan);
             }
-            
+
             // Jika ada error validasi
             if (!empty($errors)) {
                 Log::error('❌ [UPDATE DEBUG] Validation errors:', $errors);
@@ -688,20 +678,19 @@ class RkasPerubahanController extends Controller
                     'validCount' => count($validBulan)
                 ]);
 
-                // HAPUS HANYA DATA BULAN AKTIF (Juli-Desember) dengan kriteria yang sama
+                // HAPUS SEMUA DATA dengan kriteria yang sama
                 $deletedCount = RkasPerubahan::where('penganggaran_id', $mainRkas->penganggaran_id)
                     ->where('kode_id', $mainRkas->kode_id)
                     ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
                     ->where('uraian', $mainRkas->uraian)
-                    ->whereIn('bulan', $allowedMonths) // Hanya hapus bulan Juli-Desember
                     ->delete();
 
-                Log::info('🔧 [UPDATE DEBUG] Deleted ' . $deletedCount . ' active month records');
+                Log::info('🔧 [UPDATE DEBUG] Deleted ' . $deletedCount . ' records');
 
-                // BUAT DATA BARU UNTUK BULAN AKTIF YANG MASIH ADA
+                // BUAT DATA BARU UNTUK SEMUA BULAN YANG MASIH ADA
                 $createdRecords = [];
 
-                Log::info('🔧 [UPDATE DEBUG] Creating new records for active months:', $validBulan);
+                Log::info('🔧 [UPDATE DEBUG] Creating new records for months:', $validBulan);
 
                 for ($i = 0; $i < count($validBulan); $i++) {
                     $newRkas = RkasPerubahan::create([
@@ -748,21 +737,19 @@ class RkasPerubahanController extends Controller
 
                 DB::commit();
 
-                Log::info('🔧 [UPDATE DEBUG] Update completed successfully. Created ' . count($createdRecords) . ' active month records');
+                Log::info('🔧 [UPDATE DEBUG] Update completed successfully. Created ' . count($createdRecords) . ' records');
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Data RKAS Perubahan berhasil diupdate untuk ' . count($createdRecords) . ' bulan aktif (Juli-Desember).',
+                    'message' => 'Data RKAS Perubahan berhasil diupdate untuk ' . count($createdRecords) . ' bulan.',
                     'data_created' => count($createdRecords),
                     'redirect' => route('rkas-perubahan.index', ['tahun' => $request->tahun_anggaran]),
                 ]);
-
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('❌ [UPDATE DEBUG] Database error: ' . $e->getMessage());
                 throw $e;
             }
-
         } catch (\Exception $e) {
             Log::error('❌ [UPDATE DEBUG] Error updating RKAS Perubahan: ' . $e->getMessage());
             Log::error('❌ [UPDATE DEBUG] Stack trace: ' . $e->getTraceAsString());
@@ -804,13 +791,13 @@ class RkasPerubahanController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data berhasil disisipkan ke bulan '.$request->bulan,
+                'message' => 'Data berhasil disisipkan ke bulan ' . $request->bulan,
                 'bulan' => $request->bulan,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: '.$e->getMessage(),
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -830,7 +817,7 @@ class RkasPerubahanController extends Controller
                 'message' => 'Data RKAS berhasil dihapus.',
             ]);
         } catch (\Exception $e) {
-            Log::error('Error deleting RKAS: '.$e->getMessage());
+            Log::error('Error deleting RKAS: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -840,12 +827,13 @@ class RkasPerubahanController extends Controller
     }
 
     /**
-     * Menghapus semua data RKAS Perubahan dengan kriteria yang sama (kecuali bulan terkunci)
+     * Menghapus semua data RKAS Perubahan dengan kriteria yang sama (hanya bulan Juli-Desember)
      */
     public function deleteAll($id)
     {
         $lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
-        
+        $allowedMonths = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
         try {
             Log::info('🔧 [DELETE ALL] Starting delete all process for ID: ' . $id);
 
@@ -866,18 +854,37 @@ class RkasPerubahanController extends Controller
                 'uraian' => $mainRkas->uraian
             ]);
 
+            // PERIKSA APAKAH ADA DATA BULAN AKTIF (Juli-Desember) YANG BISA DIHAPUS
+            $activeDataCount = RkasPerubahan::where('penganggaran_id', $mainRkas->penganggaran_id)
+                ->where('kode_id', $mainRkas->kode_id)
+                ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
+                ->where('uraian', $mainRkas->uraian)
+                ->whereIn('bulan', $allowedMonths)
+                ->count();
+
+            Log::info('🔧 [DELETE ALL] Active data count (Juli-Desember): ' . $activeDataCount);
+
+            // JIKA TIDAK ADA DATA BULAN AKTIF, BERI PESAN ERROR
+            if ($activeDataCount === 0) {
+                Log::warning('❌ [DELETE ALL] No active data found to delete for ID: ' . $id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada data yang dapat dihapus. Data hanya tersedia untuk bulan terkunci (Januari-Juni) yang tidak dapat dihapus.',
+                ], 400);
+            }
+
             DB::beginTransaction();
 
-            // Simpan data sebelum dihapus untuk rekaman perubahan
+            // Simpan data sebelum dihapus untuk rekaman perubahan (hanya bulan aktif)
             $dataToDelete = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
                 ->where('penganggaran_id', $mainRkas->penganggaran_id)
                 ->where('kode_id', $mainRkas->kode_id)
                 ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
                 ->where('uraian', $mainRkas->uraian)
-                ->whereNotIn('bulan', $lockedMonths) // Hanya data bulan aktif
+                ->whereIn('bulan', $allowedMonths) // Hanya data bulan aktif
                 ->get();
 
-            Log::info('🔧 [DELETE ALL] Found ' . $dataToDelete->count() . ' records to delete');
+            Log::info('🔧 [DELETE ALL] Found ' . $dataToDelete->count() . ' active records to delete');
 
             // Catat data yang akan dihapus untuk rekaman perubahan
             foreach ($dataToDelete as $item) {
@@ -901,24 +908,23 @@ class RkasPerubahanController extends Controller
                 );
             }
 
-            // Hapus data (hanya bulan aktif)
+            // Hapus data (hanya bulan aktif - Juli-Desember)
             $deletedCount = RkasPerubahan::where('penganggaran_id', $mainRkas->penganggaran_id)
                 ->where('kode_id', $mainRkas->kode_id)
                 ->where('kode_rekening_id', $mainRkas->kode_rekening_id)
                 ->where('uraian', $mainRkas->uraian)
-                ->whereNotIn('bulan', $lockedMonths) // Hanya hapus bulan aktif
+                ->whereIn('bulan', $allowedMonths) // Hanya hapus bulan aktif
                 ->delete();
 
             DB::commit();
 
-            Log::info('🔧 [DELETE ALL] Successfully deleted ' . $deletedCount . ' records');
+            Log::info('🔧 [DELETE ALL] Successfully deleted ' . $deletedCount . ' active records');
 
             return response()->json([
                 'success' => true,
-                'message' => 'Berhasil menghapus ' . $deletedCount . ' data untuk kegiatan ini (kecuali bulan terkunci).',
+                'message' => 'Berhasil menghapus ' . $deletedCount . ' data untuk kegiatan ini (hanya bulan Juli-Desember). Data bulan Januari-Juni tetap tersimpan.',
                 'deleted_count' => $deletedCount,
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('❌ [DELETE ALL] Error deleting all data: ' . $e->getMessage());
@@ -970,7 +976,7 @@ class RkasPerubahanController extends Controller
                 return response()->json([
                     'success' => true,
                     'data' => [],
-                    'message' => 'Tidak ada data untuk bulan '.$bulan.' tahun '.$tahun,
+                    'message' => 'Tidak ada data untuk bulan ' . $bulan . ' tahun ' . $tahun,
                 ]);
             }
 
@@ -984,8 +990,8 @@ class RkasPerubahanController extends Controller
                     'dianggaran' => $rkas->jumlah,
                     'dibelanjakan' => 0,
                     'satuan' => $rkas->satuan,
-                    'harga_satuan' => 'Rp '.number_format($rkas->harga_satuan, 0, ',', '.'),
-                    'total' => 'Rp '.number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
+                    'harga_satuan' => 'Rp ' . number_format($rkas->harga_satuan, 0, ',', '.'),
+                    'total' => 'Rp ' . number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
                     'bulan' => $rkas->bulan,
                 ];
             });
@@ -995,7 +1001,7 @@ class RkasPerubahanController extends Controller
                 'data' => $formattedData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting RKAS by month: '.$e->getMessage());
+            Log::error('Error getting RKAS by month: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -1016,7 +1022,7 @@ class RkasPerubahanController extends Controller
                 'data' => $rkasData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting all RKAS data: '.$e->getMessage());
+            Log::error('Error getting all RKAS data: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -1055,7 +1061,7 @@ class RkasPerubahanController extends Controller
                 'data' => $totals,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting total per month: '.$e->getMessage());
+            Log::error('Error getting total per month: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -1103,7 +1109,7 @@ class RkasPerubahanController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting total Tahap 1: '.$e->getMessage());
+            Log::error('Error getting total Tahap 1: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -1151,7 +1157,7 @@ class RkasPerubahanController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting total Tahap 2: '.$e->getMessage());
+            Log::error('Error getting total Tahap 2: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -1198,8 +1204,8 @@ class RkasPerubahanController extends Controller
                     'dianggaran' => $rkas->jumlah,
                     'dibelanjakan' => 0,
                     'satuan' => $rkas->satuan,
-                    'harga_satuan' => 'Rp '.number_format($rkas->harga_satuan, 0, ',', '.'),
-                    'total' => 'Rp '.number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
+                    'harga_satuan' => 'Rp ' . number_format($rkas->harga_satuan, 0, ',', '.'),
+                    'total' => 'Rp ' . number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
                     'bulan' => $rkas->bulan,
                 ];
             });
@@ -1209,7 +1215,7 @@ class RkasPerubahanController extends Controller
                 'data' => $formattedData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting RKAS by tahap: '.$e->getMessage());
+            Log::error('Error getting RKAS by tahap: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -1421,7 +1427,7 @@ class RkasPerubahanController extends Controller
             }
 
             // Level sub-program
-            $kodeSubProgram = count($bagian) > 1 ? $bagian[0].'.'.$bagian[1] : null;
+            $kodeSubProgram = count($bagian) > 1 ? $bagian[0] . '.' . $bagian[1] : null;
             if ($kodeSubProgram && ! isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram])) {
                 $firstItem = $items->first();
                 $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram] = [
@@ -1460,7 +1466,17 @@ class RkasPerubahanController extends Controller
                     continue;
                 }
 
-                $key = $item->rekeningBelanja->kode_rekening.'-'.$item->uraian;
+                $key = $item->rekeningBelanja->kode_rekening . '-' . $item->uraian;
+
+                // LOG: Debug informasi item
+                Log::info("🔧 [RKA_TAHAPAN_DEBUG] Processing item:", [
+                    'item_id' => $item->id,
+                    'kode_rekening' => $item->rekeningBelanja->kode_rekening,
+                    'uraian' => $item->uraian,
+                    'harga_satuan' => $item->harga_satuan,
+                    'jumlah' => $item->jumlah,
+                    'group_key' => $key
+                ]);
 
                 // Data sebelum perubahan (dari RKAS asli) - AGREGAT SEMUA BULAN
                 $jumlahAsli = 0;
@@ -1507,6 +1523,15 @@ class RkasPerubahanController extends Controller
                     }
                 }
 
+                // LOG: Debug perhitungan perubahan
+                Log::info("🔧 [RKA_TAHAPAN_DEBUG] Perubahan calculation:", [
+                    'item_id' => $item->id,
+                    'volume_perubahan' => $volumePerubahan,
+                    'harga_satuan_perubahan' => $hargaSatuanPerubahan,
+                    'jumlah_perubahan' => $jumlahPerubahan,
+                    'rkas_perubahan_items_count' => $rkasPerubahanItems->count()
+                ]);
+
                 // Hitung selisih
                 $selisih = $jumlahPerubahan - $jumlahAsli;
                 $bertambah = $selisih > 0 ? $selisih : 0;
@@ -1529,6 +1554,7 @@ class RkasPerubahanController extends Controller
                     }
                 }
 
+                // PERBAIKAN: Gunakan harga satuan dari item saat ini, bukan dari groupedItems
                 if (! isset($groupedItems[$key])) {
                     $groupedItems[$key] = [
                         'kode_rekening' => $item->rekeningBelanja->kode_rekening,
@@ -1537,7 +1563,7 @@ class RkasPerubahanController extends Controller
                         'volume_perubahan' => $volumePerubahan,
                         'satuan' => $item->satuan,
                         'harga_satuan_asli' => $hargaSatuanAsli,
-                        'harga_satuan_perubahan' => $hargaSatuanPerubahan,
+                        'harga_satuan_perubahan' => $hargaSatuanPerubahan, // Gunakan harga satuan perubahan
                         'jumlah_asli' => $jumlahAsli,
                         'jumlah_perubahan' => $jumlahPerubahan,
                         'bertambah' => $bertambah,
@@ -1545,12 +1571,39 @@ class RkasPerubahanController extends Controller
                         'tahap1' => $tahap1,
                         'tahap2' => $tahap2,
                     ];
+
+                    // LOG: Debug pembuatan item baru
+                    Log::info("🔧 [RKA_TAHAPAN_DEBUG] Created new grouped item:", [
+                        'key' => $key,
+                        'harga_satuan_perubahan' => $hargaSatuanPerubahan
+                    ]);
+                } else {
+                    // LOG: Debug item yang sudah ada
+                    Log::warning("⚠️ [RKA_TAHAPAN_DEBUG] Item already exists in grouped items:", [
+                        'key' => $key,
+                        'existing_harga_satuan_perubahan' => $groupedItems[$key]['harga_satuan_perubahan'],
+                        'new_harga_satuan_perubahan' => $hargaSatuanPerubahan
+                    ]);
                 }
             }
 
+            // LOG: Debug grouped items sebelum ditambahkan
+            Log::info("🔧 [RKA_TAHAPAN_DEBUG] Grouped items before adding to structure:", [
+                'kode_program' => $kodeProgram,
+                'grouped_items_count' => count($groupedItems),
+                'grouped_items' => array_keys($groupedItems)
+            ]);
+
             // Tambahkan item ke struktur data
             if ($kodeSubProgram) {
-                foreach ($groupedItems as $item) {
+                foreach ($groupedItems as $itemKey => $item) {
+                    // LOG: Debug setiap item sebelum ditambahkan
+                    Log::info("🔧 [RKA_TAHAPAN_DEBUG] Adding item to structure:", [
+                        'item_key' => $itemKey,
+                        'harga_satuan_perubahan' => $item['harga_satuan_perubahan'],
+                        'jumlah_perubahan' => $item['jumlah_perubahan']
+                    ]);
+
                     // Update program
                     $terorganisir[$kodeProgram]['total_asli'] += $item['jumlah_asli'];
                     $terorganisir[$kodeProgram]['total_perubahan'] += $item['jumlah_perubahan'];
@@ -1581,6 +1634,12 @@ class RkasPerubahanController extends Controller
             }
         }
 
+        // LOG: Debug struktur akhir
+        Log::info("🔧 [RKA_TAHAPAN_DEBUG] Final organized structure:", [
+            'programs_count' => count($terorganisir),
+            'programs' => array_keys($terorganisir)
+        ]);
+
         // Urutkan data
         ksort($terorganisir);
         foreach ($terorganisir as &$program) {
@@ -1601,17 +1660,21 @@ class RkasPerubahanController extends Controller
     {
         try {
             $tahun = $request->input('tahun');
-            Log::info('Parameter tahun dari URL: '.$tahun);
+            Log::info('Parameter tahun dari URL: ' . $tahun);
 
             // Ambil data penganggaran berdasarkan tahun yang diminta, bukan yang terbaru
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
-            Log::info('ID Penganggaran ditemukan: '.$penganggaran->id);
+            Log::info('ID Penganggaran ditemukan: ' . $penganggaran->id);
 
             $sekolah = Sekolah::first();
 
             if (! $sekolah) {
                 throw new \Exception('Data sekolah tidak ditemukan');
             }
+
+            // Ambil data untuk grafik
+            $grafikData = $this->getGrafikData($penganggaran->id);
+            Log::info('Data grafik berhasil diambil:', $grafikData);
 
             // Data untuk RKAS Tahapan - dengan relasi rkasAsli
             $belanja = $this->kelolaDataRkasPerubahan(
@@ -1702,7 +1765,7 @@ class RkasPerubahanController extends Controller
                 ->sum(DB::raw('jumlah * harga_satuan'));
 
             // Debug: Log ID penganggaran yang ditemukan
-            Log::info('ID Penganggaran ditemukan: '.$penganggaran->id);
+            Log::info('ID Penganggaran ditemukan: ' . $penganggaran->id);
             // Data penerimaan - ambil dari penganggaran yang dipilih
             $penerimaan = [
                 'total' => $penganggaran->pagu_anggaran,
@@ -1719,8 +1782,8 @@ class RkasPerubahanController extends Controller
             $totalTahap1 = RkasPerubahan::getTotalTahap1($penganggaran->id);
             $totalTahap2 = RkasPerubahan::getTotalTahap2($penganggaran->id);
 
-            Log::info('RKAS Perubahan Data for bulan '.$bulan.': '.$rkasBulanan->count().' items');
-            Log::info('RKAS Perubahan Total: '.$totalBulanan);
+            Log::info('RKAS Perubahan Data for bulan ' . $bulan . ': ' . $rkasBulanan->count() . ' items');
+            Log::info('RKAS Perubahan Total: ' . $totalBulanan);
 
             // Debug: Log hasil perhitungan
             Log::info("Total Tahap 1: {$totalTahap1}, Total Tahap 2: {$totalTahap2}");
@@ -1753,11 +1816,12 @@ class RkasPerubahanController extends Controller
                 'groupedItems' => $groupedItemsFor221,
                 'totals' => $totalsFor221,
                 'total_anggaran' => $penganggaran->pagu_anggaran,
+                'grafikData' => $grafikData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error showing rekapan: '.$e->getMessage());
+            Log::error('Error showing rekapan: ' . $e->getMessage());
 
-            return back()->with('error', 'Terjadi kesalahan saat menampilkan rekapan RKAS: '.$e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat menampilkan rekapan RKAS: ' . $e->getMessage());
         }
     }
 
@@ -1789,7 +1853,7 @@ class RkasPerubahanController extends Controller
             $kode = $item->rekeningBelanja->kode_rekening;
             $mainCode = $this->findClosestMainCode($kode, array_keys($mainStructure));
 
-            $key = $kode.'-'.$item->uraian.'-'.$item->harga_satuan;
+            $key = $kode . '-' . $item->uraian . '-' . $item->harga_satuan;
 
             if (! isset($groupedItems[$mainCode][$key])) {
                 $groupedItems[$mainCode][$key] = [
@@ -2136,7 +2200,7 @@ class RkasPerubahanController extends Controller
 
             return $rekapData;
         } catch (\Exception $e) {
-            Log::error('Error getting rekap RKAS: '.$e->getMessage());
+            Log::error('Error getting rekap RKAS: ' . $e->getMessage());
 
             return [];
         }
@@ -2221,7 +2285,7 @@ class RkasPerubahanController extends Controller
                 'tahun_anggaran' => $penganggaran->tahun_anggaran,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in rekapRkaDuaSatu: '.$e->getMessage());
+            Log::error('Error in rekapRkaDuaSatu: ' . $e->getMessage());
 
             return back()->with('error', 'Terjadi kesalahan saat memuat data Lembar Kerja 221.');
         }
@@ -2414,7 +2478,7 @@ class RkasPerubahanController extends Controller
     public function getRekapBulanan($bulan)
     {
         try {
-            Log::info('Mengambil data rekap untuk bulan: '.$bulan);
+            Log::info('Mengambil data rekap untuk bulan: ' . $bulan);
 
             $rkasData = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
                 ->where('bulan', $bulan)
@@ -2439,7 +2503,7 @@ class RkasPerubahanController extends Controller
                 'bulan' => $bulan,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting rekap bulanan: '.$e->getMessage());
+            Log::error('Error getting rekap bulanan: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -2474,7 +2538,7 @@ class RkasPerubahanController extends Controller
                 ];
             }
 
-            $kodeSubProgram = count($bagian) > 1 ? $bagian[0].'.'.$bagian[1] : null;
+            $kodeSubProgram = count($bagian) > 1 ? $bagian[0] . '.' . $bagian[1] : null;
             if ($kodeSubProgram && ! isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram])) {
                 $firstItem = $items->first();
                 $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram] = [
@@ -2660,8 +2724,8 @@ class RkasPerubahanController extends Controller
     {
         try {
             Log::info('getMonthlyData called for RKAS Perubahan');
-            Log::info('Bulan: '.$request->input('bulan'));
-            Log::info('Tahun: '.$request->input('tahun'));
+            Log::info('Bulan: ' . $request->input('bulan'));
+            Log::info('Tahun: ' . $request->input('tahun'));
 
             $bulan = $request->input('bulan', 'Januari');
             $tahun = $request->input('tahun');
@@ -2690,7 +2754,7 @@ class RkasPerubahanController extends Controller
                 ->where('bulan', $bulan)
                 ->sum(DB::raw('jumlah * harga_satuan'));
 
-            Log::info('RKAS Perubahan Data for bulan '.$bulan.': '.$rkasBulanan->count().' items');
+            Log::info('RKAS Perubahan Data for bulan ' . $bulan . ': ' . $rkasBulanan->count() . ' items');
 
             return response()->json([
                 'success' => true,
@@ -2702,7 +2766,7 @@ class RkasPerubahanController extends Controller
                 'totalBulanan' => $totalBulanan,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting monthly data: '.$e->getMessage());
+            Log::error('Error getting monthly data: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -2736,13 +2800,13 @@ class RkasPerubahanController extends Controller
                         'program_kegiatan' => $item->kodeKegiatan->program ?? '-',
                         'kegiatan' => $item->kodeKegiatan->sub_program ?? '-',
                         'rekening_belanja' => $item->rekeningBelanja ?
-                            $item->rekeningBelanja->kode_rekening.' - '.$item->rekeningBelanja->rincian_objek : '-',
+                            $item->rekeningBelanja->kode_rekening . ' - ' . $item->rekeningBelanja->rincian_objek : '-',
                         'uraian' => $item->uraian,
                         'dianggaran' => $item->jumlah,
                         'dibelanjakan' => 0, // Sesuaikan dengan logika Anda
                         'satuan' => $item->satuan,
-                        'harga_satuan' => 'Rp '.number_format($item->harga_satuan, 0, ',', '.'),
-                        'total' => 'Rp '.number_format($item->jumlah * $item->harga_satuan, 0, ',', '.'),
+                        'harga_satuan' => 'Rp ' . number_format($item->harga_satuan, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($item->jumlah * $item->harga_satuan, 0, ',', '.'),
                         'kode_id' => $item->kode_id,
                         'kode_rekening_id' => $item->kode_rekening_id,
                     ];
@@ -2756,9 +2820,198 @@ class RkasPerubahanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat data: '.$e->getMessage(),
+                'message' => 'Gagal memuat data: ' . $e->getMessage(),
             ], 500);
         }
     }
 
+    // Tambahkan method ini di RkasPerubahanController.php
+
+    /**
+     * Mendapatkan data untuk grafik proporsi anggaran - BERDASARKAN KODE KEGIATAN
+     */
+    private function getGrafikData($penganggaranId)
+    {
+        Log::info('🔍 [GRAFIK_DEBUG] Starting getGrafikData for penganggaran_id: ' . $penganggaranId);
+
+        try {
+            // Total pagu anggaran
+            $penganggaran = Penganggaran::find($penganggaranId);
+            $totalPagu = $penganggaran->pagu_anggaran ?? 0;
+
+            Log::info('🔍 [GRAFIK_DEBUG] Total pagu anggaran: ' . number_format($totalPagu, 2));
+
+            // 1. Hitung anggaran BUKU - BERDASARKAN KODE KEGIATAN
+            $bukuAnggaran = RkasPerubahan::where('penganggaran_id', $penganggaranId)
+                ->whereHas('kodeKegiatan', function ($query) {
+                    // Kode kegiatan yang terkait dengan buku
+                    $query->where('kode', 'like', '05.02.%') // Pengembangan Perpustakaan
+                        ->orWhere('kode', 'like', '02.02.%') // Kegiatan pemberdayaan perpustakaan
+                        ->orWhere('kode', 'like', '03.02.%') // Pengembangan Perpustakaan
+                        ->orWhere('sub_program', 'ilike', '%perpustakaan%')
+                        ->orWhere('uraian', 'ilike', '%buku%')
+                        ->orWhere('uraian', 'ilike', '%perpustakaan%');
+                })
+                ->get()
+                ->sum(function ($item) {
+                    return $item->jumlah * $item->harga_satuan;
+                });
+
+            Log::info('📚 [GRAFIK_DEBUG] Buku anggaran calculated: ' . number_format($bukuAnggaran, 2));
+            Log::info('📚 [GRAFIK_DEBUG] Buku percentage: ' . ($totalPagu > 0 ? number_format(($bukuAnggaran / $totalPagu) * 100, 2) : 0) . '%');
+
+            // 2. Hitung anggaran HONOR - BERDASARKAN KODE KEGIATAN
+            $honorAnggaran = RkasPerubahan::where('penganggaran_id', $penganggaranId)
+                ->whereHas('kodeKegiatan', function ($query) {
+                    // Kode kegiatan yang terkait dengan honor/gaji
+                    $query->where('kode', 'like', '07.12.%') // Pembayaran Honor
+                        ->orWhere('sub_program', 'ilike', '%honor%')
+                        ->orWhere('sub_program', 'ilike', '%gaji%')
+                        ->orWhere('uraian', 'ilike', '%honor%')
+                        ->orWhere('uraian', 'ilike', '%gaji%')
+                        ->orWhere('uraian', 'ilike', '%pembayaran%guru%')
+                        ->orWhere('uraian', 'ilike', '%pembayaran%tenaga%');
+                })
+                ->get()
+                ->sum(function ($item) {
+                    return $item->jumlah * $item->harga_satuan;
+                });
+
+            Log::info('💰 [GRAFIK_DEBUG] Honor anggaran calculated: ' . number_format($honorAnggaran, 2));
+
+            // PERBAIKAN: Hitung persentase honor dari 100% total pagu
+            $honorPercentage = $totalPagu > 0 ? ($honorAnggaran / $totalPagu) * 100 : 0;
+            Log::info('💰 [GRAFIK_DEBUG] Honor percentage dari 100% pagu: ' . number_format($honorPercentage, 2) . '%');
+
+            // 3. Hitung anggaran SARPRAS - BERDASARKAN KODE KEGIATAN
+            $sarprasAnggaran = RkasPerubahan::where('penganggaran_id', $penganggaranId)
+                ->whereHas('kodeKegiatan', function ($query) {
+                    // Kode kegiatan yang terkait dengan sarana prasarana
+                    $query->where('kode', 'like', '05.08.%') // Pemeliharaan Sarana dan Prasarana Sekolah
+                        ->orWhere('kode', 'like', '05.09.%') // Penyediaan Alat Multi Media Pembelajaran
+                        ->orWhere('kode', 'like', '05.05.%') // Pelaksanaan Administrasi Kegiatan Sekolah (media pembelajaran)
+                        ->orWhere('sub_program', 'ilike', '%sarana%')
+                        ->orWhere('sub_program', 'ilike', '%prasarana%')
+                        ->orWhere('sub_program', 'ilike', '%pemeliharaan%')
+                        ->orWhere('sub_program', 'ilike', '%peralatan%')
+                        ->orWhere('uraian', 'ilike', '%sarana%')
+                        ->orWhere('uraian', 'ilike', '%prasarana%')
+                        ->orWhere('uraian', 'ilike', '%pemeliharaan%')
+                        ->orWhere('uraian', 'ilike', '%perbaikan%')
+                        ->orWhere('uraian', 'ilike', '%peralatan%');
+                })
+                ->get()
+                ->sum(function ($item) {
+                    return $item->jumlah * $item->harga_satuan;
+                });
+
+            Log::info('🏫 [GRAFIK_DEBUG] Sarpras anggaran calculated: ' . number_format($sarprasAnggaran, 2));
+            Log::info('🏫 [GRAFIK_DEBUG] Sarpras percentage: ' . ($totalPagu > 0 ? number_format(($sarprasAnggaran / $totalPagu) * 100, 2) : 0) . '%');
+
+            // 4. Data untuk grafik jenis belanja lainnya - BERDASARKAN KODE KEGIATAN
+            $jenisBelanjaData = RkasPerubahan::where('penganggaran_id', $penganggaranId)
+                ->with('kodeKegiatan')
+                ->get()
+                ->groupBy(function ($item) {
+                    // Group by program dari kode kegiatan
+                    $program = $item->kodeKegiatan->program ?? 'Lainnya';
+
+                    // Sederhanakan nama program untuk grafik
+                    if (strpos($program, 'Pengembangan sarana dan prasarana') !== false) {
+                        return 'Sarana Prasarana';
+                    } elseif (strpos($program, 'Pengembangan pendidik dan tenaga kependidikan') !== false) {
+                        return 'Pengembangan Guru & Tenaga';
+                    } elseif (strpos($program, 'Pengembangan Standar Proses') !== false) {
+                        return 'Proses Pembelajaran';
+                    } elseif (strpos($program, 'Pengembangan standar pembiayaan') !== false) {
+                        return 'Pembiayaan';
+                    } elseif (strpos($program, 'Pengembangan standar pengelolaan') !== false) {
+                        return 'Pengelolaan Sekolah';
+                    } elseif (strpos($program, 'Pengembangan dan implementasi sistem penilaian') !== false) {
+                        return 'Sistem Penilaian';
+                    } elseif (strpos($program, 'Pengembangan Standar Isi') !== false) {
+                        return 'Standar Isi';
+                    } else {
+                        return $program;
+                    }
+                })
+                ->map(function ($group, $category) use ($totalPagu) {
+                    $total = $group->sum(function ($item) {
+                        return $item->jumlah * $item->harga_satuan;
+                    });
+
+                    $percentage = $totalPagu > 0 ? ($total / $totalPagu) * 100 : 0;
+
+                    return [
+                        'label' => $category,
+                        'value' => $percentage,
+                        'percentage' => number_format($percentage, 2) . '%',
+                        'color' => $this->getRandomColor(),
+                        'total' => number_format($total, 2)
+                    ];
+                })
+                ->sortByDesc('value')
+                ->take(8)
+                ->values();
+
+            Log::info('📊 [GRAFIK_DEBUG] Jenis belanja data count: ' . $jenisBelanjaData->count());
+
+            $grafikData = [
+                'buku_anggaran' => $bukuAnggaran,
+                'honor_anggaran' => $honorAnggaran,
+                'sarpras_anggaran' => $sarprasAnggaran,
+                'jenis_belanja' => $jenisBelanjaData,
+                'total_pagu' => $totalPagu,
+                'honor_percentage' => $honorPercentage, // Tambahkan ini untuk akses mudah
+            ];
+
+            Log::info('✅ [GRAFIK_DEBUG] Final grafik data result: ', [
+                'total_pagu' => $totalPagu,
+                'buku_anggaran' => $bukuAnggaran,
+                'buku_persentase' => $totalPagu > 0 ? ($bukuAnggaran / $totalPagu) * 100 : 0,
+                'honor_anggaran' => $honorAnggaran,
+                'honor_persentase_dari_100pagu' => $honorPercentage, // PERBAIKAN: dari 100% pagu
+                'sarpras_anggaran' => $sarprasAnggaran,
+                'sarpras_persentase' => $totalPagu > 0 ? ($sarprasAnggaran / $totalPagu) * 100 : 0,
+            ]);
+
+            return $grafikData;
+        } catch (\Exception $e) {
+            Log::error('❌ [GRAFIK_DEBUG] Error in getGrafikData: ' . $e->getMessage());
+            Log::error('❌ [GRAFIK_DEBUG] Stack trace: ' . $e->getTraceAsString());
+
+            return [
+                'buku_anggaran' => 0,
+                'honor_anggaran' => 0,
+                'sarpras_anggaran' => 0,
+                'jenis_belanja' => collect(),
+                'total_pagu' => 0,
+                'honor_percentage' => 0,
+            ];
+        }
+    }
+
+    /**
+     * Generate random color for charts
+     */
+    private function getRandomColor()
+    {
+        $colors = [
+            '#4DB6AC',
+            '#F48FB1',
+            '#EE82EE',
+            '#9FA8DA',
+            '#4FC3F7',
+            '#BA68C8',
+            '#4DD0E1',
+            '#7986CB',
+            '#81D4FA',
+            '#FFB74D',
+            '#9575CD',
+            '#F48FB1',
+            '#7986CB'
+        ];
+
+        return $colors[array_rand($colors)];
+    }
 }

@@ -384,8 +384,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         console.log('🔧 [EDIT DEBUG] Initializing edit bulan list with data:', data);
-        console.log('🔧 [EDIT DEBUG] Locked months:', lockedMonths);
-        console.log('🔧 [EDIT DEBUG] Allowed months:', allowedMonths);
+        
+        // PERBAIKAN: Definisikan bulan terkunci untuk frontend
+        const frontendLockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+        const frontendAllowedMonths = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        
+        console.log('🔧 [EDIT DEBUG] Frontend locked months:', frontendLockedMonths);
+        console.log('🔧 [EDIT DEBUG] Frontend allowed months:', frontendAllowedMonths);
         
         container.innerHTML = '';
         
@@ -393,18 +398,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data && data.length > 0) {
             console.log('🔧 [EDIT DEBUG] Creating cards for', data.length, 'months');
             data.forEach((item, index) => {
-                const card = createEditAnggaranCard(item.bulan, item.jumlah, item.satuan, lockedMonths, allowedMonths);
+                const card = createEditAnggaranCard(item.bulan, item.jumlah, item.satuan, frontendLockedMonths, frontendAllowedMonths);
                 container.appendChild(card);
                 console.log('🔧 [EDIT DEBUG] Created card for bulan:', item.bulan);
             });
         } else {
             // Jika tidak ada data, buat card default
             console.log('🔧 [EDIT DEBUG] No month data, creating default card');
-            const initialCard = createEditAnggaranCard('', '', '', lockedMonths, allowedMonths);
+            const initialCard = createEditAnggaranCard('', '', '', frontendLockedMonths, frontendAllowedMonths);
             container.appendChild(initialCard);
         }
         
-        const tambahBtnCard = createEditTambahButtonCard(lockedMonths, allowedMonths);
+        const tambahBtnCard = createEditTambahButtonCard(frontendLockedMonths, frontendAllowedMonths);
         container.appendChild(tambahBtnCard);
         
         console.log('🔧 [EDIT DEBUG] Total cards created:', container.querySelectorAll('.anggaran-bulan-card').length);
@@ -417,7 +422,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const card = document.createElement('div');
         card.className = 'anggaran-bulan-card';
         
-        const isLockedMonth = lockedMonths.includes(bulan);
+        // Tentukan apakah bulan ini terkunci (Januari-Juni)
+        const isLockedMonth = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'].includes(bulan);
         const isDisabled = isLockedMonth;
         
         card.innerHTML = `
@@ -427,8 +433,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="bulan-input-group">
                 <select class="form-control bulan-input" name="bulan[]" ${isDisabled ? 'disabled' : 'required'} style="${isDisabled ? 'background-color: #f8f9fa; color: #6c757d; cursor: not-allowed;' : ''}">
                     <option value="">Pilih Bulan</option>
-                    ${allowedMonths.map(b => `<option value="${b}" ${b === bulan ? 'selected' : ''}>${b}</option>`).join('')}
-                    ${lockedMonths.map(b => `<option value="${b}" ${b === bulan ? 'selected' : ''} disabled style="background-color: #f8f9fa; color: #6c757d;">${b} 🔒</option>`).join('')}
+                    ${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map(b => 
+                        `<option value="${b}" ${b === bulan ? 'selected' : ''} ${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'].includes(b) ? 'disabled style="background-color: #f8f9fa; color: #6c757d;"' : ''}>${b} ${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'].includes(b) ? '🔒' : ''}</option>`
+                    ).join('')}
                 </select>
                 <span class="month-total">Rp 0</span>
             </div>
@@ -443,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     placeholder="Satuan" value="${satuan || ''}" 
                     ${isDisabled ? 'readonly style="background-color: #f8f9fa; cursor: not-allowed;"' : 'required'}>
             </div>
-            ${isLockedMonth ? '<div class="lock-indicator"><small class="text-muted"><i class="bi bi-lock"></i> Bulan terkunci</small></div>' : ''}
+            ${isLockedMonth ? '<div class="lock-indicator"><small class="text-muted"><i class="bi bi-lock"></i> Bulan terkunci (Januari-Juni) - tidak dapat dihapus</small></div>' : ''}
         `;
         
         // Hanya tambah event listener untuk bulan yang tidak terkunci
@@ -502,8 +509,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return select && !select.disabled;
         });
         
-        if (activeCards.length >= allowedMonths.length) {
-            Swal.fire('Peringatan', `Maksimal ${allowedMonths.length} bulan aktif (Juli-Desember) dalam setahun`, 'warning');
+        // PERBAIKAN: Batasi maksimal 12 bulan (semua bulan dalam setahun)
+        if (activeCards.length >= 12) {
+            Swal.fire('Peringatan', 'Maksimal 12 bulan dalam setahun', 'warning');
             return;
         }
 
@@ -733,6 +741,33 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
+                // PERIKSA APAKAH ADA BULAN AKTIF YANG BISA DIHAPUS
+                const activeCards = document.querySelectorAll('#edit_bulanContainer .anggaran-bulan-card:not([style*="display: none"])');
+                const hasActiveMonths = Array.from(activeCards).some(card => {
+                    const bulanSelect = card.querySelector('.bulan-input');
+                    return bulanSelect && !bulanSelect.disabled;
+                });
+                
+                if (!hasActiveMonths) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Tidak Ada Data yang Dapat Dihapus',
+                        html: `
+                            <div class="text-start">
+                                <p>Data hanya tersedia untuk bulan <strong>Januari-Juni</strong> yang tidak dapat dihapus.</p>
+                                <div class="alert alert-info mt-2">
+                                    <small>
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Hanya data bulan <strong>Juli-Desember</strong> yang dapat dihapus.
+                                    </small>
+                                </div>
+                            </div>
+                        `,
+                        confirmButtonText: 'Mengerti'
+                    });
+                    return;
+                }
+                
                 showDeleteAllConfirmation(mainDataId);
             });
         } else {
@@ -751,8 +786,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="alert alert-warning mt-3">
                         <small>
                             <i class="bi bi-exclamation-triangle me-1"></i>
-                            <strong>Perhatian:</strong> Tindakan ini akan menghapus semua data dengan kegiatan, rekening, dan uraian yang sama.
-                            <br>Data yang terkunci (Januari-Juni) tidak akan terpengaruh.
+                            <strong>Perhatian:</strong> Tindakan ini hanya akan menghapus data untuk bulan <strong>Juli-Desember</strong>.
+                            <br>Data untuk bulan <strong>Januari-Juni</strong> akan tetap tersimpan dan tidak dapat dihapus.
+                        </small>
+                    </div>
+                    <div class="alert alert-info mt-2">
+                        <small>
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Info:</strong> Hanya data perubahan (Juli-Desember) yang dapat dihapus.
                         </small>
                     </div>
                 </div>
@@ -761,7 +802,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Ya, Hapus Semua!',
+            confirmButtonText: 'Ya, Hapus Data Juli-Desember!',
             cancelButtonText: 'Batal',
             reverseButtons: true,
             backdrop: true,
@@ -795,7 +836,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => {
             console.log('🔧 [DELETE DEBUG] Response status:', response.status);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Jika response tidak ok, coba parse error message
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                });
             }
             return response.json();
         })
@@ -811,7 +855,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({
                     icon: 'success',
                     title: 'Berhasil!',
-                    text: data.message,
+                    html: `
+                        <div class="text-start">
+                            <p>${data.message}</p>
+                            <div class="alert alert-success mt-2">
+                                <small>
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    <strong>Berhasil:</strong> ${data.deleted_count} data bulan Juli-Desember telah dihapus.
+                                    <br>Data bulan Januari-Juni tetap tersimpan.
+                                </small>
+                            </div>
+                        </div>
+                    `,
                     confirmButtonText: 'OK'
                 }).then(() => {
                     location.reload();
@@ -822,10 +877,34 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('❌ [DELETE DEBUG] Error deleting all data:', error);
+            
+            // Tampilkan pesan error yang lebih spesifik
+            let errorMessage = 'Terjadi kesalahan saat menghapus data: ' + error.message;
+            let errorIcon = 'error';
+            
+            // Jika error karena tidak ada data aktif
+            if (error.message.includes('tidak ada data yang dapat dihapus') || 
+                error.message.includes('Januari-Juni')) {
+                errorMessage = `
+                    <div class="text-start">
+                        <p><strong>Tidak ada data yang dapat dihapus</strong></p>
+                        <p>${error.message}</p>
+                        <div class="alert alert-info mt-2">
+                            <small>
+                                <i class="bi bi-info-circle me-1"></i>
+                                Hanya data bulan <strong>Juli-Desember</strong> yang dapat dihapus.
+                                Data bulan <strong>Januari-Juni</strong> terkunci dan tidak dapat dihapus.
+                            </small>
+                        </div>
+                    </div>
+                `;
+                errorIcon = 'info';
+            }
+            
             Swal.fire({
-                icon: 'error',
+                icon: errorIcon,
                 title: 'Hapus Gagal',
-                text: 'Terjadi kesalahan saat menghapus data: ' + error.message,
+                html: errorMessage,
                 confirmButtonText: 'Mengerti'
             });
         })

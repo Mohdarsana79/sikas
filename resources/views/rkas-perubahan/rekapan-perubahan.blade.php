@@ -57,9 +57,9 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="lainnya-tab" data-bs-toggle="tab" data-bs-target="#lainnya"
+                        <button class="nav-link" id="grafik-tab" data-bs-toggle="tab" data-bs-target="#grafik"
                             type="button" role="tab">
-                            Lainnya
+                            Grafik
                         </button>
                     </li>
                 </ul>
@@ -566,13 +566,11 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Lainnya Tab -->
-                    <div class="tab-pane fade" id="lainnya" role="tabpanel">
+                    <!-- Grafik Tab -->
+                    <div class="tab-pane fade" id="grafik" role="tabpanel">
                         <div class="p-4">
-                            <div class="text-center py-5">
-                                <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
-                                <p class="text-muted mt-3">Belum ada data lainnya</p>
-                            </div>
+                            {{-- content grafik proporsi analisis anggaran--}}
+                            @include('rkas-perubahan.partials.grafik-proporsi')
                         </div>
                     </div>
                 </div>

@@ -26,6 +26,8 @@ class SekolahController extends Controller
         $request->validate([
             'nama_sekolah' => 'required|string|max:255',
             'npsn' => 'required|string|max:20',
+            'status_sekolah' => 'required|in:Negeri,Swasta',
+            'jenjang_sekolah' => 'required|in:SD,SMP,SMA,SMK',
             'kelurahan_desa' => 'required|string|max:100',
             'kecamatan' => 'required|string|max:100',
             'kabupaten_kota' => 'required|string|max:100',
@@ -44,6 +46,8 @@ class SekolahController extends Controller
         $request->validate([
             'nama_sekolah' => 'required|string|max:255',
             'npsn' => 'required|string|max:20',
+            'status_sekolah' => 'required|in:Negeri,Swasta',
+            'jenjang_sekolah' => 'required|in:SD,SMP,SMA,SMK',
             'kelurahan_desa' => 'required|string|max:100',
             'kecamatan' => 'required|string|max:100',
             'kabupaten_kota' => 'required|string|max:100',

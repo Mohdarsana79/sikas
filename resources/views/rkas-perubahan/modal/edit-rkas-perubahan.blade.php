@@ -82,8 +82,8 @@
 
                     <div class="anggaran-box">
                         <div class="anggaran-info">
-                            <span>Di Anggarkan untuk bulan</span>
-                            <span>Total Anggaran : <span id="edit_total-anggaran">Rp. 0</span></span>
+                            <span class="text-white">Di Anggarkan untuk bulan</span>
+                            <span class="text-white">Total Anggaran : <span class="text-white" id="edit_total-anggaran">Rp. 0</span></span>
                         </div>
 
                         <!-- Container untuk card bulan -->

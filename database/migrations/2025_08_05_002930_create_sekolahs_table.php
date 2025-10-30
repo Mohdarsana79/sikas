@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('nama_sekolah');
             $table->integer('npsn')->unique();
+            $table->string('status_sekolah');
+            $table->string('jenjang_sekolah');
             $table->string('kelurahan_desa');
             $table->string('kecamatan');
             $table->string('kabupaten_kota');

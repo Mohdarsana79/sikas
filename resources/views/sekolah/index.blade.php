@@ -49,6 +49,8 @@
                                     <i class="bi bi-building fs-1 text-primary"></i>
                                     <h4 class="mt-3">{{ $sekolah->nama_sekolah }}</h4>
                                     <p class="text-muted mb-0">NPSN: {{ $sekolah->npsn }}</p>
+                                    <p class="text-muted mb-0">Status: {{ $sekolah->status_sekolah }}</p>
+                                    <p class="text-muted mb-0">Jenjang: {{ $sekolah->jenjang_sekolah }}</p>
                                 </div>
                             </div>
                             <div class="col-md-8">
@@ -120,6 +122,24 @@
                                     <input type="text" class="form-control" id="npsn" name="npsn" required>
                                 </div>
                                 <div class="mb-3">
+                                    <label for="status_sekolah" class="form-label">Status</label>
+                                    <select class="form-select" id="status_sekolah" name="status_sekolah" required>
+                                        <option value="" selected disabled>Pilih Status Sekolah</option>
+                                        <option value="Negeri">Negeri</option>
+                                        <option value="Swasta">Swasta</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="jenjang_sekolah" class="form-label">Jenjang</label>
+                                    <select class="form-select" id="jenjang_sekolah" name="jenjang_sekolah" required>
+                                        <option value="" selected disabled>Pilih Jenjang</option>
+                                        <option value="SD">SD</option>
+                                        <option value="SMP">SMP</option>
+                                        <option value="SMA">SMA</option>
+                                        <option value="SMK">SMK</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
                                     <label for="kelurahan_desa" class="form-label">Kelurahan/Desa</label>
                                     <input type="text" class="form-control" id="kelurahan_desa" name="kelurahan_desa"
                                         required>
@@ -179,6 +199,36 @@
                                         <label for="edit_npsn" class="form-label">NPSN</label>
                                         <input type="text" class="form-control" id="edit_npsn" name="npsn"
                                             value="{{ $sekolah->npsn }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="edit_status_sekolah" class="form-label">Status</label>
+                                        <select class="form-select" id="edit_status_sekolah" name="status_sekolah"
+                                            required>
+                                            <option value="Negeri"
+                                                {{ $sekolah->status_sekolah == 'Negeri' ? 'selected' : '' }}>Negeri
+                                            </option>
+                                            <option value="Swasta"
+                                                {{ $sekolah->status_sekolah == 'Swasta' ? 'selected' : '' }}>Swasta
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="edit_jenjang_sekolah" class="form-label">Jenjang</label>
+                                        <select class="form-select" id="edit_jenjang_sekolah" name="jenjang_sekolah"
+                                            required>
+                                            <option value="SD"
+                                                {{ $sekolah->jenjang_sekolah == 'SD' ? 'selected' : '' }}>SD
+                                            </option>
+                                            <option value="SMP"
+                                                {{ $sekolah->jenjang_sekolah == 'SMP' ? 'selected' : '' }}>SMP
+                                            </option>
+                                            <option value="SMA"
+                                                {{ $sekolah->jenjang_sekolah == 'SMA' ? 'selected' : '' }}>SMA
+                                            </option>
+                                            <option value="SMK"
+                                                {{ $sekolah->jenjang_sekolah == 'SMK' ? 'selected' : '' }}>SMK
+                                            </option>
+                                        </select>
                                     </div>
                                     <div class="mb-3">
                                         <label for="edit_kelurahan_desa" class="form-label">Kelurahan/Desa</label>

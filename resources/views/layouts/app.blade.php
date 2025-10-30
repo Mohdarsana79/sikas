@@ -36,7 +36,10 @@
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
     <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('assets/js/select2.min.js') }}"></script>
+    <script src="{{ asset('assets/js/apexcharts.min.js') }}"></script>
+    <script src="{{ asset('assets/js/chart.min.js') }}"></script>
     <script src="{{ asset('assets/js/chart.js') }}"></script>
+    {{-- Di bagian head atau sebelum penutup body --}}
     <script src="{{ asset('assets/js/main.js') }}"></script>
     <script src="{{ asset('assets/js/sweetalert2@11.js') }}"></script>
     @stack('scripts')

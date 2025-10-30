@@ -14,6 +14,8 @@ class Sekolah extends Model
     protected $fillable = [
         'nama_sekolah',
         'npsn',
+        'status_sekolah',
+        'jenjang_sekolah',
         'kelurahan_desa',
         'kecamatan',
         'kabupaten_kota',
