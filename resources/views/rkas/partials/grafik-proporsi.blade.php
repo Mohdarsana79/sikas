@@ -1,5 +1,5 @@
 <div class="container-fluid my-5 p-0 grafik-proporsi-container">
-    <h4 class="h4 fw-bold text-center mb-2 p-4 bg-light rounded-top-3 text-primary">Analisis Proporsi Anggaran Perubahan
+    <h4 class="h4 fw-bold text-center mb-2 p-4 bg-light rounded-top-3 text-primary">Analisis Proporsi Anggaran RKAS
     </h4>
 
     <!-- BARIS PERTAMA: Grafik 1 dan Grafik 2 -->
@@ -114,7 +114,8 @@
         <div class="col-12 col-lg-6 col-md-6">
             <div class="card h-100 shadow-lg border-0">
                 <div class="card-body d-flex flex-column p-4">
-                    <h5 class="card-title-chart fw-bold text-center mb-2">Proporsi Antar Jenis Belanja Lainnya dari Total Pagu</h5>
+                    <h5 class="card-title-chart fw-bold text-center mb-2">Proporsi Antar Jenis Belanja Lainnya dari
+                        Total Pagu</h5>
                     <div class="d-flex flex-column align-items-center flex-grow-1 justify-content-center">
                         <div id="chart4" class="apexchart-container"></div>
                     </div>
@@ -221,7 +222,6 @@
 @endpush
 
 @push('scripts')
-{{-- <script src="{{ asset('assets/js/apexcharts.min.js') }}"></script> --}}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🚀 [APEXCHARTS] DOM Content Loaded - Initializing ApexCharts');
@@ -257,9 +257,12 @@
         }
 
         // Fungsi untuk update card info
-        function updateCardInfo(cardId, isWarning, isDanger, title, message) {
+        function updateCardInfo(cardId, isWarning, title, message) {
             const card = document.getElementById(cardId);
-            if (!card) return;
+            if (!card) {
+                console.error('❌ [CARD] Card not found:', cardId);
+                return;
+            }
 
             const header = card.querySelector('.card-header');
             const body = card.querySelector('.card-body');
@@ -267,23 +270,21 @@
             const titleEl = card.querySelector('.fw-semibold');
             const messageEl = card.querySelector('.small');
 
-            if (isDanger) {
-                header.className = 'card-header card-header-danger fw-bold py-3';
-                body.className = 'card-body card-body-danger py-3';
-                if (svg) {
-                    svg.className = 'bi bi-exclamation-triangle-fill text-danger flex-shrink-0 mt-1';
-                    svg.innerHTML = '<path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>';
-                }
-            } else if (isWarning) {
-                header.className = 'card-header card-header-warning fw-bold py-3';
-                body.className = 'card-body card-body-warning py-3';
+            // Reset semua kelas
+            header.className = 'card-header fw-bold py-3';
+            body.className = 'card-body py-3';
+
+            if (isWarning) {
+                // PERBAIKAN: Gunakan class Bootstrap untuk warning (kuning)
+                header.classList.add('bg-warning', 'text-dark');
+                body.classList.add('bg-warning-subtle', 'text-warning-emphasis');
                 if (svg) {
                     svg.className = 'bi bi-exclamation-triangle-fill text-warning flex-shrink-0 mt-1';
                     svg.innerHTML = '<path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>';
                 }
             } else {
-                header.className = 'card-header bg-success text-white fw-bold py-3';
-                body.className = 'card-body bg-success-subtle text-success-emphasis py-3';
+                header.classList.add('bg-success', 'text-white');
+                body.classList.add('bg-success-subtle', 'text-success-emphasis');
                 if (svg) {
                     svg.className = 'bi bi-check-circle-fill text-success flex-shrink-0 mt-1';
                     svg.innerHTML = '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.497 5.354 7.374a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l5-5a.75.75 0 0 0-.022-1.08z"/>';
@@ -292,6 +293,11 @@
 
             if (titleEl) titleEl.textContent = title;
             if (messageEl) messageEl.textContent = message;
+
+            console.log('✅ [CARD] Updated card:', cardId, { 
+                status: isWarning ? 'WARNING' : 'SUCCESS',
+                title: title 
+            });
         }
 
         // 1. Grafik Proporsi Anggaran BUKU
@@ -305,7 +311,7 @@
 
                 const series = [bukuPercentage, lainnyaPercentage];
                 const labels = ['Penyediaan Buku', 'Komponen Anggaran Lainnya'];
-                const colors = ['#4DB6AC', '#E0E0E0'];
+                const colors = ['#4DB6AC', '#fcd056'];
 
                 // Update card info
                 const bukuPercentageElement = document.getElementById('bukuPercentage');
@@ -313,24 +319,25 @@
                     bukuPercentageElement.textContent = formatPercentage(bukuPercentage);
                 }
 
-                // Cek apakah memenuhi syarat minimal 10%
+                // PERBAIKAN: Logika pengecekan kondisi buku
+                let isWarning = false;
+                let title = '';
+                let message = '';
+
+                console.log('📚 [BUKU_DEBUG] Current buku:', formatPercentage(bukuPercentage), 'Minimal: 10%');
+
                 if (bukuPercentage < 10) {
-                    updateCardInfo(
-                        'infoCard1',
-                        true,
-                        false,
-                        'Perhatian: Alokasi belanja buku belum memenuhi syarat',
-                        `Anggaran penyediaan buku Anda adalah ${formatPercentage(bukuPercentage)} dan belum memenuhi proporsi minimal 10% dari total pagu anggaran.`
-                    );
+                    isWarning = true;
+                    title = 'Perhatian: Alokasi belanja buku belum memenuhi syarat';
+                    message = `Anggaran penyediaan buku Anda adalah ${formatPercentage(bukuPercentage)} dan belum memenuhi proporsi minimal 10% dari total pagu anggaran.`;
                 } else {
-                    updateCardInfo(
-                        'infoCard1',
-                        false,
-                        false,
-                        'Alokasi belanja Anda sudah sesuai juknis',
-                        `Anggaran penyediaan buku Anda adalah ${formatPercentage(bukuPercentage)} dan sudah sesuai dengan proporsi minimal 10% dari total pagu anggaran.`
-                    );
+                    isWarning = false;
+                    title = 'Alokasi belanja Anda sudah sesuai juknis';
+                    message = `Anggaran penyediaan buku Anda adalah ${formatPercentage(bukuPercentage)} dan sudah sesuai dengan proporsi minimal 10% dari total pagu anggaran.`;
                 }
+
+                // Panggil fungsi updateCardInfo
+                updateCardInfo('infoCard1', isWarning, title, message);
 
                 const options = {
                     series: series,
@@ -352,12 +359,12 @@
                                     show: true,
                                     name: {
                                         show: true,
-                                        fontSize: '16px',
+                                        fontSize: '12px',
                                         fontWeight: 'bold'
                                     },
                                     value: {
                                         show: true,
-                                        fontSize: '20px',
+                                        fontSize: '16px',
                                         fontWeight: 'bold',
                                         formatter: function (val) {
                                             return val + '%'
@@ -380,14 +387,14 @@
                             return opts.w.config.series[opts.seriesIndex].toFixed(1) + '%'
                         },
                         style: {
-                            fontSize: '14px',
+                            fontSize: '12px',
                             fontWeight: 'bold'
                         }
                     },
                     legend: {
                         position: 'bottom',
                         horizontalAlign: 'center',
-                        fontSize: '14px',
+                        fontSize: '12px',
                         fontWeight: 'bold'
                     },
                     tooltip: {
@@ -431,7 +438,7 @@
 
                 const series = [honorPercentage, lainnyaPercentage];
                 const labels = ['Pembayaran Honor', 'Komponen Anggaran Lainnya'];
-                const colors = ['#F48FB1', '#E0E0E0'];
+                const colors = ['#F48FB1', '#6beefa'];
 
                 // Update card info
                 const honorPercentageElement = document.getElementById('honorPercentage');
@@ -444,23 +451,25 @@
                     maxHonorPercentageElement.textContent = maxHonorPercentage + '%';
                 }
 
+                // PERBAIKAN: Logika pengecekan kondisi honor berdasarkan status sekolah
+                let isWarning = false;
+                let title = '';
+                let message = '';
+
+                console.log('🏫 [HONOR_DEBUG] Status sekolah:', sekolahStatus, 'Max honor:', maxHonorPercentage + '%', 'Current honor:', formatPercentage(honorPercentage));
+
                 if (honorPercentage > maxHonorPercentage) {
-                    updateCardInfo(
-                        'infoCard2',
-                        false,
-                        true,
-                        'Perhatian: Alokasi anggaran honor melebihi batas',
-                        `Anggaran honor Anda adalah ${formatPercentage(honorPercentage)} dari total pagu anggaran dan melebihi proporsi maksimal ${maxHonorPercentage}% untuk sekolah ${sekolahStatus}.`
-                    );
+                    isWarning = true;
+                    title = 'Perhatian: Alokasi anggaran honor melebihi batas';
+                    message = `Anggaran honor Anda adalah ${formatPercentage(honorPercentage)} dari total pagu anggaran dan melebihi proporsi maksimal ${maxHonorPercentage}% untuk sekolah ${sekolahStatus}.`;
                 } else {
-                    updateCardInfo(
-                        'infoCard2',
-                        false,
-                        false,
-                        'Alokasi anggaran Anda sudah sesuai juknis',
-                        `Anggaran honor Anda adalah ${formatPercentage(honorPercentage)} dari total pagu anggaran. Anggaran sudah sesuai dengan proporsi maksimal ${maxHonorPercentage}%.`
-                    );
+                    isWarning = false;
+                    title = 'Alokasi anggaran Anda sudah sesuai juknis';
+                    message = `Anggaran honor Anda adalah ${formatPercentage(honorPercentage)} dari total pagu anggaran. Anggaran sudah sesuai dengan proporsi maksimal ${maxHonorPercentage}% untuk sekolah ${sekolahStatus}.`;
                 }
+
+                // PERBAIKAN: Panggil fungsi updateCardInfo tanpa parameter isDanger
+                updateCardInfo('infoCard2', isWarning, title, message);
 
                 const options = {
                     series: series,
@@ -482,12 +491,12 @@
                                     show: true,
                                     name: {
                                         show: true,
-                                        fontSize: '16px',
+                                        fontSize: '12px',
                                         fontWeight: 'bold'
                                     },
                                     value: {
                                         show: true,
-                                        fontSize: '20px',
+                                        fontSize: '14px',
                                         fontWeight: 'bold',
                                         formatter: function (val) {
                                             return val + '%'
@@ -510,14 +519,14 @@
                             return opts.w.config.series[opts.seriesIndex].toFixed(1) + '%'
                         },
                         style: {
-                            fontSize: '14px',
+                            fontSize: '12px',
                             fontWeight: 'bold'
                         }
                     },
                     legend: {
                         position: 'bottom',
                         horizontalAlign: 'center',
-                        fontSize: '14px',
+                        fontSize: '12px',
                         fontWeight: 'bold'
                     },
                     tooltip: {
@@ -549,7 +558,7 @@
 
                 const series = [sarprasPercentage, lainnyaPercentage];
                 const labels = ['Pemeliharaan Sarpras', 'Komponen Anggaran Lainnya'];
-                const colors = ['#7986CB', '#E0E0E0'];
+                const colors = ['#7986CB', '#bdf797'];
 
                 // Update card info
                 const sarprasPercentageElement = document.getElementById('sarprasPercentage');
@@ -557,23 +566,25 @@
                     sarprasPercentageElement.textContent = formatPercentage(sarprasPercentage);
                 }
 
+                // PERBAIKAN: Logika pengecekan kondisi sarpras
+                let isWarning = false;
+                let title = '';
+                let message = '';
+
+                console.log('🏫 [SARPRAS_DEBUG] Current sarpras:', formatPercentage(sarprasPercentage), 'Maksimal: 20%');
+
                 if (sarprasPercentage > 20) {
-                    updateCardInfo(
-                        'infoCard3',
-                        false,
-                        true,
-                        'Perhatian: Alokasi anggaran sarpras melebihi batas',
-                        `Anggaran pemeliharaan sarpras Anda adalah ${formatPercentage(sarprasPercentage)} dan melebihi proporsi maksimal 20% dari total pagu anggaran.`
-                    );
+                    isWarning = true;
+                    title = 'Perhatian: Alokasi anggaran sarpras melebihi batas';
+                    message = `Anggaran pemeliharaan sarpras Anda adalah ${formatPercentage(sarprasPercentage)} dan melebihi proporsi maksimal 20% dari total pagu anggaran.`;
                 } else {
-                    updateCardInfo(
-                        'infoCard3',
-                        false,
-                        false,
-                        'Alokasi anggaran Anda sudah sesuai juknis',
-                        `Anggaran pemeliharaan sarpras Anda adalah ${formatPercentage(sarprasPercentage)} dan sudah sesuai dengan proporsi maksimal 20% dari total pagu anggaran.`
-                    );
+                    isWarning = false;
+                    title = 'Alokasi anggaran Anda sudah sesuai juknis';
+                    message = `Anggaran pemeliharaan sarpras Anda adalah ${formatPercentage(sarprasPercentage)} dan sudah sesuai dengan proporsi maksimal 20% dari total pagu anggaran.`;
                 }
+
+                // Panggil fungsi updateCardInfo
+                updateCardInfo('infoCard3', isWarning, title, message);
 
                 const options = {
                     series: series,
@@ -595,12 +606,12 @@
                                     show: true,
                                     name: {
                                         show: true,
-                                        fontSize: '16px',
+                                        fontSize: '12px',
                                         fontWeight: 'bold'
                                     },
                                     value: {
                                         show: true,
-                                        fontSize: '20px',
+                                        fontSize: '14px',
                                         fontWeight: 'bold',
                                         formatter: function (val) {
                                             return val + '%'
@@ -623,14 +634,14 @@
                             return opts.w.config.series[opts.seriesIndex].toFixed(1) + '%'
                         },
                         style: {
-                            fontSize: '14px',
+                            fontSize: '12px',
                             fontWeight: 'bold'
                         }
                     },
                     legend: {
                         position: 'bottom',
                         horizontalAlign: 'center',
-                        fontSize: '14px',
+                        fontSize: '12px',
                         fontWeight: 'bold'
                     },
                     tooltip: {

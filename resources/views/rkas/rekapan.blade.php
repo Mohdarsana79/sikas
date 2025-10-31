@@ -13,17 +13,17 @@
                     <p class="mb-0 text-muted">Rekap Rencana Kegiatan dan Anggaran Sekolah</p>
                 </div>
                 <div class="tanggal-cetak" style="font-size: 10pt;">
-    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#editTanggalCetak" style="font-size: 10pt;">
-        <i class="bi bi-calendar-heart me-2"></i>Tanggal Cetak
-    </button>
-    <span class="ms-2">Tanggal Cetak: 
-        @if($penganggaran->tanggal_cetak)
-            {{ \Carbon\Carbon::parse($penganggaran->tanggal_cetak)->format('d/m/Y') }}
-        @else
-            Belum diisi
-        @endif
-    </span>
-</div>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#editTanggalCetak" style="font-size: 10pt;">
+                        <i class="bi bi-calendar-heart me-2"></i>Tanggal Cetak
+                    </button>
+                    <span class="ms-2">Tanggal Cetak: 
+                        @if($penganggaran->tanggal_cetak)
+                            {{ \Carbon\Carbon::parse($penganggaran->tanggal_cetak)->format('d/m/Y') }}
+                        @else
+                            Belum diisi
+                        @endif
+                    </span>
+                </div>
             </div>
 
             <!-- Card Penganggaran -->
@@ -56,9 +56,9 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="lainnya-tab" data-bs-toggle="tab" data-bs-target="#lainnya"
+                            <button class="nav-link" id="grafik-tab" data-bs-toggle="tab" data-bs-target="#grafik"
                                 type="button" role="tab">
-                                Lainnya
+                                Grafik
                             </button>
                         </li>
                     </ul>
@@ -477,13 +477,10 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Lainnya Tab -->
-                        <div class="tab-pane fade" id="lainnya" role="tabpanel">
+                        <!-- Grafik Proporsi Tab -->
+                        <div class="tab-pane fade" id="grafik" role="tabpanel">
                             <div class="p-4">
-                                <div class="text-center py-5">
-                                    <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
-                                    <p class="text-muted mt-3">Belum ada data lainnya</p>
-                                </div>
+                                @include('rkas.partials.grafik-proporsi')
                             </div>
                         </div>
                     </div>

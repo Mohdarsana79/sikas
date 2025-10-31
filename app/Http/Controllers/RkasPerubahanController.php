@@ -2824,9 +2824,7 @@ class RkasPerubahanController extends Controller
             ], 500);
         }
     }
-
-    // Tambahkan method ini di RkasPerubahanController.php
-
+    
     /**
      * Mendapatkan data untuk grafik proporsi anggaran - BERDASARKAN KODE KEGIATAN
      */
@@ -2858,7 +2856,6 @@ class RkasPerubahanController extends Controller
                 });
 
             Log::info('📚 [GRAFIK_DEBUG] Buku anggaran calculated: ' . number_format($bukuAnggaran, 2));
-            Log::info('📚 [GRAFIK_DEBUG] Buku percentage: ' . ($totalPagu > 0 ? number_format(($bukuAnggaran / $totalPagu) * 100, 2) : 0) . '%');
 
             // 2. Hitung anggaran HONOR - BERDASARKAN KODE KEGIATAN
             $honorAnggaran = RkasPerubahan::where('penganggaran_id', $penganggaranId)
@@ -2883,22 +2880,11 @@ class RkasPerubahanController extends Controller
             $honorPercentage = $totalPagu > 0 ? ($honorAnggaran / $totalPagu) * 100 : 0;
             Log::info('💰 [GRAFIK_DEBUG] Honor percentage dari 100% pagu: ' . number_format($honorPercentage, 2) . '%');
 
-            // 3. Hitung anggaran SARPRAS - BERDASARKAN KODE KEGIATAN
+            // 3. Hitung anggaran SARPRAS - HANYA DARI KODE KEGIATAN 05.08
             $sarprasAnggaran = RkasPerubahan::where('penganggaran_id', $penganggaranId)
                 ->whereHas('kodeKegiatan', function ($query) {
-                    // Kode kegiatan yang terkait dengan sarana prasarana
-                    $query->where('kode', 'like', '05.08.%') // Pemeliharaan Sarana dan Prasarana Sekolah
-                        ->orWhere('kode', 'like', '05.09.%') // Penyediaan Alat Multi Media Pembelajaran
-                        ->orWhere('kode', 'like', '05.05.%') // Pelaksanaan Administrasi Kegiatan Sekolah (media pembelajaran)
-                        ->orWhere('sub_program', 'ilike', '%sarana%')
-                        ->orWhere('sub_program', 'ilike', '%prasarana%')
-                        ->orWhere('sub_program', 'ilike', '%pemeliharaan%')
-                        ->orWhere('sub_program', 'ilike', '%peralatan%')
-                        ->orWhere('uraian', 'ilike', '%sarana%')
-                        ->orWhere('uraian', 'ilike', '%prasarana%')
-                        ->orWhere('uraian', 'ilike', '%pemeliharaan%')
-                        ->orWhere('uraian', 'ilike', '%perbaikan%')
-                        ->orWhere('uraian', 'ilike', '%peralatan%');
+                    // HANYA kode kegiatan 05.08 - Pemeliharaan Sarana dan Prasarana Sekolah
+                    $query->where('kode', 'like', '05.08.%');
                 })
                 ->get()
                 ->sum(function ($item) {
@@ -2908,31 +2894,45 @@ class RkasPerubahanController extends Controller
             Log::info('🏫 [GRAFIK_DEBUG] Sarpras anggaran calculated: ' . number_format($sarprasAnggaran, 2));
             Log::info('🏫 [GRAFIK_DEBUG] Sarpras percentage: ' . ($totalPagu > 0 ? number_format(($sarprasAnggaran / $totalPagu) * 100, 2) : 0) . '%');
 
-            // 4. Data untuk grafik jenis belanja lainnya - BERDASARKAN KODE KEGIATAN
+            // 4. Data untuk grafik jenis belanja lainnya - BERDASARKAN REKENING BELANJA SAJA
             $jenisBelanjaData = RkasPerubahan::where('penganggaran_id', $penganggaranId)
-                ->with('kodeKegiatan')
+                ->with(['kodeKegiatan', 'rekeningBelanja'])
                 ->get()
                 ->groupBy(function ($item) {
-                    // Group by program dari kode kegiatan
-                    $program = $item->kodeKegiatan->program ?? 'Lainnya';
+                    // Group by kombinasi kode kegiatan dan rekening belanja
+                    $kodeKegiatan = $item->kodeKegiatan->kode ?? '';
+                    $kodeRekening = $item->rekeningBelanja->kode_rekening ?? '';
 
-                    // Sederhanakan nama program untuk grafik
-                    if (strpos($program, 'Pengembangan sarana dan prasarana') !== false) {
-                        return 'Sarana Prasarana';
-                    } elseif (strpos($program, 'Pengembangan pendidik dan tenaga kependidikan') !== false) {
-                        return 'Pengembangan Guru & Tenaga';
-                    } elseif (strpos($program, 'Pengembangan Standar Proses') !== false) {
-                        return 'Proses Pembelajaran';
-                    } elseif (strpos($program, 'Pengembangan standar pembiayaan') !== false) {
-                        return 'Pembiayaan';
-                    } elseif (strpos($program, 'Pengembangan standar pengelolaan') !== false) {
-                        return 'Pengelolaan Sekolah';
-                    } elseif (strpos($program, 'Pengembangan dan implementasi sistem penilaian') !== false) {
-                        return 'Sistem Penilaian';
-                    } elseif (strpos($program, 'Pengembangan Standar Isi') !== false) {
-                        return 'Standar Isi';
+                // HONORARIUM - Ambil dari kode kegiatan spesifik
+                $honorariumKegiatanCodes = [
+                    '07.12.01.',
+                    '07.12.02.',
+                    '07.12.03.',
+                    '07.12.04.'
+                ];
+
+                // Cek apakah kode kegiatan termasuk honorarium
+                foreach ($honorariumKegiatanCodes as $honorCode) {
+                    if (strpos($kodeKegiatan, $honorCode) === 0) {
+                        return 'Honorarium';
+                    }
+                }
+
+                    // Kategorikan berdasarkan kode rekening
+                    if (strpos($kodeRekening, '5.1.02.01') === 0) {
+                        return 'Barang';
+                    } elseif (strpos($kodeRekening, '5.1.02.02') === 0) {
+                        return 'Jasa';
+                    } elseif (strpos($kodeRekening, '5.1.02.03') === 0) {
+                        return 'Pemeliharaan';
+                    } elseif (strpos($kodeRekening, '5.1.02.04') === 0) {
+                        return 'Perjalanan Dinas';
+                    } elseif (strpos($kodeRekening, '5.2.02') === 0) {
+                        return 'Modal Peralatan Mesin';
+                    } elseif (strpos($kodeRekening, '5.2.05') === 0) {
+                        return 'Modal Aset Tetap Lainnya';
                     } else {
-                        return $program;
+                        return 'Belum di Anggarkan';
                     }
                 })
                 ->map(function ($group, $category) use ($totalPagu) {
@@ -2951,7 +2951,6 @@ class RkasPerubahanController extends Controller
                     ];
                 })
                 ->sortByDesc('value')
-                ->take(8)
                 ->values();
 
             Log::info('📊 [GRAFIK_DEBUG] Jenis belanja data count: ' . $jenisBelanjaData->count());
@@ -2962,7 +2961,7 @@ class RkasPerubahanController extends Controller
                 'sarpras_anggaran' => $sarprasAnggaran,
                 'jenis_belanja' => $jenisBelanjaData,
                 'total_pagu' => $totalPagu,
-                'honor_percentage' => $honorPercentage, // Tambahkan ini untuk akses mudah
+                'honor_percentage' => $honorPercentage,
             ];
 
             Log::info('✅ [GRAFIK_DEBUG] Final grafik data result: ', [
@@ -2970,7 +2969,7 @@ class RkasPerubahanController extends Controller
                 'buku_anggaran' => $bukuAnggaran,
                 'buku_persentase' => $totalPagu > 0 ? ($bukuAnggaran / $totalPagu) * 100 : 0,
                 'honor_anggaran' => $honorAnggaran,
-                'honor_persentase_dari_100pagu' => $honorPercentage, // PERBAIKAN: dari 100% pagu
+                'honor_persentase_dari_100pagu' => $honorPercentage,
                 'sarpras_anggaran' => $sarprasAnggaran,
                 'sarpras_persentase' => $totalPagu > 0 ? ($sarprasAnggaran / $totalPagu) * 100 : 0,
             ]);

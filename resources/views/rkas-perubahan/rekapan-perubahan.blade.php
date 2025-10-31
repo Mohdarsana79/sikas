@@ -570,7 +570,7 @@
                     <div class="tab-pane fade" id="grafik" role="tabpanel">
                         <div class="p-4">
                             {{-- content grafik proporsi analisis anggaran--}}
-                            @include('rkas-perubahan.partials.grafik-proporsi')
+                            @include('rkas-perubahan.partials.grafik-proporsi-perubahan')
                         </div>
                     </div>
                 </div>

@@ -33,6 +33,11 @@ class RkasController extends Controller
             // Get penganggaran for selected year
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
+            $sekolah = Sekolah::first();
+
+            // Ambil data untuk grafik
+            $grafikData = $this->getGrafikData($penganggaran->id);
+
             // Get all RKAS data grouped by month for selected year
             $rkasData = $this->getAllRkasDataGroupedByMonth($penganggaran->id);
 
@@ -66,7 +71,9 @@ class RkasController extends Controller
                 'paguAnggaranTahap1',
                 'paguAnggaranTahap2',
                 'tahun', // Pass the selected year to view
-                'hasPerubahan'
+                'hasPerubahan',
+                'grafikData',
+                'sekolah'
             ));
         } catch (\Exception $e) {
             Log::error('Error in RKAS index: '.$e->getMessage());
@@ -1233,6 +1240,10 @@ class RkasController extends Controller
                 throw new \Exception('Data sekolah tidak ditemukan');
             }
 
+            // Ambil data untuk grafik
+            $grafikData = $this->getGrafikData($penganggaran->id);
+            Log::info('Data grafik berhasil diambil:', $grafikData);
+
             // Data untuk RKAS Tahapan - filter by penganggaran_id
             $belanja = $this->kelolaDataRkas(
                 Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
@@ -1334,6 +1345,7 @@ class RkasController extends Controller
                 'groupedItems' => $groupedItemsFor221,
                 'totals' => $totalsFor221,
                 'total_anggaran' => $penganggaran->pagu_anggaran,
+                'grafikData' => $grafikData,
             ]);
         } catch (\Exception $e) {
             Log::error('Error showing rekapan: '.$e->getMessage());
@@ -2304,5 +2316,194 @@ class RkasController extends Controller
                 'message' => 'Gagal memuat data: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Mendapatkan data untuk grafik proporsi anggaran - BERDASARKAN KODE KEGIATAN
+     */
+    private function getGrafikData($penganggaranId)
+    {
+        Log::info('🔍 [GRAFIK_DEBUG] Starting getGrafikData for penganggaran_id: ' . $penganggaranId);
+
+        try {
+            // Total pagu anggaran
+            $penganggaran = Penganggaran::find($penganggaranId);
+            $totalPagu = $penganggaran->pagu_anggaran ?? 0;
+
+            Log::info('🔍 [GRAFIK_DEBUG] Total pagu anggaran: ' . number_format($totalPagu, 2));
+
+            // 1. Hitung anggaran BUKU - BERDASARKAN KODE KEGIATAN
+            $bukuAnggaran = Rkas::where('penganggaran_id', $penganggaranId)
+                ->whereHas('kodeKegiatan', function ($query) {
+                    // Kode kegiatan yang terkait dengan buku
+                    $query->where('kode', 'like', '05.02.%') // Pengembangan Perpustakaan
+                        ->orWhere('kode', 'like', '02.02.%') // Kegiatan pemberdayaan perpustakaan
+                        ->orWhere('kode', 'like', '03.02.%') // Pengembangan Perpustakaan
+                        ->orWhere('sub_program', 'ilike', '%perpustakaan%')
+                        ->orWhere('uraian', 'ilike', '%buku%')
+                        ->orWhere('uraian', 'ilike', '%perpustakaan%');
+                })
+                ->get()
+                ->sum(function ($item) {
+                    return $item->jumlah * $item->harga_satuan;
+                });
+
+            Log::info('📚 [GRAFIK_DEBUG] Buku anggaran calculated: ' . number_format($bukuAnggaran, 2));
+
+            // 2. Hitung anggaran HONOR - BERDASARKAN KODE KEGIATAN
+            $honorAnggaran = Rkas::where('penganggaran_id', $penganggaranId)
+                ->whereHas('kodeKegiatan', function ($query) {
+                    // Kode kegiatan yang terkait dengan honor/gaji
+                    $query->where('kode', 'like', '07.12.%') // Pembayaran Honor
+                        ->orWhere('sub_program', 'ilike', '%honor%')
+                        ->orWhere('sub_program', 'ilike', '%gaji%')
+                        ->orWhere('uraian', 'ilike', '%honor%')
+                        ->orWhere('uraian', 'ilike', '%gaji%')
+                        ->orWhere('uraian', 'ilike', '%pembayaran%guru%')
+                        ->orWhere('uraian', 'ilike', '%pembayaran%tenaga%');
+                })
+                ->get()
+                ->sum(function ($item) {
+                    return $item->jumlah * $item->harga_satuan;
+                });
+
+            Log::info('💰 [GRAFIK_DEBUG] Honor anggaran calculated: ' . number_format($honorAnggaran, 2));
+
+            // PERBAIKAN: Hitung persentase honor dari 100% total pagu
+            $honorPercentage = $totalPagu > 0 ? ($honorAnggaran / $totalPagu) * 100 : 0;
+            Log::info('💰 [GRAFIK_DEBUG] Honor percentage dari 100% pagu: ' . number_format($honorPercentage, 2) . '%');
+
+            // 3. Hitung anggaran SARPRAS - HANYA DARI KODE KEGIATAN 05.08
+            $sarprasAnggaran = Rkas::where('penganggaran_id', $penganggaranId)
+                ->whereHas('kodeKegiatan', function ($query) {
+                    // HANYA kode kegiatan 05.08 - Pemeliharaan Sarana dan Prasarana Sekolah
+                    $query->where('kode', 'like', '05.08.%');
+                })
+                ->get()
+                ->sum(function ($item) {
+                    return $item->jumlah * $item->harga_satuan;
+                });
+
+            Log::info('🏫 [GRAFIK_DEBUG] Sarpras anggaran calculated: ' . number_format($sarprasAnggaran, 2));
+            Log::info('🏫 [GRAFIK_DEBUG] Sarpras percentage: ' . ($totalPagu > 0 ? number_format(($sarprasAnggaran / $totalPagu) * 100, 2) : 0) . '%');
+
+            // 4. Data untuk grafik jenis belanja lainnya - BERDASARKAN REKENING BELANJA SAJA
+            $jenisBelanjaData = Rkas::where('penganggaran_id', $penganggaranId)
+                ->with(['kodeKegiatan', 'rekeningBelanja'])
+                ->get()
+                ->groupBy(function ($item) {
+                    // Group by kombinasi kode kegiatan dan rekening belanja
+                    $kodeKegiatan = $item->kodeKegiatan->kode ?? '';
+                    $kodeRekening = $item->rekeningBelanja->kode_rekening ?? '';
+
+                    // HONORARIUM - Ambil dari kode kegiatan spesifik
+                    $honorariumKegiatanCodes = [
+                        '07.12.01.',
+                        '07.12.02.',
+                        '07.12.03.',
+                        '07.12.04.'
+                    ];
+
+                    // Cek apakah kode kegiatan termasuk honorarium
+                    foreach ($honorariumKegiatanCodes as $honorCode) {
+                        if (strpos($kodeKegiatan, $honorCode) === 0) {
+                            return 'Honorarium';
+                        }
+                    }
+
+                    // Kategorikan berdasarkan kode rekening
+                    if (strpos($kodeRekening, '5.1.02.01') === 0) {
+                        return 'Barang';
+                    } elseif (strpos($kodeRekening, '5.1.02.02') === 0) {
+                        return 'Jasa';
+                    } elseif (strpos($kodeRekening, '5.1.02.03') === 0) {
+                        return 'Pemeliharaan';
+                    } elseif (strpos($kodeRekening, '5.1.02.04') === 0) {
+                        return 'Perjalanan Dinas';
+                    } elseif (strpos($kodeRekening, '5.2.02') === 0) {
+                        return 'Modal Peralatan Mesin';
+                    } elseif (strpos($kodeRekening, '5.2.05') === 0) {
+                        return 'Modal Aset Tetap Lainnya';
+                    } else {
+                        return 'Belum di Anggarkan';
+                    }
+                })
+                ->map(function ($group, $category) use ($totalPagu) {
+                    $total = $group->sum(function ($item) {
+                        return $item->jumlah * $item->harga_satuan;
+                    });
+
+                    $percentage = $totalPagu > 0 ? ($total / $totalPagu) * 100 : 0;
+
+                    return [
+                        'label' => $category,
+                        'value' => $percentage,
+                        'percentage' => number_format($percentage, 2) . '%',
+                        'color' => $this->getRandomColor(),
+                        'total' => number_format($total, 2)
+                    ];
+                })
+                ->sortByDesc('value')
+                ->values();
+
+            Log::info('📊 [GRAFIK_DEBUG] Jenis belanja data count: ' . $jenisBelanjaData->count());
+
+            $grafikData = [
+                'buku_anggaran' => $bukuAnggaran,
+                'honor_anggaran' => $honorAnggaran,
+                'sarpras_anggaran' => $sarprasAnggaran,
+                'jenis_belanja' => $jenisBelanjaData,
+                'total_pagu' => $totalPagu,
+                'honor_percentage' => $honorPercentage,
+            ];
+
+            Log::info('✅ [GRAFIK_DEBUG] Final grafik data result: ', [
+                'total_pagu' => $totalPagu,
+                'buku_anggaran' => $bukuAnggaran,
+                'buku_persentase' => $totalPagu > 0 ? ($bukuAnggaran / $totalPagu) * 100 : 0,
+                'honor_anggaran' => $honorAnggaran,
+                'honor_persentase_dari_100pagu' => $honorPercentage,
+                'sarpras_anggaran' => $sarprasAnggaran,
+                'sarpras_persentase' => $totalPagu > 0 ? ($sarprasAnggaran / $totalPagu) * 100 : 0,
+            ]);
+
+            return $grafikData;
+        } catch (\Exception $e) {
+            Log::error('❌ [GRAFIK_DEBUG] Error in getGrafikData: ' . $e->getMessage());
+            Log::error('❌ [GRAFIK_DEBUG] Stack trace: ' . $e->getTraceAsString());
+
+            return [
+                'buku_anggaran' => 0,
+                'honor_anggaran' => 0,
+                'sarpras_anggaran' => 0,
+                'jenis_belanja' => collect(),
+                'total_pagu' => 0,
+                'honor_percentage' => 0,
+            ];
+        }
+    }
+
+    /**
+     * Generate random color for charts
+     */
+    private function getRandomColor()
+    {
+        $colors = [
+            '#4DB6AC',
+            '#F48FB1',
+            '#EE82EE',
+            '#9FA8DA',
+            '#4FC3F7',
+            '#BA68C8',
+            '#4DD0E1',
+            '#7986CB',
+            '#81D4FA',
+            '#FFB74D',
+            '#9575CD',
+            '#F48FB1',
+            '#7986CB'
+        ];
+
+        return $colors[array_rand($colors)];
     }
 }
