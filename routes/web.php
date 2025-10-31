@@ -23,6 +23,7 @@ use App\Http\Controllers\RegistrasiPenutupanKasController;
 use App\Http\Controllers\BukuKasPembantuTunaiController;
 use App\Http\Controllers\BukuRobController;
 use App\Http\Controllers\RekapitulasiRealisasiController;
+use App\Http\Controllers\KopSekolahController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +48,12 @@ Route::middleware(['auth'])->prefix('sekolah')->group(function () {
     Route::get('/', [SekolahController::class, 'index'])->name('sekolah.index');
     Route::post('/', [SekolahController::class, 'store'])->name('sekolah.store');
     Route::put('/{sekolah}', [SekolahController::class, 'update'])->name('sekolah.update');
+});
+
+Route::middleware(['auth'])->prefix('kop-sekolah')->group(function () {
+    Route::get('/', [KopSekolahController::class, 'index'])->name('kop-sekolah.index');
+    Route::post('/', [KopSekolahController::class, 'store'])->name('kop-sekolah.store');
+    Route::delete('/{id}', [KopSekolahController::class, 'destroy'])->name('kop-sekolah.destroy');
 });
 
 Route::middleware(['auth'])->prefix('backup')->group(function () {

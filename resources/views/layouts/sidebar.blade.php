@@ -31,6 +31,10 @@
                         </a>
                     </li>
                     <li>
+                        <a href="{{ route('kop-sekolah.index') }}" class="nav-link" data-page="comp-kop-sekolah">Kop Sekolah
+                        </a>
+                    </li>
+                    <li>
                         <a href="{{ route('referensi.kode-kegiatan.index') }}" class="nav-link"
                             data-page="comp-kodeKegiatan">Kode Kegiatan
                         </a>
