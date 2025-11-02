@@ -61,6 +61,18 @@ class BukuKasUmumUraianDetail extends Model
         return $this->belongsTo(RkasPerubahan::class, 'rkas_perubahan_id');
     }
 
+    // PERBAIKAN: Tambahkan relationship dengan Kwitansi
+    public function kwitansi()
+    {
+        return $this->hasOne(Kwitansi::class, 'bku_uraian_detail_id');
+    }
+
+    // Relationship untuk cek apakah sudah memiliki kwitansi
+    public function hasKwitansi()
+    {
+        return $this->kwitansi()->exists();
+    }
+
     public function getHargaSatuanFormattedAttribute()
     {
         return 'Rp '.number_format($this->harga_satuan, 0, ',', '.');

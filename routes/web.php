@@ -3,27 +3,28 @@
 use App\Http\Controllers\auth\LoginController;
 use App\Http\Controllers\auth\LogoutController;
 use App\Http\Controllers\auth\RegisterController;
+use App\Http\Controllers\BeritaAcaraPenutupanController;
+use App\Http\Controllers\BukuBankController;
+use App\Http\Controllers\BukuKasPembantuTunaiController;
 use App\Http\Controllers\BukuKasUmumController;
+use App\Http\Controllers\BukuPajakController;
+use App\Http\Controllers\BukuRobController;
 use App\Http\Controllers\DatabaseController;
 use App\Http\Controllers\KodeKegiatanController;
+use App\Http\Controllers\KopSekolahController;
 use App\Http\Controllers\PenarikanTunaiController;
 use App\Http\Controllers\PenatausahaanController;
 use App\Http\Controllers\PenerimaanDanaController;
 use App\Http\Controllers\PenganggaranController;
+use App\Http\Controllers\RegistrasiPenutupanKasController;
 use App\Http\Controllers\RekamanPerubahanController;
+use App\Http\Controllers\RekapitulasiRealisasiController;
 use App\Http\Controllers\RekeningBelanjaController;
 use App\Http\Controllers\RkasController;
 use App\Http\Controllers\RkasPerubahanController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\SetorTunaiController;
-use App\Http\Controllers\BukuBankController;
-use App\Http\Controllers\BukuPajakController;
-use App\Http\Controllers\BeritaAcaraPenutupanController;
-use App\Http\Controllers\RegistrasiPenutupanKasController;
-use App\Http\Controllers\BukuKasPembantuTunaiController;
-use App\Http\Controllers\BukuRobController;
-use App\Http\Controllers\RekapitulasiRealisasiController;
-use App\Http\Controllers\KopSekolahController;
+use App\Http\Controllers\KwitansiController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
@@ -86,7 +87,7 @@ Route::middleware(['auth'])->prefix('penganggaran')->group(function () {
     Route::put('/penganggaran/{id}', [PenganggaranController::class, 'update'])->name('penganggaran.update');
     Route::delete('/penganggaran/{id}', [PenganggaranController::class, 'destroy'])->name('penganggaran.destroy');
 
-    //untuk hapus RKAS Perubahan
+    // untuk hapus RKAS Perubahan
     Route::delete('/rkas-perubahan/{id}', [PenganggaranController::class, 'destroyRkasPerubahan'])
         ->name('penganggaran.destroy-rkas-perubahan');
 });
@@ -106,7 +107,6 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
     // Route untuk delete semua data dengan kriteria yang sama
     Route::delete('/delete-all/{id}', [RkasPerubahanController::class, 'deleteAll'])->name('rkas-perubahan.delete-all');
 
-
     // Route khusus untuk edit - TAMBAHKAN INI
     Route::get('/{id}/edit', [RkasPerubahanController::class, 'edit'])->name('rkas-perubahan.edit');
 
@@ -114,7 +114,7 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
     Route::get('/bulan/{bulan}', [RkasPerubahanController::class, 'getByMonth'])->name('rkas-perubahan.getByMonth');
     // Route untuk mendapatkan semua data RKAS Perubahan
     Route::get('/all-data', [RkasPerubahanController::class, 'getAllData'])->name('rkas-perubahan.getAllData');
-    
+
     // route untuk update RKAS Perubahan
     Route::put('/{id}', [RkasPerubahanController::class, 'update'])->name('rkas-perubahan.update');
 
@@ -122,7 +122,7 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
         ->name('penganggaran.update-tanggal-perubahan');
     Route::post('/sisipkan', [RkasPerubahanController::class, 'sisipkan'])
         ->name('rkas-perubahan.sisipkan');
-    
+
     Route::delete('/{id}', [RkasPerubahanController::class, 'destroy'])->name('rkas-perubahan.destroy');
     Route::get('/total/per-bulan', [RkasPerubahanController::class, 'getTotalPerBulan'])->name('rkas-perubahan.getTotalPerBulan');
     // Routes for Tahap 1 and Tahap 2 functionality
@@ -133,7 +133,6 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
         ->name('rkas-perubahan.rekapan-perubahan');
 
     // Route Pengaturan Cetak
-    
 
     // Routes untuk PDF dan Preview
     Route::get('/rkas-perubahan/generate-tahapan-pdf', [RkasPerubahanController::class, 'generateTahapanPdf'])
@@ -400,5 +399,29 @@ Route::middleware(['auth'])->prefix('laporan')->group(function () {
         ->name('laporan.realisasi-pdf');
     Route::get('/realisasi-rekapan/{tahun}/{bulan}', [RekapitulasiRealisasiController::class, 'getRealisasiForRekapanBku'])
         ->name('laporan.realisasi-rekapan');
+
+});
+
+Route::middleware(['auth'])->prefix('kwitansi')->group(function () {
+    Route::get('/', [KwitansiController::class, 'index'])->name('kwitansi.index');
+    // Route untuk search dengan AJAX
+    Route::get('/search', [KwitansiController::class, 'search'])->name('kwitansi.search');
+    
+    Route::get('/create', [KwitansiController::class, 'create'])->name('kwitansi.create');
+    Route::post('/', [KwitansiController::class, 'store'])->name('kwitansi.store');
+
+    // Routes untuk generate otomatis - HARUS DIPINDAHKAN KE ATAS
+    Route::get('/check-available', [KwitansiController::class, 'checkAvailableData'])->name('kwitansi.check-available');
+    Route::post('/generate-batch', [KwitansiController::class, 'generateBatch'])->name('kwitansi.generate-batch');
+
+    // Routes dengan parameter ID - DITARUH DI BAWAH
+    Route::get('/{id}', [KwitansiController::class, 'show'])->name('kwitansi.show');
+    Route::get('/{id}/pdf', [KwitansiController::class, 'generatePdf'])->name('kwitansi.pdf');
+    Route::get('/{id}/preview', [KwitansiController::class, 'previewPdf'])->name('kwitansi.preview');
+    Route::delete('/{id}', [KwitansiController::class, 'destroy'])->name('kwitansi.destroy');
+    // Route untuk hapus semua kwitansi
+    Route::delete('/delete/all', [KwitansiController::class, 'deleteAll'])->name('kwitansi.delete-all');
+    // Route debug untuk melihat data count
+    Route::get('/debug-count', [KwitansiController::class, 'debugDataCount'])->name('kwitansi.debug-count');
     
 });

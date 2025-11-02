@@ -63,13 +63,13 @@
 
             <!-- Components -->
             <li class="nav-item">
-                <a href="#" class="nav-link" data-toggle="submenu" data-target="components-submenu">
+                <a href="#" class="nav-link" data-toggle="submenu" data-target="laporan-submenu">
                     <i class="bi bi-puzzle nav-icon"></i>
                     <span class="nav-text">Laporan</span>
                     <i class="bi bi-chevron-right nav-arrow"></i>
                 </a>
-                <ul class="nav-submenu list-unstyled" id="components-submenu">
-                    <li><a href="pages/components/accordion.html" class="nav-link" data-page="comp-accordion">Kwitansi</a>
+                <ul class="nav-submenu list-unstyled" id="laporan-submenu">
+                    <li><a href="{{route('kwitansi.index')}}" class="nav-link" data-page="comp-kwitansi">Kwitansi</a>
                     </li>
                 </ul>
             </li>

@@ -100,6 +100,22 @@ class BukuKasUmum extends Model
         return $this->belongsTo(Sekolah::class);
     }
 
+    /**
+     * Relationship dengan Kwitansi
+     */
+    public function kwitansi()
+    {
+        return $this->hasOne(Kwitansi::class, 'buku_kas_umum_id');
+    }
+
+    /**
+     * Relationship dengan Kwitansi (bisa multiple)
+     */
+    public function kwitansis()
+    {
+        return $this->hasMany(Kwitansi::class, 'buku_kas_umum_id');
+    }
+
     // Scope untuk mencari transaksi berdasarkan uraian
     public function scopeWhereUraianLike($query, $uraian)
     {
