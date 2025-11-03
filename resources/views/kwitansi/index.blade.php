@@ -9,6 +9,7 @@
     body {
         font-family: 'Inter', sans-serif;
         background-color: #f7f9fc;
+        font-size: 10pt;
         /* Warna latar belakang yang lembut */
     }
 
@@ -104,6 +105,13 @@
                 <i class="bi bi-plus-circle me-2"></i>
                 Generate
             </button>
+            <!-- Download All -->
+            <a href="{{ route('kwitansi.download-all') }}"
+                class="btn btn-info btn-sm fw-semibold rounded-pill shadow-sm py-2 px-4 d-flex align-items-center"
+                id="download-all-btn" {{ $kwitansis->count() === 0 ? 'disabled' : '' }}>
+                <i class="bi bi-download me-2"></i>
+                Download All
+            </a>
             <!-- Hapus Semua -->
             <button class="btn btn-danger btn-sm fw-semibold rounded-pill shadow-sm py-2 px-4 d-flex align-items-center"
                 id="delete-all-btn" {{ $kwitansis->count() === 0 ? 'disabled' : '' }}>
@@ -923,6 +931,67 @@
                 .catch(error => {
                     console.error('Pagination error:', error);
                 });
+        }
+
+        // Download All Button
+        const downloadAllBtn = document.getElementById('download-all-btn');
+        if (downloadAllBtn) {
+            downloadAllBtn.addEventListener('click', function(e) {
+                if (this.hasAttribute('disabled')) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Tidak ada data',
+                        text: 'Tidak ada data kwitansi untuk diunduh'
+                    });
+                    return;
+                }
+
+                e.preventDefault();
+                
+                Swal.fire({
+                    title: 'Download Semua Kwitansi?',
+                    html: `
+                        <div class="alert alert-info text-left">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <strong>Informasi Download</strong>
+                            <hr>
+                            <p>Anda akan mengunduh <strong>${document.getElementById('total-kwitansi').textContent} kwitansi</strong> dalam satu file PDF.</p>
+                            <p class="mb-0">Proses ini mungkin membutuhkan waktu beberapa saat tergantung jumlah data.</p>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#17a2b8',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-download mr-1"></i> Download',
+                    cancelButtonText: '<i class="fas fa-times mr-1"></i> Batal',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Tampilkan loading
+                        Swal.fire({
+                            title: 'Mempersiapkan Download...',
+                            html: `
+                                <div class="text-center">
+                                    <div class="spinner-border text-info mb-3" style="width: 2rem; height: 2rem;"></div>
+                                    <p>Sedang menyiapkan file PDF...</p>
+                                </div>
+                            `,
+                            showConfirmButton: false,
+                            allowOutsideClick: false
+                        });
+
+                        // Redirect ke download URL
+                        window.location.href = downloadAllBtn.href;
+                        
+                        // Tutup loading setelah 3 detik (fallback)
+                        setTimeout(() => {
+                            Swal.close();
+                        }, 3000);
+                    }
+                });
+            });
         }
     });
 </script>

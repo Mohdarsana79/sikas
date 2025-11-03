@@ -4,31 +4,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kwitansi Pembayaran</title>
+    <title>Semua Kwitansi</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Roboto:wght@400;700&display=swap"
         rel="stylesheet">
     <style>
-        /* CSS tetap sama seperti sebelumnya */
         body {
             font-family: 'Roboto', 'Arial Narrow', Arial, sans-serif;
-            /* background-color: #f0f0f0; */
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            /* padding: 20px; */
             font-size: 10pt;
             line-height: 1.2;
+            margin: 0;
+            padding: 0;
+        }
+
+        .page-break {
+            page-break-after: always;
         }
 
         .kwitansi-container {
-            /* width: 210mm;
-            min-height: 297mm; */
-            background-color: white;
-            /* padding: 30px; */
-            /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
-            /* border: 1px solid #ccc; */
+            margin-bottom: 20px;
+            padding: 15px;
         }
 
+        .header-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        .header-info h2 {
+            margin: 0;
+            font-size: 16pt;
+            color: #333;
+        }
+
+        .header-info p {
+            margin: 5px 0;
+            font-size: 9pt;
+            color: #666;
+        }
+
+        /* CSS dari pdf.blade.php (diperlukan untuk styling kwitansi individual) */
         .bordered-content {
             border-top: 1px solid #000;
             border-bottom: 1px solid #000;
@@ -96,21 +112,6 @@
         .receipt-info {
             margin-bottom: 5px;
             width: 100%;
-        }
-
-        .receipt-info .data-row {
-            display: flex;
-            margin-bottom: 5px;
-        }
-
-        .receipt-info .label-col {
-            width: 170px;
-            flex-shrink: 0;
-        }
-
-        .receipt-info .info-col {
-            flex-grow: 1;
-            font-weight: bold;
         }
 
         .detail-table-container {
@@ -302,17 +303,26 @@
 </head>
 
 <body>
-    <div class="kwitansi-container">
+    <!-- Loop melalui setiap kwitansi -->
+    @foreach($kwitansis as $index => $data)
+    <div class="kwitansi-container @if(!$loop->last) page-break @endif">
+        @php
+        $kwitansi = $data['kwitansi'];
+        $parsedKode = $data['parsedKode'];
+        $jumlahUangText = $data['jumlahUangText'];
+        $totalAmount = $data['totalAmount'];
+        $tanggalLunas = $data['tanggalLunas'];
+        $pajakData = $data['pajakData'];
+        @endphp
+
         <!-- Bagian Header (Informasi Program dan Anggaran) -->
         <div>
             <table class="info-table">
                 <tr>
-                    <!-- KIRI -->
                     <td class="label-col">Sumber Dana</td>
                     <td class="separator">:</td>
                     <td class="info-content info-code-width">BOS Pusat</td>
 
-                    <!-- KANAN -->
                     <td class="label-col label-col-right">No</td>
                     <td class="separator">:</td>
                     <td class="info-content">
@@ -320,59 +330,42 @@
                             }}</span>
                     </td>
                 </tr>
-                <!-- ROW 2: Tahun Anggaran / KOSONG -->
                 <tr>
-                    <!-- KIRI -->
                     <td class="label-col">Tahun Anggaran</td>
                     <td class="separator">:</td>
                     <td class="info-content info-code-width">{{ $kwitansi->penganggaran->tahun_anggaran ?? '-' }}</td>
 
-                    <!-- KANAN: KOSONG -->
                     <td class="label-col label-col-right">&nbsp;</td>
                     <td class="separator">&nbsp;</td>
                     <td class="info-content">&nbsp;</td>
                 </tr>
-                <!-- ROW 3: Program -->
                 <tr>
-                    <!-- KIRI -->
                     <td class="label-col">Program</td>
                     <td class="separator">:</td>
                     <td class="info-content info-code-width">{{ $parsedKode['kode_program'] ?? '-' }}</td>
 
-                    <!-- KANAN: Program Description -->
                     <td class="info-content" colspan="3">{{ $parsedKode['program'] ?? '-' }}</td>
                 </tr>
-                <!-- ROW 4: Kode Sub Program -->
                 <tr>
-                    <!-- KIRI (Kode Sub Program) -->
                     <td class="label-col">Kode Sub Program</td>
                     <td class="separator">:</td>
-                    <td class="info-content info-code-width text-end">{{ $parsedKode['kode_sub_program'] ?? '-' }}
-                    </td>
+                    <td class="info-content info-code-width text-end">{{ $parsedKode['kode_sub_program'] ?? '-' }}</td>
 
-                    <!-- KANAN: Sub Program Description -->
                     <td class="info-content" colspan="3">{{ $parsedKode['sub_program'] ?? '-' }}</td>
                 </tr>
-                <!-- ROW 5: Kode Uraian/Kegiatan -->
                 <tr>
-                    <!-- KIRI (Kode Uraian/Kegiatan) -->
                     <td class="label-col">Kode Uraian/Kegiatan</td>
                     <td class="separator">:</td>
-                    <td class="info-content info-code-width text-end">{{ $parsedKode['kode_uraian'] ?? '-' }}
-                    </td>
+                    <td class="info-content info-code-width text-end">{{ $parsedKode['kode_uraian'] ?? '-' }}</td>
 
-                    <!-- KANAN: Uraian Kegiatan Description -->
                     <td class="info-content" colspan="3">{{ $parsedKode['uraian'] ?? '-' }}</td>
                 </tr>
-
                 <tr>
-                    <!-- KIRI (Kode Rekening Rincian Objek) -->
                     <td class="label-col">Kode Rekening Rincian Objek</td>
                     <td class="separator">:</td>
                     <td class="info-content info-code-width text-end">{{ $kwitansi->rekeningBelanja->kode_rekening ??
                         '-' }}</td>
 
-                    <!-- KANAN: Uraian Rekening -->
                     <td class="info-content" colspan="3">{{ $kwitansi->rekeningBelanja->rincian_objek ?? '-' }}</td>
                 </tr>
             </table>
@@ -385,30 +378,28 @@
 
         <!-- Bagian Penerimaan Uang -->
         <div class="receipt-info">
-            <div class="data-row">
-                <table>
-                    <tr>
-                        <td width="20%"><span class="label-col">Sudah Terima Dari</span></td>
-                        <td widht="2%"><span class="label-col">:</span></td>
-                        <td width="78%"><span class="label-col">Bendahara Dana BOSP {{ ucwords(strtolower($kwitansi->sekolah->nama_sekolah ?? '-'))
-                        }}</span></td>
-                    </tr>
-                    <tr>
-                        <td><span class="label-col">Uang Sebanyak</span></td>
-                        <td><span class="label-col">:</span></td>
-                        <td><span class="label-col">{{ ucwords(strtolower($jumlahUangText ?? '-')) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td><span class="label-col">Untuk Pembayaran</span></td>
-                        <td><span class="label-col">:</span></td>
-                        <td><span class="label-col">{{ $kwitansi->bukuKasUmum->uraian_opsional
-                        ?? $kwitansi->bukuKasUmum->uraian }}</span></td>
-                    </tr>
-                <table>
-            </div>
+            <table>
+                <tr>
+                    <td width="20%"><span class="label-col">Sudah Terima Dari</span></td>
+                    <td width="2%"><span class="label-col">:</span></td>
+                    <td width="78%"><span class="label-col">Bendahara Dana BOSP {{
+                            ucwords(strtolower($kwitansi->sekolah->nama_sekolah ?? '-')) }}</span></td>
+                </tr>
+                <tr>
+                    <td><span class="label-col">Uang Sebanyak</span></td>
+                    <td><span class="label-col">:</span></td>
+                    <td><span class="label-col">{{ ucwords(strtolower($jumlahUangText ?? '-')) }}</span></td>
+                </tr>
+                <tr>
+                    <td><span class="label-col">Untuk Pembayaran</span></td>
+                    <td><span class="label-col">:</span></td>
+                    <td><span class="label-col">{{ $kwitansi->bukuKasUmum->uraian_opsional ??
+                            $kwitansi->bukuKasUmum->uraian }}</span></td>
+                </tr>
+            </table>
         </div>
 
-        <!-- Bagian Rincian Item - PERBAIKAN DI SINI -->
+        <!-- Bagian Rincian Item -->
         <div class="detail-table-container">
             <table>
                 <thead>
@@ -422,7 +413,6 @@
                 </thead>
                 <tbody>
                     @php
-                    $totalAmount = $totalAmount ?? 0;
                     $uraianDetails = $kwitansi->bukuKasUmum->uraianDetails ?? collect([]);
                     @endphp
 
@@ -434,17 +424,12 @@
                     <tr>
                         <td>{{ $detail->uraian }}</td>
                         <td>{{ number_format($detail->volume, 0, ',', '.') }}</td>
-                        <!-- PERBAIKAN: volume bukan jumlah -->
-                        <td>{{ $detail->satuan ?? '-' }}</td> <!-- PERBAIKAN: tampilkan satuan -->
+                        <td>{{ $detail->satuan ?? '-' }}</td>
                         <td>{{ number_format($detail->harga_satuan, 0, ',', '.') }}</td>
                         <td>{{ number_format($subtotal, 0, ',', '.') }}</td>
                     </tr>
                     @endforeach
                     @else
-                    <!-- Fallback jika tidak ada uraian details -->
-                    @php
-                    $totalAmount = $kwitansi->bukuKasUmum->total_transaksi_kotor ?? 717000;
-                    @endphp
                     <tr>
                         <td>{{ $kwitansi->bukuKasUmum->uraian_opsional ?? $kwitansi->bukuKasUmum->uraian }}</td>
                         <td></td>
@@ -482,14 +467,14 @@
                         <tr>
                             <td><span>PPh</span></td>
                             <td><span>=</span></td>
-                            <td><span>Rp {{number_format($pajakData['pph'] ?? 0, 0, ',', '.') }}</span></td>
+                            <td><span>Rp {{ number_format($pajakData['pph'] ?? 0, 0, ',', '.') }}</span></td>
                         </tr>
                         <tr>
                             <td><span>PB1</span></td>
                             <td><span>=</span></td>
                             <td><span>Rp {{ number_format($pajakData['pb1'] ?? 0, 0, ',', '.') }}</span></td>
                         </tr>
-                    <table>
+                    </table>
                 </div>
 
                 <!-- Kotak Total Akhir -->
@@ -499,26 +484,24 @@
                             <td>Jumlah</td>
                             <td style="text-align: right;">: Rp {{ number_format($totalAmount, 0, ',', '.') }}</td>
                         </tr>
-                    <table>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- PERBAIKAN: Bagian Tanda Tangan - HAPUS TABEL KOSONG -->
+        <!-- Bagian Tanda Tangan -->
         <div class="signature-area">
             <table style="border: none; border-collapse: collapse; width:100%; text-align:center">
                 <tr>
                     <td>
-                        <!-- Kolom Kiri: Bendahara BOSP -->
                         <div class="signature-block" style="margin-right: 300px;">
                             <p>{{ $tanggalLunas ?? '-' }}</p>
                             <p class="role">Bendahara BOSP</p>
-                            <p class="name">{{$kwitansi->penganggaran->bendahara}}</p>
-                            <p class="nip">NIP. {{$kwitansi->penganggaran->nip_bendahara}}</p>
+                            <p class="name">{{ $kwitansi->penganggaran->bendahara }}</p>
+                            <p class="nip">NIP. {{ $kwitansi->penganggaran->nip_bendahara }}</p>
                         </div>
                     </td>
                     <td>
-                        <!-- Kolom Kanan: Yang Menerima -->
                         <div class="signature-block">
                             <p>&nbsp;</p>
                             <p class="role">Yang Menerima</p>
@@ -534,10 +517,11 @@
         <div class="kepsek-block">
             <p>Mengetahui,</p>
             <p class="role">Kepala Sekolah</p>
-            <p class="name">{{$kwitansi->penganggaran->kepala_sekolah}}</p>
+            <p class="name">{{ $kwitansi->penganggaran->kepala_sekolah }}</p>
             <p class="nip">NIP. {{ $kwitansi->penganggaran->nip_kepala_sekolah }}</p>
         </div>
     </div>
+    @endforeach
 </body>
 
 </html>

@@ -302,6 +302,73 @@ class KwitansiController extends Controller
         }
     }
 
+    // Tambahkan method downloadAll di KwitansiController
+public function downloadAll()
+{
+    try {
+        // Ambil semua kwitansi dengan relasi yang diperlukan
+        $kwitansis = Kwitansi::with([
+            'sekolah',
+            'penganggaran',
+            'kodeKegiatan',
+            'rekeningBelanja',
+            'penerimaanDana',
+            'bukuKasUmum' => function ($query) {
+                $query->with(['uraianDetails']);
+            },
+            'bkuUraianDetail',
+        ])->latest()->get();
+
+        // Jika tidak ada data
+        if ($kwitansis->isEmpty()) {
+            return redirect()->route('kwitansi.index')
+                ->with('error', 'Tidak ada data kwitansi untuk diunduh');
+        }
+
+        // Siapkan data untuk PDF
+        $kwitansiData = [];
+        foreach ($kwitansis as $kwitansi) {
+            // Parse kode kegiatan
+            $parsedKode = $this->parseKodeKegiatan($kwitansi->kodeKegiatan);
+
+            // Hitung total amount
+            $totalAmount = $this->calculateTotalFromUraianDetails($kwitansi->bukuKasUmum);
+            $jumlahUang = $this->convertToText($totalAmount);
+
+            // Klasifikasi pajak
+            $pajakData = $this->klasifikasiPajak($kwitansi->bukuKasUmum);
+
+            $kwitansiData[] = [
+                'kwitansi' => $kwitansi,
+                'parsedKode' => $parsedKode,
+                'jumlahUangText' => $jumlahUang,
+                'totalAmount' => $totalAmount,
+                'tanggalLunas' => $this->formatTanggalLunas($kwitansi->bukuKasUmum->tanggal_transaksi),
+                'pajakData' => $pajakData,
+            ];
+        }
+
+        $data = [
+            'kwitansis' => $kwitansiData,
+            'totalKwitansi' => $kwitansis->count(),
+            'tanggalDownload' => now()->format('d/m/Y H:i'),
+        ];
+
+        // Generate PDF
+        $pdf = PDF::loadView('kwitansi.download-all', $data);
+        $pdf->setPaper('Folio', 'portrait');
+
+        $filename = "Kwitansi_All_" . now()->format('Y-m-d_H-i-s') . ".pdf";
+
+        return $pdf->download($filename);
+
+    } catch (\Exception $e) {
+        Log::error('Error downloading all kwitansi: ' . $e->getMessage());
+        return redirect()->route('kwitansi.index')
+            ->with('error', 'Gagal mengunduh semua kwitansi: ' . $e->getMessage());
+    }
+}
+
     // PERBAIKAN: Method klasifikasiPajak yang lebih robust
     private function klasifikasiPajak($bukuKasUmum)
     {

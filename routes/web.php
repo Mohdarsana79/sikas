@@ -12,6 +12,7 @@ use App\Http\Controllers\BukuRobController;
 use App\Http\Controllers\DatabaseController;
 use App\Http\Controllers\KodeKegiatanController;
 use App\Http\Controllers\KopSekolahController;
+use App\Http\Controllers\KwitansiController;
 use App\Http\Controllers\PenarikanTunaiController;
 use App\Http\Controllers\PenatausahaanController;
 use App\Http\Controllers\PenerimaanDanaController;
@@ -24,7 +25,6 @@ use App\Http\Controllers\RkasController;
 use App\Http\Controllers\RkasPerubahanController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\SetorTunaiController;
-use App\Http\Controllers\KwitansiController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
@@ -406,7 +406,7 @@ Route::middleware(['auth'])->prefix('kwitansi')->group(function () {
     Route::get('/', [KwitansiController::class, 'index'])->name('kwitansi.index');
     // Route untuk search dengan AJAX
     Route::get('/search', [KwitansiController::class, 'search'])->name('kwitansi.search');
-    
+
     Route::get('/create', [KwitansiController::class, 'create'])->name('kwitansi.create');
     Route::post('/', [KwitansiController::class, 'store'])->name('kwitansi.store');
 
@@ -415,13 +415,15 @@ Route::middleware(['auth'])->prefix('kwitansi')->group(function () {
     Route::post('/generate-batch', [KwitansiController::class, 'generateBatch'])->name('kwitansi.generate-batch');
 
     // Routes dengan parameter ID - DITARUH DI BAWAH
-    Route::get('/{id}', [KwitansiController::class, 'show'])->name('kwitansi.show');
+    // Route::get('/{id}', [KwitansiController::class, 'show'])->name('kwitansi.show');
     Route::get('/{id}/pdf', [KwitansiController::class, 'generatePdf'])->name('kwitansi.pdf');
+    // Di dalam group route kwitansi
+    Route::get('/download-all', [KwitansiController::class, 'downloadAll'])->name('kwitansi.download-all');
     Route::get('/{id}/preview', [KwitansiController::class, 'previewPdf'])->name('kwitansi.preview');
     Route::delete('/{id}', [KwitansiController::class, 'destroy'])->name('kwitansi.destroy');
     // Route untuk hapus semua kwitansi
     Route::delete('/delete/all', [KwitansiController::class, 'deleteAll'])->name('kwitansi.delete-all');
     // Route debug untuk melihat data count
     Route::get('/debug-count', [KwitansiController::class, 'debugDataCount'])->name('kwitansi.debug-count');
-    
+
 });

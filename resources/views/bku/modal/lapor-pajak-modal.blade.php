@@ -1,3 +1,24 @@
+{{-- Batasi Format Tanggal --}}
+@php
+$tahun = $tahun ?? date('Y');
+$bulan = $bulan ?? 'Januari';
+$bulanList = [
+'Januari' => 1,
+'Februari' => 2,
+'Maret' => 3,
+'April' => 4,
+'Mei' => 5,
+'Juni' => 6,
+'Juli' => 7,
+'Agustus' => 8,
+'September' => 9,
+'Oktober' => 10,
+'November' => 11,
+'Desember' => 12,
+];
+$bulanAngka = $bulanList[$bulan] ?? 1;
+$lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
+@endphp
 <!-- Modal Lapor Pajak -->
 <div class="modal fade" id="laporPajakModal" tabindex="-1" aria-labelledby="laporPajakModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -31,7 +52,11 @@
                                     <i class="bi bi-calendar-event-fill"></i>
                                 </span>
                                 <input type="date" class="form-control" name="tanggal_lapor" id="tanggal_lapor"
-                                    placeholder="Pilih tanggal" required>
+                                   aria-label="Sizing example input"
+                                        aria-describedby="dateHelp1"
+                                        min="{{ $tahun }}-{{ str_pad($bulanAngka, 2, '0', STR_PAD_LEFT) }}-01"
+                                        max="{{ $tahun }}-{{ str_pad($bulanAngka, 2, '0', STR_PAD_LEFT) }}-{{ str_pad($lastDay, 2, '0', STR_PAD_LEFT) }}"
+                                        required>
                             </div>
                             <div class="form-text text-danger" id="tanggal_lapor_error"></div>
                         </div>

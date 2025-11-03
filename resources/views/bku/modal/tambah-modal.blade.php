@@ -611,7 +611,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             }, 300);
         }
 
-        // Fungsi untuk mendapatkan range tanggal
+        // Fungsi untuk mendapatkan range tanggal dengan handling yang benar
         function getDateRangeForMonth(bulan, tahun) {
             const bulanAngka = {
                 'Januari': 1, 'Februari': 2, 'Maret': 3, 'April': 4,
@@ -619,12 +619,25 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12
             }[bulan] || 1;
             
-            const lastDay = new Date(tahun, bulanAngka, 0).getDate();
+            // Gunakan UTC untuk menghindari timezone issues
+            const firstDay = new Date(Date.UTC(tahun, bulanAngka - 1, 1));
+            const lastDay = new Date(Date.UTC(tahun, bulanAngka, 0)); // Day 0 = last day of previous month
+            
+            const minDate = formatDateForInput(firstDay);
+            const maxDate = formatDateForInput(lastDay);
             
             return {
-                min: `${tahun}-${String(bulanAngka).padStart(2, '0')}-01`,
-                max: `${tahun}-${String(bulanAngka).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+                min: minDate,
+                max: maxDate
             };
+        }
+
+        // Fungsi untuk format date ke YYYY-MM-DD
+        function formatDateForInput(date) {
+            const year = date.getUTCFullYear();
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         }
 
         // Fungsi untuk memformat angka ke format Rupiah
@@ -632,45 +645,43 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             return new Intl.NumberFormat('id-ID').format(angka);
         }
 
-        // PERBAIKAN: Update fungsi validasi tanggal dengan logging
+        // PERBAIKAN: Update fungsi validasi tanggal dengan handling format yang benar
         function validateDate(inputElement, bulan, tahun) {
-            const selectedDate = new Date(inputElement.value);
-            const minDate = new Date(inputElement.min);
-            const maxDate = new Date(inputElement.max);
+            const selectedValue = inputElement.value;
+            
+            if (!selectedValue) {
+                return true;
+            }
 
+            // Parse tanggal langsung dari string format YYYY-MM-DD
+            const [year, month, day] = selectedValue.split('-').map(Number);
+            
+            // Dapatkan range tanggal
+            const dateRange = getDateRangeForMonth(bulan, tahun);
+            const [minYear, minMonth, minDay] = dateRange.min.split('-').map(Number);
+            const [maxYear, maxMonth, maxDay] = dateRange.max.split('-').map(Number);
+            
+            // Buat date objects untuk perbandingan (gunakan UTC untuk menghindari timezone issues)
+            const selectedDate = new Date(Date.UTC(year, month - 1, day));
+            const minDate = new Date(Date.UTC(minYear, minMonth - 1, minDay));
+            const maxDate = new Date(Date.UTC(maxYear, maxMonth - 1, maxDay));
+            
             console.log('Validating date:', {
-                selected: inputElement.value,
-                min: inputElement.min,
-                max: inputElement.max,
-                selectedDate: selectedDate,
-                minDate: minDate,
-                maxDate: maxDate
+                selected: selectedValue,
+                selectedDate: selectedDate.toISOString(),
+                minDate: minDate.toISOString(),
+                maxDate: maxDate.toISOString()
             });
 
-            if (inputElement.value && (selectedDate < minDate || selectedDate > maxDate)) {
+            if (selectedDate < minDate || selectedDate > maxDate) {
                 // Format tanggal untuk pesan error
-                const minFormatted = new Date(minDate).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                });
-                
-                const maxFormatted = new Date(maxDate).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                });
+                const minFormatted = `${minDay} ${getNamaBulan(minMonth)} ${minYear}`;
+                const maxFormatted = `${maxDay} ${getNamaBulan(maxMonth)} ${maxYear}`;
                 
                 let errorMessage = `Tanggal harus antara ${minFormatted} dan ${maxFormatted}`;
                 
-                // Jika ada penarikan tunai, tambahkan informasi khusus
-                const defaultMin = getDateRangeForMonth(bulan, tahun).min;
-                if (minDate > new Date(defaultMin)) {
-                    errorMessage += ` (dibatasi oleh tanggal penarikan tunai)`;
-                }
-                
-                inputElement.value = inputElement.min;
-                console.log('Date validation failed, setting to min:', inputElement.min);
+                inputElement.value = dateRange.min;
+                console.log('Date validation failed, setting to min:', dateRange.min);
                 
                 Swal.fire({
                     icon: 'warning',
@@ -685,6 +696,16 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             return true;
         }
 
+        // Fungsi helper untuk mendapatkan nama bulan
+        function getNamaBulan(angkaBulan) {
+            const bulanList = {
+                1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',
+                5: 'Mei', 6: 'Juni', 7: 'Juli', 8: 'Agustus',
+                9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'
+            };
+            return bulanList[angkaBulan] || 'Unknown';
+        }
+
         // Fungsi untuk menonaktifkan tanggal di luar range
         function disableOutOfRangeDates() {
             const dateRange = getDateRangeForMonth(bulan, tahun);
@@ -694,19 +715,35 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             });
         }
 
-        // FUNGSI BARU: Sinkronisasi tanggal transaksi dan tanggal nota
+        // FUNGSI BARU: Sinkronisasi tanggal transaksi dan tanggal nota dengan format yang benar
         function syncTanggalTransaksiDanNota() {
             const tanggalTransaksi = $('#tanggal_transaksi').val();
-            const tanggalNota = $('#tanggal_nota').val();
             
-            // Jika tanggal transaksi diisi dan tanggal nota masih kosong atau sama dengan min date
-            if (tanggalTransaksi && (!tanggalNota || tanggalNota === $('#tanggal_nota').attr('min'))) {
+            if (tanggalTransaksi) {
+                // Gunakan nilai langsung tanpa konversi Date object
                 $('#tanggal_nota').val(tanggalTransaksi);
                 console.log('Tanggal nota otomatis disinkronkan dengan tanggal transaksi:', tanggalTransaksi);
             }
         }
 
-        // PERBAIKAN: Update modal show event - Urutkan dengan benar
+        // Debug function untuk melihat nilai tanggal
+        function debugTanggal() {
+            const tanggalTransaksi = $('#tanggal_transaksi').val();
+            const tanggalNota = $('#tanggal_nota').val();
+            
+            console.log('=== DEBUG TANGGAL ===');
+            console.log('Tanggal Transaksi:', tanggalTransaksi);
+            console.log('Tanggal Nota:', tanggalNota);
+            console.log('Min Date:', $('#tanggal_transaksi').attr('min'));
+            console.log('Max Date:', $('#tanggal_transaksi').attr('max'));
+        }
+
+        // Panggil debug saat perubahan tanggal
+        $('#tanggal_transaksi, #tanggal_nota').on('change', function() {
+            debugTanggal();
+        });
+
+        // PERBAIKAN: Update modal show event dengan handling tanggal yang benar
         $('#transactionModal').on('show.bs.modal', function() {
             console.log('=== MODAL SHOW EVENT TRIGGERED ===');
             
@@ -717,27 +754,24 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             window.rekeningData = [];
             window.currentTotalTransaksi = 0;
 
-            // Pertama: Set default dates dulu
+            // Set default dates dengan format yang benar
             const dateRange = getDateRangeForMonth(bulan, tahun);
             console.log('Initial date range:', dateRange);
             
+            // Set atribut min/max untuk kedua tanggal
             $('#tanggal_transaksi, #tanggal_nota').attr({
                 'min': dateRange.min,
                 'max': dateRange.max
-            }).val(dateRange.min);
+            });
 
-            // Set nilai default
+            // Set nilai default - gunakan format langsung
             $('#tanggal_transaksi').val(dateRange.min);
             $('#tanggal_nota').val(dateRange.min);
 
-            // PERBAIKAN: Set state awal untuk select elements
-            $('.kegiatan-select').html('<option value="">Memuat data kegiatan...</option>').prop('disabled', true);
-            $('.rekening-select').html('<option value="">Pilih kegiatan terlebih dahulu</option>').prop('disabled', true);
-
-            // KETIGA: Load data lainnya
+            // Load data lainnya
             loadKegiatanDanRekening();
             loadLastNotaNumber();
-
+            
             console.log('Tanggal transaksi dan nota di-set ke:', dateRange.min);
         });
 
@@ -749,7 +783,7 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             }, 100);
         });
 
-        // EVENT HANDLER BARU: Perubahan tanggal transaksi
+        // EVENT HANDLER BARU: Perubahan tanggal transaksi dengan handling format yang benar
         $('#tanggal_transaksi').on('change', function() {
             const tanggalTransaksi = $(this).val();
             
@@ -758,8 +792,9 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             if (tanggalTransaksi) {
                 // Validasi tanggal transaksi
                 if (validateDate(this, bulan, tahun)) {
-                    // Sinkronkan dengan tanggal nota
-                    syncTanggalTransaksiDanNota();
+                    // Sinkronkan dengan tanggal nota - GUNAKAN FORMAT LANGSUNG
+                    $('#tanggal_nota').val(tanggalTransaksi);
+                    console.log('Tanggal nota diset ke:', tanggalTransaksi);
                 }
             }
         });
@@ -1396,32 +1431,6 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                                     </label>
                                     <input type="hidden" class="uraian-text-input" value="${uraian.uraian}">
                                     <span class="satuan-text d-none">${uraian.satuan || ''}</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="alert alert-sm alert-${isDisabled ? 'warning' : 'info'} mb-2">
-                                    <small>
-                                        <strong>Informasi Volume:</strong><br>
-                                        • Total RKAS: <strong>${uraian.total_volume}</strong><br>
-                                        • Sudah dibelanjakan: <strong>${uraian.volume_sudah_dibelanjakan}</strong><br>
-                                        • Sisa tersedia: <strong class="${uraian.sisa_volume > 0 ? 'text-success' : 'text-danger'}">${uraian.sisa_volume}</strong><br>
-                                        • Bulan: ${uraian.bulan_asal.join(', ')}
-                                    </small>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="alert alert-sm alert-secondary mb-2">
-                                    <small>
-                                        <strong>Informasi Anggaran:</strong><br>
-                                        • Harga satuan: <strong>Rp ${formatRupiah(uraian.harga_satuan)}</strong><br>
-                                        • Total anggaran: <strong>Rp ${formatRupiah(uraian.total_anggaran)}</strong><br>
-                                        • Sudah dibelanjakan: <strong>Rp ${formatRupiah(uraian.sudah_dibelanjakan)}</strong><br>
-                                        • Sisa anggaran: <strong>Rp ${formatRupiah(uraian.sisa_anggaran)}</strong>
-                                    </small>
                                 </div>
                             </div>
                         </div>
