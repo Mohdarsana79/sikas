@@ -694,6 +694,18 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             });
         }
 
+        // FUNGSI BARU: Sinkronisasi tanggal transaksi dan tanggal nota
+        function syncTanggalTransaksiDanNota() {
+            const tanggalTransaksi = $('#tanggal_transaksi').val();
+            const tanggalNota = $('#tanggal_nota').val();
+            
+            // Jika tanggal transaksi diisi dan tanggal nota masih kosong atau sama dengan min date
+            if (tanggalTransaksi && (!tanggalNota || tanggalNota === $('#tanggal_nota').attr('min'))) {
+                $('#tanggal_nota').val(tanggalTransaksi);
+                console.log('Tanggal nota otomatis disinkronkan dengan tanggal transaksi:', tanggalTransaksi);
+            }
+        }
+
         // PERBAIKAN: Update modal show event - Urutkan dengan benar
         $('#transactionModal').on('show.bs.modal', function() {
             console.log('=== MODAL SHOW EVENT TRIGGERED ===');
@@ -714,6 +726,10 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                 'max': dateRange.max
             }).val(dateRange.min);
 
+            // Set nilai default
+            $('#tanggal_transaksi').val(dateRange.min);
+            $('#tanggal_nota').val(dateRange.min);
+
             // PERBAIKAN: Set state awal untuk select elements
             $('.kegiatan-select').html('<option value="">Memuat data kegiatan...</option>').prop('disabled', true);
             $('.rekening-select').html('<option value="">Pilih kegiatan terlebih dahulu</option>').prop('disabled', true);
@@ -721,6 +737,43 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
             // KETIGA: Load data lainnya
             loadKegiatanDanRekening();
             loadLastNotaNumber();
+
+            console.log('Tanggal transaksi dan nota di-set ke:', dateRange.min);
+        });
+
+        // Event handler untuk modal shown - sinkronisasi setelah modal terbuka
+        $('#transactionModal').on('shown.bs.modal', function() {
+            // Pastikan sinkronisasi setelah modal terbuka
+            setTimeout(() => {
+                syncTanggalTransaksiDanNota();
+            }, 100);
+        });
+
+        // EVENT HANDLER BARU: Perubahan tanggal transaksi
+        $('#tanggal_transaksi').on('change', function() {
+            const tanggalTransaksi = $(this).val();
+            
+            console.log('Tanggal transaksi diubah:', tanggalTransaksi);
+            
+            if (tanggalTransaksi) {
+                // Validasi tanggal transaksi
+                if (validateDate(this, bulan, tahun)) {
+                    // Sinkronkan dengan tanggal nota
+                    syncTanggalTransaksiDanNota();
+                }
+            }
+        });
+
+        // EVENT HANDLER BARU: Perubahan tanggal nota (opsional - untuk memberi feedback)
+        $('#tanggal_nota').on('change', function() {
+            const tanggalNota = $(this).val();
+            const tanggalTransaksi = $('#tanggal_transaksi').val();
+            
+            console.log('Tanggal nota diubah:', tanggalNota, 'Tanggal transaksi:', tanggalTransaksi);
+            
+            if (tanggalNota) {
+                validateDate(this, bulan, tahun);
+            }
         });
 
         // PERBAIKAN: Fungsi untuk memuat data kegiatan dan rekening
