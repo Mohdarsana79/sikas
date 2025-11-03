@@ -17,12 +17,13 @@ class KwitansiController extends Controller
 {
     public function index()
     {
+        // PERUBAHAN: Gunakan paginate dengan 50 data per halaman
         $kwitansis = Kwitansi::with([
             'penganggaran',
             'kodeKegiatan',
             'rekeningBelanja',
             'bukuKasUmum',
-        ])->latest()->get();
+        ])->latest()->paginate(50); // Ubah dari get() ke paginate(50)
 
         return view('kwitansi.index', compact('kwitansis'));
     }
@@ -32,7 +33,9 @@ class KwitansiController extends Controller
     {
         try {
             $search = $request->input('search', '');
+            $page = $request->input('page', 1); // Tambahkan parameter page untuk pagination
 
+            // PERUBAHAN: Gunakan paginate untuk search juga
             $kwitansis = Kwitansi::with([
                 'penganggaran',
                 'kodeKegiatan',
@@ -51,13 +54,16 @@ class KwitansiController extends Controller
                         });
                 })
                 ->latest()
-                ->get();
+                ->paginate(50); // Ubah dari get() ke paginate(50)
 
             // Format data untuk response JSON
-            $formattedKwitansis = $kwitansis->map(function ($kwitansi, $index) {
+            $formattedKwitansis = $kwitansis->map(function ($kwitansi, $index) use ($kwitansis) {
+                // Hitung nomor urut berdasarkan halaman
+                $number = ($kwitansis->currentPage() - 1) * $kwitansis->perPage() + $index + 1;
+
                 return [
                     'id' => $kwitansi->id,
-                    'number' => $index + 1,
+                    'number' => $number,
                     'kode_rekening' => $kwitansi->rekeningBelanja->kode_rekening ?? '-',
                     'uraian' => $kwitansi->bukuKasUmum->uraian_opsional ?? $kwitansi->bukuKasUmum->uraian,
                     'tanggal' => \Carbon\Carbon::parse($kwitansi->bukuKasUmum->tanggal_transaksi)->format('d/m/Y'),
@@ -74,8 +80,15 @@ class KwitansiController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $formattedKwitansis,
-                'total' => $kwitansis->count(),
-                'search_term' => $search
+                'total' => $kwitansis->total(),
+                'search_term' => $search,
+                'pagination' => [
+                    'current_page' => $kwitansis->currentPage(),
+                    'last_page' => $kwitansis->lastPage(),
+                    'per_page' => $kwitansis->perPage(),
+                    'total' => $kwitansis->total(),
+                    'has_more' => $kwitansis->hasMorePages(),
+                ]
             ]);
         } catch (\Exception $e) {
             Log::error('Error searching kwitansi: ' . $e->getMessage());

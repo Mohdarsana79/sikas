@@ -74,6 +74,18 @@
         padding: 0.5em 0.75em;
         border-radius: 50rem;
     }
+
+    /* Style untuk pagination */
+    .pagination-custom .page-link {
+        border-radius: 0.5rem;
+        margin: 0 2px;
+        border: 1px solid #dee2e6;
+    }
+
+    .pagination-custom .page-item.active .page-link {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+    }
 </style>
 <div class="container-xxl">
 
@@ -117,7 +129,7 @@
                     <h3 class="fs-6 text-secondary fw-semibold">Total Kwitansi</h3>
                     <i class="bi bi-file-earmark-text text-primary fs-4"></i>
                 </div>
-                <p class="h1 fw-bolder text-dark mt-2" id="total-kwitansi">{{ $kwitansis->count() }}</p>
+                <p class="h1 fw-bolder text-dark mt-2" id="total-kwitansi">{{ $kwitansis->total() }}</p>
                 <p class="small text-muted mt-1">Update real-time</p>
             </div>
         </div>
@@ -163,19 +175,21 @@
     <div class="card modern-card p-4 p-md-5">
         <!-- HEADER TABEL BARU: JUDUL DAN SEARCH BERDAMPINGAN -->
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        
+
             <!-- Judul -->
             <h2 class="fs-4 fw-bold text-dark mb-0">Daftar Kwitansi</h2>
-        
+
             <!-- Search Input yang lebih pendek (Lebar 100% di HP, 25% di MD ke atas) -->
             <div class="input-group w-50 w-md-25">
-                <span class="input-group-text bg-white border-end-0 rounded-start-pill"><i class="bi bi-search"></i></span>
+                <span class="input-group-text bg-white border-end-0 rounded-start-pill"><i
+                        class="bi bi-search"></i></span>
                 <input type="text" class="form-control border-start-0 rounded-end-pill"
                     placeholder="Cari berdasarkan Uraian atau Kode Rekening..." id="searchInput">
                 <!-- Tombol "Cari" dihilangkan untuk tampilan yang lebih minimalis dan modern -->
             </div>
         </div>
         <!-- AKHIR HEADER TABEL BARU -->
+
         @if($kwitansis->count() > 0)
         <div class="table-responsive">
             <table class="table table-hover align-middle">
@@ -192,7 +206,9 @@
                 <tbody>
                     @foreach($kwitansis as $index => $kwitansi)
                     <tr id="kwitansi-row-{{ $kwitansi->id }}">
-                        <td class="fw-medium">{{ $index + 1 }}</td>
+                        <!-- PERUBAHAN: Hitung nomor urut berdasarkan pagination -->
+                        <td class="fw-medium">{{ ($kwitansis->currentPage() - 1) * $kwitansis->perPage() + $index + 1 }}
+                        </td>
                         <td>
                             <span class="badge badge-code">{{ $kwitansi->rekeningBelanja->kode_rekening ?? '-' }}</span>
                         </td>
@@ -200,12 +216,9 @@
                             {{ $kwitansi->bukuKasUmum->uraian_opsional ?? $kwitansi->bukuKasUmum->uraian }}
                         </td>
                         <td class="text-muted">{{
-                            \Carbon\Carbon::parse($kwitansi->bukuKasUmum->tanggal_transaksi)->format('d/m/Y')
-                            }}</td>
+                            \Carbon\Carbon::parse($kwitansi->bukuKasUmum->tanggal_transaksi)->format('d/m/Y') }}</td>
                         <td class="fw-semibold text-success">Rp {{
-                            number_format($kwitansi->bukuKasUmum->total_transaksi_kotor, 0, ',',
-                            '.') }}
-                        </td>
+                            number_format($kwitansi->bukuKasUmum->total_transaksi_kotor, 0, ',', '.') }}</td>
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-2">
                                 <!-- Lihat -->
@@ -235,6 +248,62 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- PERUBAHAN: Tambahkan pagination links -->
+        @if($kwitansis->hasPages())
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div class="text-muted small">
+                Menampilkan {{ ($kwitansis->currentPage() - 1) * $kwitansis->perPage() + 1 }}
+                sampai {{ min($kwitansis->currentPage() * $kwitansis->perPage(), $kwitansis->total()) }}
+                dari {{ $kwitansis->total() }} data
+            </div>
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-custom mb-0">
+                    {{-- Previous Page Link --}}
+                    @if ($kwitansis->onFirstPage())
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;</span>
+                    </li>
+                    @else
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $kwitansis->previousPageUrl() }}" rel="prev">&laquo;</a>
+                    </li>
+                    @endif
+
+                    {{-- Pagination Elements --}}
+                    @foreach ($kwitansis->getUrlRange(1, $kwitansis->lastPage()) as $page => $url)
+                    @if ($page == $kwitansis->currentPage())
+                    <li class="page-item active">
+                        <span class="page-link">{{ $page }}</span>
+                    </li>
+                    @else
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                    </li>
+                    @endif
+                    @endforeach
+
+                    {{-- Next Page Link --}}
+                    @if ($kwitansis->hasMorePages())
+                    <li class="page-item">
+                        <a class="page-link" href="{{ $kwitansis->nextPageUrl() }}" rel="next">&raquo;</a>
+                    </li>
+                    @else
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;</span>
+                    </li>
+                    @endif
+                </ul>
+            </nav>
+        </div>
+        @endif
+
+        @else
+        <div class="text-center py-5">
+            <i class="bi bi-file-earmark-x fs-1 text-muted"></i>
+            <h5 class="text-muted mt-3">Belum ada data kwitansi</h5>
+            <p class="text-muted">Mulai dengan membuat kwitansi baru atau generate otomatis.</p>
+        </div>
         @endif
 
         @if($kwitansis->count() > 0)
@@ -244,8 +313,8 @@
                     <div class="d-flex align-items-center">
                         <i class="fas fa-info-circle text-primary me-2"></i>
                         <small class="text-muted">
-                            Total: <strong id="footer-total" class="text-primary">{{ $kwitansis->count()
-                                }}</strong> kwitansi
+                            Total: <strong id="footer-total" class="text-primary">{{ $kwitansis->total() }}</strong>
+                            kwitansi
                         </small>
                     </div>
                 </div>
@@ -253,8 +322,8 @@
                     <div class="d-flex align-items-center justify-content-end">
                         <i class="fas fa-clock text-muted me-2"></i>
                         <small class="text-muted">
-                            Terakhir diperbarui: <span id="last-updated" class="fw-semibold">{{
-                                now()->format('d/m/Y H:i') }}</span>
+                            Terakhir diperbarui: <span id="last-updated" class="fw-semibold">{{ now()->format('d/m/Y
+                                H:i') }}</span>
                         </small>
                     </div>
                 </div>
@@ -682,253 +751,97 @@
         // Function untuk update waktu terakhir update
         function updateLastUpdated() {
             const now = new Date();
-            const formattedDate = now.toLocaleDateString('id-ID', {
+            const formattedTime = now.toLocaleString('id-ID', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
             });
-            updateElementText('last-updated', formattedDate);
+            updateElementText('last-updated', formattedTime);
         }
 
-        // Event listener untuk delete individual kwitansi
-        document.querySelectorAll('.delete-kwitansi').forEach(button => {
-            button.addEventListener('click', function() {
-                const kwitansiId = this.getAttribute('data-id');
-                const uraian = this.getAttribute('data-uraian');
-                
-                Swal.fire({
-                    title: 'Hapus Kwitansi?',
-                    html: `
-                        <div class="alert alert-warning text-left">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>
-                            <strong>Konfirmasi Penghapusan</strong>
-                            <hr>
-                            <p>Apakah Anda yakin ingin menghapus kwitansi ini?</p>
-                            <p class="mb-0"><strong>Uraian:</strong> ${uraian}</p>
-                        </div>
-                    `,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="fas fa-trash mr-1"></i> Ya, Hapus!',
-                    cancelButtonText: '<i class="fas fa-times mr-1"></i> Batal',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        deleteSingleKwitansi(kwitansiId, uraian);
-                    }
-                });
-            });
-        });
+        // Update waktu setiap menit
+        setInterval(updateLastUpdated, 60000);
 
-        // Function untuk hapus single kwitansi dengan loading yang lebih baik
-        function deleteSingleKwitansi(id, uraian) {
-            // Show loading state
-            Swal.fire({
-                title: 'Menghapus...',
-                html: `
-                    <div class="text-center">
-                        <div class="spinner-border text-danger mb-3"></div>
-                        <p>Sedang menghapus kwitansi...</p>
-                    </div>
-                `,
-                showConfirmButton: false,
-                allowOutsideClick: false
-            });
+        // Initialize last updated time
+        updateLastUpdated();
 
-            fetch(`/kwitansi/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remove row from table with animation
-                    const row = document.getElementById(`kwitansi-row-${id}`);
-                    if (row) {
-                        row.style.transition = 'all 0.3s ease';
-                        row.style.opacity = '0';
-                        row.style.transform = 'translateX(-100px)';
-                        setTimeout(() => {
-                            row.remove();
-                            
-                            // Update statistics
-                            updateElementText('total-kwitansi', parseInt(document.getElementById('total-kwitansi').textContent) - 1);
-                            updateElementText('footer-total', parseInt(document.getElementById('footer-total').textContent) - 1);
-                            checkAvailableData();
-                            updateLastUpdated();
-                            
-                            // Check if table is empty
-                            const tableBody = document.querySelector('tbody');
-                            if (tableBody && tableBody.children.length === 0) {
-                                location.reload();
-                            }
-                        }, 300);
-                    }
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Terhapus!',
-                        html: `
-                            <div class="text-center">
-                                <i class="fas fa-check-circle text-success mb-2"></i>
-                                <p>Kwitansi berhasil dihapus</p>
-                            </div>
-                        `,
-                        confirmButtonText: '<i class="fas fa-check mr-1"></i> Oke',
-                        timer: 2000,
-                        timerProgressBar: true
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Gagal!',
-                        text: data.message,
-                        confirmButtonText: '<i class="fas fa-times mr-1"></i> Tutup'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Delete error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'Terjadi kesalahan saat menghapus kwitansi',
-                    confirmButtonText: '<i class="fas fa-times mr-1"></i> Tutup'
-                });
-            });
-        }
-
-        // Tambahkan kode ini di dalam document.addEventListener('DOMContentLoaded', function() {
-
-        // Search functionality dengan debounce
-        let searchTimeout;
+        // Search functionality
         const searchInput = document.getElementById('searchInput');
-
         if (searchInput) {
-            searchInput.addEventListener('input', function(e) {
-                const searchTerm = e.target.value.trim();
-                
-                // Clear previous timeout
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', function() {
                 clearTimeout(searchTimeout);
-                
-                // Set new timeout dengan debounce 500ms
                 searchTimeout = setTimeout(() => {
-                    if (searchTerm.length >= 2 || searchTerm.length === 0) {
-                        performSearch(searchTerm);
-                    }
+                    performSearch(this.value);
                 }, 500);
             });
         }
 
-        // Function untuk melakukan search
         function performSearch(searchTerm) {
-            console.log('Searching for:', searchTerm);
-            
-            // Show loading state di tabel
-            const tableBody = document.querySelector('tbody');
-            if (tableBody) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2 text-muted">Mencari data...</p>
-                        </td>
-                    </tr>
-                `;
-            }
-
-            // Prepare URL dengan parameter search
-            let url = '{{ route("kwitansi.search") }}';
-            if (searchTerm) {
-                url += `?search=${encodeURIComponent(searchTerm)}`;
-            }
-
-            fetch(url, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateTableWithSearchResults(data.data, data.total);
-                    updateSearchStats(data.total, searchTerm);
-                } else {
-                    console.error('Search error:', data.message);
-                    showSearchError();
-                }
-            })
-            .catch(error => {
-                console.error('Search AJAX error:', error);
-                showSearchError();
-            });
+            fetch('{{ route("kwitansi.search") }}?search=' + encodeURIComponent(searchTerm))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateSearchResults(data.data, data.pagination);
+                        updateElementText('total-kwitansi', data.total);
+                        updateElementText('footer-total', data.total);
+                    }
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                });
         }
 
-        // Function untuk update tabel dengan hasil search
-        function updateTableWithSearchResults(kwitansiData, total) {
-            const tableBody = document.querySelector('tbody');
+        function updateSearchResults(data, pagination) {
+            const tbody = document.querySelector('tbody');
+            const paginationContainer = document.querySelector('.pagination');
+            const paginationInfo = document.querySelector('.pagination-info');
             
-            if (!tableBody) return;
-
-            if (kwitansiData.length === 0) {
-                tableBody.innerHTML = `
+            if (data.length === 0) {
+                tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-5">
-                            <i class="fas fa-search fa-3x mb-3 d-block"></i>
-                            <h5 class="text-muted">Tidak ada data ditemukan</h5>
-                            <p class="text-info">
-                                <i class="fas fa-lightbulb"></i>
-                                Coba dengan kata kunci lain atau kosongkan pencarian
-                            </p>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="bi bi-search fs-1 text-muted"></i>
+                            <p class="text-muted mt-2">Tidak ada data yang ditemukan</p>
                         </td>
                     </tr>
                 `;
                 return;
             }
 
-            // Build table rows
-            let tableRows = '';
-            kwitansiData.forEach(kwitansi => {
-                tableRows += `
-                    <tr id="kwitansi-row-${kwitansi.id}">
-                        <td class="fw-medium">${kwitansi.number}</td>
+            let html = '';
+            data.forEach((item, index) => {
+                // Hitung nomor urut berdasarkan pagination
+                const number = (pagination.current_page - 1) * pagination.per_page + index + 1;
+                
+                html += `
+                    <tr id="kwitansi-row-${item.id}">
+                        <td class="fw-medium">${number}</td>
                         <td>
-                            <span class="badge badge-code">${kwitansi.kode_rekening}</span>
+                            <span class="badge badge-code">${item.kode_rekening}</span>
                         </td>
-                        <td title="${kwitansi.uraian}">${kwitansi.uraian}</td>
-                        <td class="text-muted">${kwitansi.tanggal}</td>
-                        <td class="fw-semibold text-success">${kwitansi.jumlah}</td>
+                        <td title="${item.uraian}">${item.uraian}</td>
+                        <td class="text-muted">${item.tanggal}</td>
+                        <td class="fw-semibold text-success">${item.jumlah}</td>
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-2">
-                                <!-- Lihat -->
-                                <a href="${kwitansi.preview_url}" title="Lihat Preview"
+                                <a href="${item.preview_url}" title="Lihat Preview"
                                     class="btn btn-sm btn-outline-primary border-0 rounded-circle p-1"
                                     data-bs-toggle="tooltip" target="_blank">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <!-- Cetak -->
-                                <a href="${kwitansi.pdf_url}" title="Download PDF"
+                                <a href="${item.pdf_url}" title="Download PDF"
                                     target="_blank" data-bs-toggle="tooltip"
                                     class="btn btn-sm btn-outline-success border-0 rounded-circle p-1">
                                     <i class="bi bi-printer"></i>
                                 </a>
-                                <!-- Hapus -->
                                 <button title="Hapus Data"
                                     class="btn btn-sm btn-outline-danger delete-kwitansi border-0 rounded-circle p-1"
-                                    data-id="${kwitansi.delete_data.id}"
-                                    data-uraian="${kwitansi.delete_data.uraian}"
+                                    data-id="${item.id}"
+                                    data-uraian="${item.uraian}"
                                     title="Hapus Kwitansi" data-bs-toggle="tooltip">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -938,110 +851,80 @@
                 `;
             });
 
-            tableBody.innerHTML = tableRows;
-            
-            // Re-attach event listeners untuk delete buttons
-            attachDeleteEventListeners();
-            
-            // Update tooltips
+            tbody.innerHTML = html;
+
+            // Update pagination
+            if (paginationContainer && pagination.last_page > 1) {
+                let paginationHtml = '';
+                
+                // Previous button
+                if (pagination.current_page > 1) {
+                    paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${pagination.current_page - 1}">&laquo;</a></li>`;
+                } else {
+                    paginationHtml += `<li class="page-item disabled"><span class="page-link">&laquo;</span></li>`;
+                }
+
+                // Page numbers
+                for (let i = 1; i <= pagination.last_page; i++) {
+                    if (i === pagination.current_page) {
+                        paginationHtml += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+                    } else {
+                        paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+                    }
+                }
+
+                // Next button
+                if (pagination.current_page < pagination.last_page) {
+                    paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${pagination.current_page + 1}">&raquo;</a></li>`;
+                } else {
+                    paginationHtml += `<li class="page-item disabled"><span class="page-link">&raquo;</span></li>`;
+                }
+
+                paginationContainer.innerHTML = paginationHtml;
+
+                // Add event listeners to pagination links
+                paginationContainer.querySelectorAll('.page-link[data-page]').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const page = this.getAttribute('data-page');
+                        const searchTerm = document.getElementById('searchInput').value;
+                        loadPage(page, searchTerm);
+                    });
+                });
+            }
+
+            // Update pagination info
+            if (paginationInfo) {
+                const start = (pagination.current_page - 1) * pagination.per_page + 1;
+                const end = Math.min(pagination.current_page * pagination.per_page, pagination.total);
+                paginationInfo.textContent = `Menampilkan ${start} sampai ${end} dari ${pagination.total} data`;
+            }
+
+            // Re-initialize tooltips
             $('[data-bs-toggle="tooltip"]').tooltip();
         }
 
-        // Function untuk update statistik pencarian
-        function updateSearchStats(total, searchTerm) {
-            // Update total count
-            updateElementText('total-kwitansi', total);
-            updateElementText('footer-total', total);
-            
-            // Update last updated time
-            updateLastUpdated();
-            
-            // Show search info jika ada search term
+        function loadPage(page, searchTerm = '') {
+            const url = new URL('{{ route("kwitansi.search") }}');
+            url.searchParams.append('page', page);
             if (searchTerm) {
-                const searchInfo = document.createElement('div');
-                searchInfo.className = 'alert alert-info alert-dismissible fade show mt-3';
-                searchInfo.innerHTML = `
-                    <i class="fas fa-info-circle me-2"></i>
-                    Menampilkan <strong>${total}</strong> hasil pencarian untuk: <strong>"${searchTerm}"</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                
-                // Remove existing search info
-                const existingInfo = document.querySelector('.alert-info');
-                if (existingInfo) {
-                    existingInfo.remove();
-                }
-                
-                // Insert after table
-                const table = document.querySelector('.table-responsive');
-                if (table) {
-                    table.parentNode.insertBefore(searchInfo, table.nextSibling);
-                }
-            } else {
-                // Remove search info jika tidak ada search term
-                const existingInfo = document.querySelector('.alert-info');
-                if (existingInfo) {
-                    existingInfo.remove();
-                }
+                url.searchParams.append('search', searchTerm);
             }
-        }
 
-        // Function untuk menampilkan error search
-        function showSearchError() {
-            const tableBody = document.querySelector('tbody');
-            if (tableBody) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center text-danger py-4">
-                            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                            <p>Terjadi kesalahan saat mencari data</p>
-                            <button class="btn btn-sm btn-outline-primary" onclick="location.reload()">
-                                <i class="fas fa-redo"></i> Muat Ulang
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }
-        }
-
-        // Function untuk re-attach delete event listeners
-        function attachDeleteEventListeners() {
-            document.querySelectorAll('.delete-kwitansi').forEach(button => {
-                button.addEventListener('click', function() {
-                    const kwitansiId = this.getAttribute('data-id');
-                    const uraian = this.getAttribute('data-uraian');
-                    
-                    Swal.fire({
-                        title: 'Hapus Kwitansi?',
-                        html: `
-                            <div class="alert alert-warning text-left">
-                                <i class="fas fa-exclamation-triangle mr-2"></i>
-                                <strong>Konfirmasi Penghapusan</strong>
-                                <hr>
-                                <p>Apakah Anda yakin ingin menghapus kwitansi ini?</p>
-                                <p class="mb-0"><strong>Uraian:</strong> ${uraian}</p>
-                            </div>
-                        `,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#6c757d',
-                        confirmButtonText: '<i class="fas fa-trash mr-1"></i> Ya, Hapus!',
-                        cancelButtonText: '<i class="fas fa-times mr-1"></i> Batal',
-                        reverseButtons: true
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            deleteSingleKwitansi(kwitansiId, uraian);
-                        }
-                    });
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateSearchResults(data.data, data.pagination);
+                        updateElementText('total-kwitansi', data.total);
+                        updateElementText('footer-total', data.total);
+                    }
+                })
+                .catch(error => {
+                    console.error('Pagination error:', error);
                 });
-            });
         }
-
-        // Panggil function untuk attach delete listeners pertama kali
-        attachDeleteEventListeners();
     });
 </script>
 @endpush
-
 @endsection

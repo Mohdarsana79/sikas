@@ -1662,11 +1662,12 @@ $lastDay = cal_days_in_month(CAL_GREGORIAN, $bulanAngka, $tahun);
                             const hargaText = $(this).find('.harga-input').val().replace(/[^\d]/g, '');
                             const harga = parseFloat(hargaText) || 0;
                             const uraianText = $(this).find('.uraian-text-input').val();
+                            const satuan = $(this).find('.satuan-text').text().trim();
 
                             formData.uraian_items.push({
                                 id: checkbox.val(),
                                 uraian_text: uraianText,
-                                satuan: $(this).find('.satuan-text').text().trim(),
+                                satuan: satuan,
                                 kegiatan_id: kegiatanId,
                                 rekening_id: rekeningId,
                                 volume: jumlah,
