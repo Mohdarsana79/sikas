@@ -63,11 +63,11 @@ class LoginController extends Controller
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'redirect' => route('dashboard')
+                'redirect' => route('dashboard.dashboard')
             ]);
         }
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->intended(route('dashboard.dashboard'));
     }
 
     protected function getCredentials(Request $request)

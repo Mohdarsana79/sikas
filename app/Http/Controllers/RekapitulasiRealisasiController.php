@@ -14,6 +14,14 @@ use Illuminate\Support\Facades\Log;
 class RekapitulasiRealisasiController extends Controller
 {
     /**
+     * Hitung realisasi dengan mapping kode - VERSI PUBLIC untuk dashboard
+     */
+    public function hitungRealisasiUntukDashboard($penganggaranId, $tahun, $bulanTarget, $jenisLaporan)
+    {
+        return $this->hitungRealisasiDenganMappingKode($penganggaranId, $tahun, $bulanTarget, $jenisLaporan);
+    }
+    
+    /**
      * Struktur program utama yang FIX sesuai PDF
      */
     private function getStrukturProgramTetap()

@@ -65,6 +65,6 @@ class RegisterController extends Controller
             ]);
         }
 
-        return redirect()->intended(route('dashboard'))->with('success', 'Pendaftaran berhasil!');
+        return redirect()->intended(route('dashboard.dashboard'))->with('success', 'Pendaftaran berhasil!');
     }
 }

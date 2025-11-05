@@ -12,7 +12,7 @@
         <ul class="sidebar-nav list-unstyled">
             <!-- Dashboard -->
             <li class="nav-item">
-                <a href="{{ route('dashboard') }}" class="nav-link active" data-page="dashboard">
+                <a href="{{ route('dashboard.dashboard') }}" class="nav-link active" data-page="dashboard">
                     <i class="bi bi-speedometer2 nav-icon"></i>
                     <span class="nav-text">Dashboard</span>
                 </a>

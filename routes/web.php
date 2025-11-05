@@ -25,6 +25,7 @@ use App\Http\Controllers\RkasController;
 use App\Http\Controllers\RkasPerubahanController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\SetorTunaiController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
@@ -41,9 +42,11 @@ Route::post('/register', [RegisterController::class, 'store'])->name('register.p
 
 Route::post('/logout', [LogoutController::class, 'store'])->name('logout');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware('auth')->name('dashboard');
+Route::middleware(['auth'])->prefix('dashboard')->group(function () {
+    // routes/web.php
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard.dashboard');
+    Route::get('/api/dashboard-new-data', [DashboardController::class, 'getDashboardNewData'])->name('dashboard.new.data');
+});
 
 Route::middleware(['auth'])->prefix('sekolah')->group(function () {
     Route::get('/', [SekolahController::class, 'index'])->name('sekolah.index');
