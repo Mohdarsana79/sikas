@@ -32,9 +32,6 @@ class KodeKegiatanController extends Controller
         return view('referensi.kode-kegiatan', compact('kodeKegiatans', 'search'));
     }
 
-    /**
-     * Search kode kegiatan
-     */
     public function search(Request $request): JsonResponse
     {
         try {
@@ -56,14 +53,15 @@ class KodeKegiatanController extends Controller
                 ->orderBy('kode', 'asc')
                 ->get();
 
-            $formattedData = $kegiatans->map(function ($kegiatan) {
+            $formattedData = $kegiatans->map(function ($kegiatan, $index) {
                 return [
                     'id' => $kegiatan->id,
+                    'index' => $index + 1, // Nomor urut
                     'kode' => $kegiatan->kode,
                     'program' => $kegiatan->program,
                     'sub_program' => $kegiatan->sub_program,
                     'uraian' => $kegiatan->uraian,
-                    'actions' => $this->getKegiatanActionButtons($kegiatan)
+                    'actions' => $this->getKegiatanActionButtons($kegiatan) // Tombol aksi
                 ];
             });
 
@@ -89,27 +87,15 @@ class KodeKegiatanController extends Controller
     private function getKegiatanActionButtons($kegiatan): string
     {
         return '
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-gear"></i>
-                </button>
-                <ul class="dropdown-menu">
-                    <li>
-                        <a class="dropdown-item" href="#" 
-                           onclick="editKegiatan(' . $kegiatan->id . ')">
-                            <i class="bi bi-pencil me-2"></i>Edit
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item text-danger" href="#" 
-                           onclick="deleteKegiatan(' . $kegiatan->id . ')">
-                            <i class="bi bi-trash me-2"></i>Hapus
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        ';
+        <button class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                data-bs-target="#editModal' . $kegiatan->id . '">
+            <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                data-bs-target="#deleteModal' . $kegiatan->id . '">
+            <i class="bi bi-trash"></i>
+        </button>
+    ';
     }
 
     /**

@@ -349,7 +349,7 @@ class GlobalSearch {
         if (data.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="100%" class="text-center py-5 text-muted">
+                    <td colspan="6" class="text-center py-5 text-muted">
                         <i class="bi bi-search me-2"></i>
                         Tidak ditemukan kegiatan dengan kata kunci: "<strong>${searchTerm}</strong>"
                     </td>
@@ -370,6 +370,7 @@ class GlobalSearch {
     renderKegiatanRow(item) {
         return `
             <tr class="search-result-row">
+                <td class="px-4 py-3">${item.index || '-'}</td>
                 <td class="px-4 py-3">${item.kode || '-'}</td>
                 <td class="px-4 py-3">${item.program || '-'}</td>
                 <td class="px-4 py-3">${item.sub_program || '-'}</td>
