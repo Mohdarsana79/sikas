@@ -31,9 +31,7 @@ class RekeningBelanjaController extends Controller
         return view('referensi.rekening-belanja', compact('rekenings', 'search'));
     }
 
-    /**
-     * Search rekening belanja
-     */
+    // search ajax
     public function search(Request $request): JsonResponse
     {
         try {
@@ -48,16 +46,19 @@ class RekeningBelanjaController extends Controller
 
             $rekenings = RekeningBelanja::where(function ($query) use ($searchTerm) {
                 $query->where('kode_rekening', 'ILIKE', "%{$searchTerm}%")
-                    ->orWhere('rincian_objek', 'ILIKE', "%{$searchTerm}%");
+                    ->orWhere('rincian_objek', 'ILIKE', "%{$searchTerm}%")
+                    ->orWhere('kategori', 'ILIKE', "%{$searchTerm}%");
             })
                 ->orderBy('kode_rekening', 'asc')
                 ->get();
 
-            $formattedData = $rekenings->map(function ($rekening) {
+            $formattedData = $rekenings->map(function ($rekening, $index) {
                 return [
                     'id' => $rekening->id,
+                    'index' => $index + 1, // Tambahkan nomor urut
                     'kode_rekening' => $rekening->kode_rekening,
                     'rincian_objek' => $rekening->rincian_objek,
+                    'kategori' => $rekening->kategori, // Tambahkan kategori
                     'actions' => $this->getRekeningActionButtons($rekening)
                 ];
             });
@@ -78,33 +79,18 @@ class RekeningBelanjaController extends Controller
         }
     }
 
-    /**
-     * Generate action buttons for rekening belanja
-     */
     private function getRekeningActionButtons($rekening): string
     {
         return '
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-gear"></i>
-                </button>
-                <ul class="dropdown-menu">
-                    <li>
-                        <a class="dropdown-item" href="#" 
-                           onclick="editRekening(' . $rekening->id . ')">
-                            <i class="bi bi-pencil me-2"></i>Edit
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item text-danger" href="#" 
-                           onclick="deleteRekening(' . $rekening->id . ')">
-                            <i class="bi bi-trash me-2"></i>Hapus
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        ';
+        <button class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                data-bs-target="#editModal' . $rekening->id . '">
+            <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                data-bs-target="#deleteModal' . $rekening->id . '">
+            <i class="bi bi-trash"></i>
+        </button>
+    ';
     }
 
     /**

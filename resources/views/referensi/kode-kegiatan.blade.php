@@ -39,7 +39,7 @@
                                     <th width="15%">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="kegiatanTableBody">
                                 @foreach ($kodeKegiatans as $key => $kegiatan)
                                     <tr>
                                         <td>{{ $key + 1 }}</td>

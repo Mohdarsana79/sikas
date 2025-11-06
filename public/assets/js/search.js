@@ -413,8 +413,10 @@ class GlobalSearch {
     renderRekeningRow(item) {
         return `
             <tr class="search-result-row">
+                <td class="px-4 py-3">${item.index || '-'}</td>
                 <td class="px-4 py-3">${item.kode_rekening || '-'}</td>
                 <td class="px-4 py-3">${item.rincian_objek || '-'}</td>
+                <td class="px-4 py-3">${item.kategori || '-'}</td>
                 <td class="px-4 py-3 text-center">${item.actions || ''}</td>
             </tr>
         `;
@@ -480,100 +482,38 @@ class GlobalSearch {
         const typeLabel = this.getTypeLabel(type);
         
         if (count === 0) {
+            // Notifikasi untuk hasil kosong
             Swal.fire({
-                title: '🔍 Hasil Pencarian',
-                html: `
-                    <div class="text-center">
-                        <div class="mb-3">
-                            <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
-                        </div>
-                        <p class="mb-2">Tidak ditemukan <strong>${typeLabel}</strong> dengan kata kunci:</p>
-                        <p class="fw-bold text-primary">"${searchTerm}"</p>
-                        <small class="text-muted">Coba dengan kata kunci yang berbeda</small>
-                    </div>
-                `,
+                toast: true,
+                position: 'top-end',
                 icon: 'info',
-                showConfirmButton: true,
-                confirmButtonText: 'Mengerti',
-                confirmButtonColor: '#6c757d',
-                showCancelButton: false,
+                title: `Tidak ditemukan ${typeLabel} dengan kata kunci: "${searchTerm}"`,
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true,
+                background: '#f8f9fa',
+                iconColor: '#6c757d',
                 customClass: {
-                    popup: 'search-result-popup',
-                    title: 'search-result-title',
-                    htmlContainer: 'search-result-content'
+                    popup: 'search-toast'
                 }
             });
         } else {
+            // Notifikasi untuk hasil ditemukan
             Swal.fire({
-                title: '✅ Hasil Pencarian',
-                html: `
-                    <div class="text-center">
-                        <div class="mb-3">
-                            <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
-                        </div>
-                        <p class="mb-1">Ditemukan <span class="fw-bold text-success fs-5">${count}</span> ${typeLabel}</p>
-                        <p class="mb-3">dengan kata kunci:</p>
-                        <p class="fw-bold text-primary fs-6">"${searchTerm}"</p>
-                        <div class="mt-3">
-                            <button type="button" id="btnResetSearch" class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i>
-                                Tampilkan Semua Data
-                            </button>
-                        </div>
-                    </div>
-                `,
+                toast: true,
+                position: 'top-end',
                 icon: 'success',
+                title: `Ditemukan ${count} ${typeLabel}`,
+                text: `Kata kunci: "${searchTerm}"`,
                 showConfirmButton: false,
-                showCloseButton: true,
-                timer: 5000,
+                timer: 3000,
                 timerProgressBar: true,
+                background: '#d1e7dd',
+                iconColor: '#198754',
                 customClass: {
-                    popup: 'search-result-popup success',
-                    title: 'search-result-title',
-                    htmlContainer: 'search-result-content'
-                },
-                didOpen: (popup) => {
-                    const resetButton = popup.querySelector('#btnResetSearch');
-                    if (resetButton) {
-                        resetButton.addEventListener('click', () => {
-                            this.resetSearch();
-                            document.getElementById('globalSearchInput').value = '';
-                            this.currentSearchTerm = '';
-                            Swal.close();
-                        });
-                    }
-                    
-                    // Progress bar customization
-                    const timerProgressBar = popup.querySelector('.swal2-timer-progress-bar');
-                    if (timerProgressBar) {
-                        timerProgressBar.style.background = 'linear-gradient(90deg, #198754, #20c997)';
-                    }
+                    popup: 'search-toast success'
                 }
             });
-
-            // Tetap tampilkan info inline di halaman
-            this.showInlineSearchInfo(count, searchTerm, type);
-        }
-    }
-
-    showInlineSearchInfo(count, searchTerm, type) {
-        const infoHtml = `
-            <div class="search-result-info alert alert-info alert-dismissible fade show mt-2 mb-0 py-2" role="alert">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <span>
-                        Ditemukan <strong>${count}</strong> ${this.getTypeLabel(type)} dengan kata kunci: 
-                        "<strong>${searchTerm}</strong>"
-                    </span>
-                    <button type="button" class="btn-close ms-auto btn-reset-search" 
-                            aria-label="Close"></button>
-                </div>
-            </div>
-        `;
-        
-        const header = document.querySelector('.card-body h1, .page-header h1, h1');
-        if (header) {
-            header.insertAdjacentHTML('afterend', infoHtml);
         }
     }
 
