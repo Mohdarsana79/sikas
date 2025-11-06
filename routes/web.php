@@ -48,6 +48,24 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/api/dashboard-new-data', [DashboardController::class, 'getDashboardNewData'])->name('dashboard.new.data');
 });
 
+// Routes untuk search semua modul
+Route::middleware(['auth'])->group(function () {
+    // BKU Search
+    Route::get('/bku/search/{tahun}/{bulan}', [BukuKasUmumController::class, 'search'])->name('bku.search');
+
+    // Kode Kegiatan Search
+    Route::get('/kegiatan/search', [KodeKegiatanController::class, 'search'])->name('kegiatan.search');
+
+    // Rekening Belanja Search
+    Route::get('/rekening-belanja/search', [RekeningBelanjaController::class, 'search'])->name('rekening-belanja.search');
+
+    // RKAS Search
+    Route::get('/rkas/search', [RkasController::class, 'search'])->name('rkas.search');
+
+    // RKAS Perubahan Search
+    Route::get('/rkas-perubahan/search', [RkasPerubahanController::class, 'search'])->name('rkas-perubahan.search');
+});
+
 Route::middleware(['auth'])->prefix('sekolah')->group(function () {
     Route::get('/', [SekolahController::class, 'index'])->name('sekolah.index');
     Route::post('/', [SekolahController::class, 'store'])->name('sekolah.store');
@@ -227,6 +245,7 @@ Route::middleware(['auth'])->prefix('referensi')->group(function () {
     Route::get('/referensi/rekening-belanja/download-template', [RekeningBelanjaController::class, 'downloadTemplate'])
         ->name('referensi.rekening-belanja.download-template');
 
+    
     // Kode Kegiatan
     Route::get('/referensi/kode-kegiatan', [KodeKegiatanController::class, 'index'])->name('referensi.kode-kegiatan.index');
     Route::post('/kode-kegiatan', [KodeKegiatanController::class, 'store'])->name('referensi.kode-kegiatan.store');

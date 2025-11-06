@@ -7,7 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use App\Imports\KodeKegiatanImport;
+use Illuminate\Http\JsonResponse;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Log;
 
 class KodeKegiatanController extends Controller
 {
@@ -28,6 +30,86 @@ class KodeKegiatanController extends Controller
             ->orderBy('kode')
             ->paginate(20);
         return view('referensi.kode-kegiatan', compact('kodeKegiatans', 'search'));
+    }
+
+    /**
+     * Search kode kegiatan
+     */
+    public function search(Request $request): JsonResponse
+    {
+        try {
+            $searchTerm = $request->get('search', '');
+
+            if (empty($searchTerm)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kata pencarian tidak boleh kosong'
+                ], 400);
+            }
+
+            $kegiatans = KodeKegiatan::where(function ($query) use ($searchTerm) {
+                $query->where('kode', 'ILIKE', "%{$searchTerm}%")
+                    ->orWhere('program', 'ILIKE', "%{$searchTerm}%")
+                    ->orWhere('sub_program', 'ILIKE', "%{$searchTerm}%")
+                    ->orWhere('uraian', 'ILIKE', "%{$searchTerm}%");
+            })
+                ->orderBy('kode', 'asc')
+                ->get();
+
+            $formattedData = $kegiatans->map(function ($kegiatan) {
+                return [
+                    'id' => $kegiatan->id,
+                    'kode' => $kegiatan->kode,
+                    'program' => $kegiatan->program,
+                    'sub_program' => $kegiatan->sub_program,
+                    'uraian' => $kegiatan->uraian,
+                    'actions' => $this->getKegiatanActionButtons($kegiatan)
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedData,
+                'total' => $kegiatans->count(),
+                'search_term' => $searchTerm
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error searching kode kegiatan: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mencari data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate action buttons for kode kegiatan
+     */
+    private function getKegiatanActionButtons($kegiatan): string
+    {
+        return '
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-gear"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="#" 
+                           onclick="editKegiatan(' . $kegiatan->id . ')">
+                            <i class="bi bi-pencil me-2"></i>Edit
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="#" 
+                           onclick="deleteKegiatan(' . $kegiatan->id . ')">
+                            <i class="bi bi-trash me-2"></i>Hapus
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        ';
     }
 
     /**

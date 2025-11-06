@@ -41,6 +41,7 @@
     <script src="{{ asset('assets/js/chart.js') }}"></script>
     {{-- Di bagian head atau sebelum penutup body --}}
     <script src="{{ asset('assets/js/main.js') }}"></script>
+    <script src="{{ asset('assets/js/search.js') }}"></script>
     <script src="{{ asset('assets/js/sweetalert2@11.js') }}"></script>
     @stack('scripts')
     <script>

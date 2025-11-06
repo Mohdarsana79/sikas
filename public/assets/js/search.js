@@ -1,0 +1,735 @@
+class GlobalSearch {
+    constructor() {
+        this.currentSearchTerm = '';
+        this.originalContents = new Map();
+        this.currentPage = 'default';
+        this.init();
+    }
+
+    init() {
+        this.setupSearchForm();
+        this.setupRouteBasedSearch();
+        this.setupGlobalEvents();
+    }
+
+    setupSearchForm() {
+        const searchForm = document.getElementById('globalSearchForm');
+        const searchInput = document.getElementById('globalSearchInput');
+        
+        if (!searchForm || !searchInput) return;
+
+        let searchTimeout;
+        
+        // Real-time search dengan debounce
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const searchTerm = e.target.value.trim();
+            this.currentSearchTerm = searchTerm;
+            
+            if (searchTerm.length === 0) {
+                this.resetSearch();
+                return;
+            }
+            
+            if (searchTerm.length < 2) return;
+            
+            searchTimeout = setTimeout(() => {
+                this.performSearch(searchTerm);
+            }, 500);
+        });
+
+        // Handle form submit
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const searchTerm = searchInput.value.trim();
+            this.currentSearchTerm = searchTerm;
+            if (searchTerm.length >= 2) {
+                this.performSearch(searchTerm);
+            }
+        });
+
+        // Escape key untuk reset
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.resetSearch();
+                searchInput.value = '';
+                this.currentSearchTerm = '';
+            }
+        });
+
+        // Clear search ketika klik icon X (jika ada)
+        const clearBtn = document.querySelector('.search-clear');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                this.resetSearch();
+                this.currentSearchTerm = '';
+            });
+        }
+    }
+
+    setupRouteBasedSearch() {
+        const currentPath = window.location.pathname;
+        
+        if (currentPath.includes('/bku/')) {
+            this.currentPage = 'bku';
+        } else if (currentPath.includes('/rkas') && !currentPath.includes('/rkas-perubahan')) {
+            this.currentPage = 'rkas';
+        } else if (currentPath.includes('/rkas-perubahan')) {
+            this.currentPage = 'rkas-perubahan';
+        } else if (currentPath.includes('/kegiatan')) {
+            this.currentPage = 'kegiatan';
+        } else if (currentPath.includes('/rekening-belanja')) {
+            this.currentPage = 'rekening';
+        } else if (currentPath.includes('/penganggaran')) {
+            this.currentPage = 'penganggaran';
+        } else {
+            this.currentPage = 'default';
+        }
+
+        console.log('Current page detected:', this.currentPage);
+    }
+
+    setupGlobalEvents() {
+        // Global event untuk reset search
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-reset-search')) {
+                e.preventDefault();
+                this.resetSearch();
+                document.getElementById('globalSearchInput').value = '';
+                this.currentSearchTerm = '';
+            }
+        });
+    }
+
+    performSearch(searchTerm) {
+        console.log('Performing search for:', searchTerm, 'on page:', this.currentPage);
+        
+        this.showLoading();
+
+        const endpoints = {
+            'bku': () => {
+                const pathParts = window.location.pathname.split('/');
+                const tahun = pathParts[pathParts.length - 2];
+                const bulan = pathParts[pathParts.length - 1];
+                return `/bku/search/${tahun}/${bulan}?search=${encodeURIComponent(searchTerm)}`;
+            },
+            'rkas': `/rkas/search?search=${encodeURIComponent(searchTerm)}`,
+            'rkas-perubahan': `/rkas-perubahan/search?search=${encodeURIComponent(searchTerm)}`,
+            'kegiatan': `/kegiatan/search?search=${encodeURIComponent(searchTerm)}`,
+            'rekening': `/rekening-belanja/search?search=${encodeURIComponent(searchTerm)}`,
+            'penganggaran': `/penganggaran/search?search=${encodeURIComponent(searchTerm)}`,
+            'default': null
+        };
+
+        const endpoint = endpoints[this.currentPage];
+        
+        if (!endpoint) {
+            this.hideLoading();
+            this.showError('Search tidak tersedia untuk halaman ini');
+            return;
+        }
+
+        const url = typeof endpoint === 'function' ? endpoint() : endpoint;
+
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            this.hideLoading();
+            if (data.success) {
+                this.handleSearchResponse(data, searchTerm);
+            } else {
+                this.showError(data.message || 'Terjadi kesalahan saat mencari data');
+            }
+        })
+        .catch(error => {
+            this.hideLoading();
+            console.error('Search error:', error);
+            this.showError('Terjadi kesalahan saat menghubungi server');
+        });
+    }
+
+    handleSearchResponse(data, searchTerm) {
+        const handlers = {
+            'bku': () => this.updateBkuTable(data.data, searchTerm),
+            'rkas': () => this.updateRkasTable(data.data, searchTerm),
+            'rkas-perubahan': () => this.updateRkasPerubahanTable(data.data, searchTerm),
+            'kegiatan': () => this.updateKegiatanTable(data.data, searchTerm),
+            'rekening': () => this.updateRekeningTable(data.data, searchTerm),
+            'penganggaran': () => this.updatePenganggaranTable(data.data, searchTerm),
+            'default': () => this.updateDefaultTable(data.data, searchTerm)
+        };
+
+        const handler = handlers[this.currentPage];
+        if (handler) {
+            handler();
+        } else {
+            this.showError('Handler tidak ditemukan untuk halaman ini');
+        }
+    }
+
+    // BKU Table Update
+    updateBkuTable(data, searchTerm) {
+        const tableBody = document.getElementById('bkuTableBody');
+        if (!tableBody) {
+            this.showError('Tabel BKU tidak ditemukan');
+            return;
+        }
+
+        this.saveOriginalContent('bkuTableBody', tableBody.innerHTML);
+
+        if (data.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        <i class="bi bi-search me-2"></i>
+                        Tidak ditemukan transaksi dengan kata kunci: "<strong>${searchTerm}</strong>"
+                    </td>
+                </tr>
+            `;
+        } else {
+            let html = '';
+            data.forEach(item => {
+                html += this.renderBkuRow(item);
+            });
+            tableBody.innerHTML = html;
+        }
+
+        this.showSearchInfo(data.length, searchTerm, 'bku');
+        this.reattachEventListeners();
+    }
+
+    renderBkuRow(item) {
+        const pajakInfo = item.pajak_info || {};
+        let pajakHtml = '';
+        
+        if (pajakInfo.status === 'none' || !pajakInfo.status) {
+            pajakHtml = `<span class="text-muted">Rp 0</span>`;
+        } else {
+            pajakHtml = `
+                <span class="${pajakInfo.text_class || 'text-dark'}">Rp ${pajakInfo.amount || '0'}</span>
+                <small class="${pajakInfo.badge_class || 'badge-sudah-lapor'} status-pajak-badge d-block">
+                    <i class="bi ${pajakInfo.icon || 'bi-info-circle'}"></i> ${pajakInfo.message || 'Tidak ada info'}
+                </small>
+            `;
+        }
+        
+        return `
+            <tr class="search-result-row">
+                <td class="px-4 py-3">${item.id_transaksi || '-'}</td>
+                <td class="px-4 py-3">${item.tanggal || '-'}</td>
+                <td class="px-4 py-3">${item.kegiatan || '-'}</td>
+                <td class="px-4 py-3">${item.uraian_opsional || item.rekening_belanja || '-'}</td>
+                <td class="px-4 py-3">${item.jenis_transaksi || '-'}</td>
+                <td class="px-4 py-3">Rp ${item.anggaran || '0'}</td>
+                <td class="px-4 py-3">Rp ${item.dibelanjakan || '0'}</td>
+                <td class="px-4 py-3">${pajakHtml}</td>
+                <td class="px-4 py-3 text-center">${item.actions || ''}</td>
+            </tr>
+        `;
+    }
+
+    // RKAS Table Update
+    updateRkasTable(data, searchTerm) {
+        const tableBody = document.getElementById('rkasTableBody');
+        if (!tableBody) {
+            this.showError('Tabel RKAS tidak ditemukan');
+            return;
+        }
+
+        this.saveOriginalContent('rkasTableBody', tableBody.innerHTML);
+
+        if (data.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="100%" class="text-center py-5 text-muted">
+                        <i class="bi bi-search me-2"></i>
+                        Tidak ditemukan data RKAS dengan kata kunci: "<strong>${searchTerm}</strong>"
+                    </td>
+                </tr>
+            `;
+        } else {
+            let html = '';
+            data.forEach(item => {
+                html += this.renderRkasRow(item);
+            });
+            tableBody.innerHTML = html;
+        }
+
+        this.showSearchInfo(data.length, searchTerm, 'rkas');
+        this.reattachEventListeners();
+    }
+
+    renderRkasRow(item) {
+        return `
+            <tr class="search-result-row">
+                <td class="px-4 py-3">${item.kode_kegiatan || '-'}</td>
+                <td class="px-4 py-3">${item.program || '-'}</td>
+                <td class="px-4 py-3">${item.sub_program || '-'}</td>
+                <td class="px-4 py-3">${item.uraian || '-'}</td>
+                <td class="px-4 py-3 text-center">${item.volume || '0'}</td>
+                <td class="px-4 py-3">${item.satuan || '-'}</td>
+                <td class="px-4 py-3 text-end">Rp ${item.harga_satuan || '0'}</td>
+                <td class="px-4 py-3 text-end">Rp ${item.jumlah || '0'}</td>
+                <td class="px-4 py-3">${item.bulan || '-'}</td>
+                <td class="px-4 py-3 text-center">${item.actions || ''}</td>
+            </tr>
+        `;
+    }
+
+    // RKAS Perubahan Table Update
+    updateRkasPerubahanTable(data, searchTerm) {
+        const tableBody = document.getElementById('rkasPerubahanTableBody');
+        if (!tableBody) {
+            this.showError('Tabel RKAS Perubahan tidak ditemukan');
+            return;
+        }
+
+        this.saveOriginalContent('rkasPerubahanTableBody', tableBody.innerHTML);
+
+        if (data.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="100%" class="text-center py-5 text-muted">
+                        <i class="bi bi-search me-2"></i>
+                        Tidak ditemukan data RKAS Perubahan dengan kata kunci: "<strong>${searchTerm}</strong>"
+                    </td>
+                </tr>
+            `;
+        } else {
+            let html = '';
+            data.forEach(item => {
+                html += this.renderRkasPerubahanRow(item);
+            });
+            tableBody.innerHTML = html;
+        }
+
+        this.showSearchInfo(data.length, searchTerm, 'rkas-perubahan');
+        this.reattachEventListeners();
+    }
+
+    renderRkasPerubahanRow(item) {
+        return `
+            <tr class="search-result-row">
+                <td class="px-4 py-3">${item.kode_kegiatan || '-'}</td>
+                <td class="px-4 py-3">${item.program || '-'}</td>
+                <td class="px-4 py-3">${item.sub_program || '-'}</td>
+                <td class="px-4 py-3">${item.uraian || '-'}</td>
+                <td class="px-4 py-3 text-center">${item.volume || '0'}</td>
+                <td class="px-4 py-3">${item.satuan || '-'}</td>
+                <td class="px-4 py-3 text-end">Rp ${item.harga_satuan || '0'}</td>
+                <td class="px-4 py-3 text-end">Rp ${item.jumlah || '0'}</td>
+                <td class="px-4 py-3">${item.bulan || '-'}</td>
+                <td class="px-4 py-3 text-center">${item.actions || ''}</td>
+            </tr>
+        `;
+    }
+
+    // Kegiatan Table Update
+    updateKegiatanTable(data, searchTerm) {
+        const tableBody = document.getElementById('kegiatanTableBody');
+        if (!tableBody) {
+            this.showError('Tabel Kegiatan tidak ditemukan');
+            return;
+        }
+
+        this.saveOriginalContent('kegiatanTableBody', tableBody.innerHTML);
+
+        if (data.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="100%" class="text-center py-5 text-muted">
+                        <i class="bi bi-search me-2"></i>
+                        Tidak ditemukan kegiatan dengan kata kunci: "<strong>${searchTerm}</strong>"
+                    </td>
+                </tr>
+            `;
+        } else {
+            let html = '';
+            data.forEach(item => {
+                html += this.renderKegiatanRow(item);
+            });
+            tableBody.innerHTML = html;
+        }
+
+        this.showSearchInfo(data.length, searchTerm, 'kegiatan');
+        this.reattachEventListeners();
+    }
+
+    renderKegiatanRow(item) {
+        return `
+            <tr class="search-result-row">
+                <td class="px-4 py-3">${item.kode || '-'}</td>
+                <td class="px-4 py-3">${item.program || '-'}</td>
+                <td class="px-4 py-3">${item.sub_program || '-'}</td>
+                <td class="px-4 py-3">${item.uraian || '-'}</td>
+                <td class="px-4 py-3 text-center">${item.actions || ''}</td>
+            </tr>
+        `;
+    }
+
+    // Rekening Table Update
+    updateRekeningTable(data, searchTerm) {
+        const tableBody = document.getElementById('rekeningTableBody');
+        if (!tableBody) {
+            this.showError('Tabel Rekening Belanja tidak ditemukan');
+            return;
+        }
+
+        this.saveOriginalContent('rekeningTableBody', tableBody.innerHTML);
+
+        if (data.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="100%" class="text-center py-5 text-muted">
+                        <i class="bi bi-search me-2"></i>
+                        Tidak ditemukan rekening belanja dengan kata kunci: "<strong>${searchTerm}</strong>"
+                    </td>
+                </tr>
+            `;
+        } else {
+            let html = '';
+            data.forEach(item => {
+                html += this.renderRekeningRow(item);
+            });
+            tableBody.innerHTML = html;
+        }
+
+        this.showSearchInfo(data.length, searchTerm, 'rekening');
+        this.reattachEventListeners();
+    }
+
+    renderRekeningRow(item) {
+        return `
+            <tr class="search-result-row">
+                <td class="px-4 py-3">${item.kode_rekening || '-'}</td>
+                <td class="px-4 py-3">${item.rincian_objek || '-'}</td>
+                <td class="px-4 py-3 text-center">${item.actions || ''}</td>
+            </tr>
+        `;
+    }
+
+    // Penganggaran Table Update (Template)
+    updatePenganggaranTable(data, searchTerm) {
+        const tableBody = document.getElementById('penganggaranTableBody');
+        if (!tableBody) {
+            this.showError('Tabel Penganggaran tidak ditemukan');
+            return;
+        }
+
+        this.saveOriginalContent('penganggaranTableBody', tableBody.innerHTML);
+
+        if (data.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="100%" class="text-center py-5 text-muted">
+                        <i class="bi bi-search me-2"></i>
+                        Tidak ditemukan data penganggaran dengan kata kunci: "<strong>${searchTerm}</strong>"
+                    </td>
+                </tr>
+            `;
+        } else {
+            let html = '';
+            data.forEach(item => {
+                html += this.renderPenganggaranRow(item);
+            });
+            tableBody.innerHTML = html;
+        }
+
+        this.showSearchInfo(data.length, searchTerm, 'penganggaran');
+        this.reattachEventListeners();
+    }
+
+    renderPenganggaranRow(item) {
+        return `
+            <tr class="search-result-row">
+                <td class="px-4 py-3">${item.tahun_anggaran || '-'}</td>
+                <td class="px-4 py-3">${item.nama_sekolah || '-'}</td>
+                <td class="px-4 py-3">${item.status || '-'}</td>
+                <td class="px-4 py-3 text-center">${item.actions || ''}</td>
+            </tr>
+        `;
+    }
+
+    // Default Table Update
+    updateDefaultTable(data, searchTerm) {
+        console.log('Default table update:', data);
+        // Implementasi default handler jika diperlukan
+    }
+
+    saveOriginalContent(tableId, content) {
+        if (!this.originalContents.has(tableId)) {
+            this.originalContents.set(tableId, content);
+        }
+    }
+
+    showSearchInfo(count, searchTerm, type) {
+        this.removeSearchInfo();
+        
+        const typeLabel = this.getTypeLabel(type);
+        
+        if (count === 0) {
+            Swal.fire({
+                title: '🔍 Hasil Pencarian',
+                html: `
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                        </div>
+                        <p class="mb-2">Tidak ditemukan <strong>${typeLabel}</strong> dengan kata kunci:</p>
+                        <p class="fw-bold text-primary">"${searchTerm}"</p>
+                        <small class="text-muted">Coba dengan kata kunci yang berbeda</small>
+                    </div>
+                `,
+                icon: 'info',
+                showConfirmButton: true,
+                confirmButtonText: 'Mengerti',
+                confirmButtonColor: '#6c757d',
+                showCancelButton: false,
+                customClass: {
+                    popup: 'search-result-popup',
+                    title: 'search-result-title',
+                    htmlContainer: 'search-result-content'
+                }
+            });
+        } else {
+            Swal.fire({
+                title: '✅ Hasil Pencarian',
+                html: `
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                        </div>
+                        <p class="mb-1">Ditemukan <span class="fw-bold text-success fs-5">${count}</span> ${typeLabel}</p>
+                        <p class="mb-3">dengan kata kunci:</p>
+                        <p class="fw-bold text-primary fs-6">"${searchTerm}"</p>
+                        <div class="mt-3">
+                            <button type="button" id="btnResetSearch" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                                Tampilkan Semua Data
+                            </button>
+                        </div>
+                    </div>
+                `,
+                icon: 'success',
+                showConfirmButton: false,
+                showCloseButton: true,
+                timer: 5000,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'search-result-popup success',
+                    title: 'search-result-title',
+                    htmlContainer: 'search-result-content'
+                },
+                didOpen: (popup) => {
+                    const resetButton = popup.querySelector('#btnResetSearch');
+                    if (resetButton) {
+                        resetButton.addEventListener('click', () => {
+                            this.resetSearch();
+                            document.getElementById('globalSearchInput').value = '';
+                            this.currentSearchTerm = '';
+                            Swal.close();
+                        });
+                    }
+                    
+                    // Progress bar customization
+                    const timerProgressBar = popup.querySelector('.swal2-timer-progress-bar');
+                    if (timerProgressBar) {
+                        timerProgressBar.style.background = 'linear-gradient(90deg, #198754, #20c997)';
+                    }
+                }
+            });
+
+            // Tetap tampilkan info inline di halaman
+            this.showInlineSearchInfo(count, searchTerm, type);
+        }
+    }
+
+    showInlineSearchInfo(count, searchTerm, type) {
+        const infoHtml = `
+            <div class="search-result-info alert alert-info alert-dismissible fade show mt-2 mb-0 py-2" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <span>
+                        Ditemukan <strong>${count}</strong> ${this.getTypeLabel(type)} dengan kata kunci: 
+                        "<strong>${searchTerm}</strong>"
+                    </span>
+                    <button type="button" class="btn-close ms-auto btn-reset-search" 
+                            aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        
+        const header = document.querySelector('.card-body h1, .page-header h1, h1');
+        if (header) {
+            header.insertAdjacentHTML('afterend', infoHtml);
+        }
+    }
+
+    getTypeLabel(type) {
+        const labels = {
+            'bku': 'transaksi BKU',
+            'rkas': 'data RKAS',
+            'rkas-perubahan': 'data RKAS Perubahan',
+            'kegiatan': 'kegiatan',
+            'rekening': 'rekening belanja',
+            'penganggaran': 'data penganggaran'
+        };
+        return labels[type] || 'data';
+    }
+
+    removeSearchInfo() {
+        const existingInfo = document.querySelector('.search-result-info');
+        if (existingInfo) {
+            existingInfo.remove();
+        }
+    }
+
+    showLoading() {
+        const loadingElement = document.querySelector('.search-loading');
+        if (loadingElement) {
+            loadingElement.classList.remove('d-none');
+        }
+        
+        // Tambahkan loading state ke input
+        const searchInput = document.getElementById('globalSearchInput');
+        if (searchInput) {
+            searchInput.setAttribute('readonly', 'readonly');
+        }
+    }
+
+    hideLoading() {
+        const loadingElement = document.querySelector('.search-loading');
+        if (loadingElement) {
+            loadingElement.classList.add('d-none');
+        }
+        
+        // Hapus loading state dari input
+        const searchInput = document.getElementById('globalSearchInput');
+        if (searchInput) {
+            searchInput.removeAttribute('readonly');
+        }
+    }
+
+    showError(message) {
+        this.removeSearchInfo();
+        
+        Swal.fire({
+            title: '❌ Error Pencarian',
+            html: `
+                <div class="text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3rem;"></i>
+                    </div>
+                    <p class="fw-bold text-danger">${message}</p>
+                    <small class="text-muted">Silakan coba lagi atau refresh halaman</small>
+                </div>
+            `,
+            icon: 'error',
+            showConfirmButton: true,
+            confirmButtonText: 'Mengerti',
+            confirmButtonColor: '#dc3545',
+            customClass: {
+                popup: 'search-result-popup error'
+            }
+        });
+        
+        console.error('Search Error:', message);
+    }
+
+    resetSearch() {
+        console.log('Resetting search...');
+        
+        // Reset semua table yang pernah di-search
+        this.originalContents.forEach((content, tableId) => {
+            const tableBody = document.getElementById(tableId);
+            if (tableBody) {
+                tableBody.innerHTML = content;
+            }
+        });
+
+        // Hapus info pencarian
+        this.removeSearchInfo();
+        
+        // Re-attach event listeners
+        this.reattachEventListeners();
+        
+        // Clear original contents cache
+        this.originalContents.clear();
+        
+        // Trigger custom event untuk notify halaman
+        document.dispatchEvent(new CustomEvent('searchReset', {
+            detail: { page: this.currentPage }
+        }));
+    }
+
+    reattachEventListeners() {
+        // Trigger custom event untuk re-attach listeners
+        document.dispatchEvent(new CustomEvent('searchResultsUpdated', {
+            detail: { 
+                page: this.currentPage,
+                searchTerm: this.currentSearchTerm
+            }
+        }));
+        
+        console.log('Event listeners reattached for:', this.currentPage);
+    }
+}
+
+// Initialize global search ketika DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+    window.globalSearch = new GlobalSearch();
+    
+    // Global event untuk handle dynamic content
+    document.addEventListener('searchResultsUpdated', function(e) {
+        console.log('Search results updated for:', e.detail.page);
+        
+        // Event ini bisa digunakan oleh masing-masing halaman untuk re-attach listeners spesifik
+        if (typeof window.attachBkuEventListeners === 'function' && e.detail.page === 'bku') {
+            window.attachBkuEventListeners();
+        }
+        if (typeof window.attachRkasEventListeners === 'function' && e.detail.page === 'rkas') {
+            window.attachRkasEventListeners();
+        }
+        if (typeof window.attachKegiatanEventListeners === 'function' && e.detail.page === 'kegiatan') {
+            window.attachKegiatanEventListeners();
+        }
+        if (typeof window.attachRekeningEventListeners === 'function' && e.detail.page === 'rekening') {
+            window.attachRekeningEventListeners();
+        }
+    });
+    
+    document.addEventListener('searchReset', function(e) {
+        console.log('Search reset for:', e.detail.page);
+        
+        // Event ini bisa digunakan oleh masing-masing halaman untuk cleanup
+        if (typeof window.attachBkuEventListeners === 'function' && e.detail.page === 'bku') {
+            window.attachBkuEventListeners();
+        }
+        if (typeof window.attachRkasEventListeners === 'function' && e.detail.page === 'rkas') {
+            window.attachRkasEventListeners();
+        }
+        if (typeof window.attachKegiatanEventListeners === 'function' && e.detail.page === 'kegiatan') {
+            window.attachKegiatanEventListeners();
+        }
+        if (typeof window.attachRekeningEventListeners === 'function' && e.detail.page === 'rekening') {
+            window.attachRekeningEventListeners();
+        }
+    });
+});
+
+// Export untuk module system (jika menggunakan Vite)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = GlobalSearch;
+}

@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Imports\RekeningBelanjaImport;
 use App\Models\RekeningBelanja;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Log;
 
 class RekeningBelanjaController extends Controller
 {
@@ -27,6 +29,82 @@ class RekeningBelanjaController extends Controller
             ->paginate(20); // Sesuaikan jumlah item per halaman
 
         return view('referensi.rekening-belanja', compact('rekenings', 'search'));
+    }
+
+    /**
+     * Search rekening belanja
+     */
+    public function search(Request $request): JsonResponse
+    {
+        try {
+            $searchTerm = $request->get('search', '');
+
+            if (empty($searchTerm)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kata pencarian tidak boleh kosong'
+                ], 400);
+            }
+
+            $rekenings = RekeningBelanja::where(function ($query) use ($searchTerm) {
+                $query->where('kode_rekening', 'ILIKE', "%{$searchTerm}%")
+                    ->orWhere('rincian_objek', 'ILIKE', "%{$searchTerm}%");
+            })
+                ->orderBy('kode_rekening', 'asc')
+                ->get();
+
+            $formattedData = $rekenings->map(function ($rekening) {
+                return [
+                    'id' => $rekening->id,
+                    'kode_rekening' => $rekening->kode_rekening,
+                    'rincian_objek' => $rekening->rincian_objek,
+                    'actions' => $this->getRekeningActionButtons($rekening)
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedData,
+                'total' => $rekenings->count(),
+                'search_term' => $searchTerm
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error searching rekening belanja: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mencari data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate action buttons for rekening belanja
+     */
+    private function getRekeningActionButtons($rekening): string
+    {
+        return '
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-gear"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="#" 
+                           onclick="editRekening(' . $rekening->id . ')">
+                            <i class="bi bi-pencil me-2"></i>Edit
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="#" 
+                           onclick="deleteRekening(' . $rekening->id . ')">
+                            <i class="bi bi-trash me-2"></i>Hapus
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        ';
     }
 
     /**

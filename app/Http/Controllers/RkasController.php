@@ -9,6 +9,7 @@ use App\Models\Rkas;
 use App\Models\RkasPerubahan;
 use App\Models\Sekolah;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -80,6 +81,113 @@ class RkasController extends Controller
 
             return back()->with('error', 'Terjadi kesalahan saat memuat data RKAS.');
         }
+    }
+
+    /**
+     * Search RKAS
+     */
+    public function search(Request $request): JsonResponse
+    {
+        try {
+            $searchTerm = $request->get('search', '');
+            $tahun = $request->get('tahun', date('Y'));
+
+            if (empty($searchTerm)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kata pencarian tidak boleh kosong'
+                ], 400);
+            }
+
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan untuk tahun ' . $tahun
+                ], 404);
+            }
+
+            $rkasData = Rkas::where('penganggaran_id', $penganggaran->id)
+                ->where(function ($query) use ($searchTerm) {
+                    $query->where('uraian', 'ILIKE', "%{$searchTerm}%")
+                        ->orWhere('satuan', 'ILIKE', "%{$searchTerm}%")
+                        ->orWhereHas('kodeKegiatan', function ($q) use ($searchTerm) {
+                            $q->where('program', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('sub_program', 'ILIKE', "%{$searchTerm}%");
+                        })
+                        ->orWhereHas('rekeningBelanja', function ($q) use ($searchTerm) {
+                            $q->where('rincian_objek', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('kode_rekening', 'ILIKE', "%{$searchTerm}%");
+                        });
+                })
+                ->with(['kodeKegiatan', 'rekeningBelanja'])
+                ->orderBy('bulan', 'asc')
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            $formattedData = $rkasData->map(function ($rkas) {
+                return [
+                    'id' => $rkas->id,
+                    'kode_kegiatan' => $rkas->kodeKegiatan->kode ?? '-',
+                    'program' => $rkas->kodeKegiatan->program ?? '-',
+                    'sub_program' => $rkas->kodeKegiatan->sub_program ?? '-',
+                    'uraian' => $rkas->uraian,
+                    'volume' => $rkas->jumlah,
+                    'satuan' => $rkas->satuan,
+                    'harga_satuan' => number_format($rkas->harga_satuan, 0, ',', '.'),
+                    'jumlah' => number_format($rkas->harga_satuan * $rkas->jumlah, 0, ',', '.'),
+                    'bulan' => $rkas->bulan,
+                    'actions' => $this->getRkasActionButtons($rkas)
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedData,
+                'total' => $rkasData->count(),
+                'search_term' => $searchTerm
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error searching RKAS: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mencari data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate action buttons for RKAS
+     */
+    private function getRkasActionButtons($rkas): string
+    {
+        return '
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-gear"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="' . route('rkas.edit', $rkas->id) . '">
+                            <i class="bi bi-pencil me-2"></i>Edit
+                        </a>
+                    </li>
+                    <li>
+                        <form action="' . route('rkas.destroy', $rkas->id) . '" method="POST" class="d-inline">
+                            ' . csrf_field() . '
+                            ' . method_field('DELETE') . '
+                            <button type="submit" class="dropdown-item text-danger" 
+                                    onclick="return confirm(\'Apakah Anda yakin ingin menghapus data ini?\')">
+                                <i class="bi bi-trash me-2"></i>Hapus
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        ';
     }
 
     public function store(Request $request)

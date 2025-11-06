@@ -46,7 +46,6 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <!-- Action Buttons -->
                 <div class="d-flex gap-2">
                     @if(!$is_closed)
                     <button type="button" class="btn btn-outline-secondary btn-sm-custom" data-bs-toggle="modal"
@@ -59,12 +58,13 @@
                         <i class="bi bi-search me-1"></i>
                         Audit Data
                     </button>
-                    <a href="{{ route('laporan.rekapan-bku') }}?tahun={{ $tahun }}" class="btn btn-outline-secondary btn-sm-custom" id="btnCetak">
+                    <a href="{{ route('laporan.rekapan-bku') }}?tahun={{ $tahun }}"
+                        class="btn btn-outline-secondary btn-sm-custom" id="btnCetak">
                         <i class="bi bi-printer me-1"></i>
                         Cetak
                     </a>
-                    <button type="button" class="btn btn-dark btn-sm-custom" data-bs-toggle="modal" data-bs-target="#tutupBku"
-                        id="btnTutupBku">
+                    <button type="button" class="btn btn-dark btn-sm-custom" data-bs-toggle="modal"
+                        data-bs-target="#tutupBku" id="btnTutupBku">
                         Tutup BKU
                     </button>
                     @else
@@ -81,12 +81,13 @@
                         <i class="bi bi-search me-1"></i>
                         Audit Data
                     </button>
-                    <a href="{{ route('laporan.rekapan-bku') }}?tahun={{ $tahun }}" class="btn btn-outline-secondary btn-sm-custom" id="btnCetak">
+                    <a href="{{ route('laporan.rekapan-bku') }}?tahun={{ $tahun }}"
+                        class="btn btn-outline-secondary btn-sm-custom" id="btnCetak">
                         <i class="bi bi-printer me-1"></i>
                         Cetak
                     </a>
                     @endif
-            
+
                 </div>
             </div>
         </div>
@@ -214,7 +215,7 @@
                                     <th scope="col" class="px-4 py-3 text-center" style="width: 80px;">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="bkuTableBody">
                                 <!-- Baris Penerimaan Dana (Hanya tampil di bulan yang sesuai) -->
                                 @if($penerimaanDanas && $penerimaanDanas->count() > 0)
                                 @foreach($penerimaanDanas as $penerimaan)
@@ -237,7 +238,7 @@
                                 @endphp
 
                                 @if($bulanPenerimaanIndo === $bulan)
-                                <tr class="bg-light">
+                                <tr class="bg-light penerimaan-row">
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">{{
                                         \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('d M Y') }}</td>
@@ -255,14 +256,17 @@
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3 text-center">
                                         <div class="dropdown dropstart">
-                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button" id="dropdownMenuButton{{ $penerimaan->id }}"
-                                                data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none;">
+                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button"
+                                                id="dropdownMenuButton{{ $penerimaan->id }}" data-bs-toggle="dropdown"
+                                                aria-expanded="false" style="border: none; background: none;">
                                                 <i class="bi bi-three-dots-vertical"></i>
                                             </button>
-                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ $penerimaan->id }}">
+                                            <ul class="dropdown-menu dropdown-menu-end"
+                                                aria-labelledby="dropdownMenuButton{{ $penerimaan->id }}">
                                                 <li>
                                                     <a class="dropdown-item text-danger btn-hapus-penerimaan"
-                                                        href="{{ route('penerimaan-dana.destroy', $penerimaan->id ) }}" data-id="{{ $penerimaan->id }}">
+                                                        href="{{ route('penerimaan-dana.destroy', $penerimaan->id ) }}"
+                                                        data-id="{{ $penerimaan->id }}">
                                                         <i class="bi bi-trash me-2"></i>Hapus
                                                     </a>
                                                 </li>
@@ -271,7 +275,7 @@
                                     </td>
                                 </tr>
                                 @if($penerimaan->sumber_dana === 'Bosp Reguler Tahap 1' && $penerimaan->saldo_awal)
-                                <tr class="bg-light">
+                                <tr class="bg-light penerimaan-row">
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">{{
                                         \Carbon\Carbon::parse($penerimaan->tanggal_saldo_awal)->format('d M Y') }}</td>
@@ -289,14 +293,17 @@
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3 text-center">
                                         <div class="dropdown dropstart">
-                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button" id="dropdownMenuButton{{ $penerimaan->id }}"
-                                                data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none;">
+                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button"
+                                                id="dropdownMenuButton{{ $penerimaan->id }}" data-bs-toggle="dropdown"
+                                                aria-expanded="false" style="border: none; background: none;">
                                                 <i class="bi bi-three-dots-vertical"></i>
                                             </button>
-                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ $penerimaan->id }}">
+                                            <ul class="dropdown-menu dropdown-menu-end"
+                                                aria-labelledby="dropdownMenuButton{{ $penerimaan->id }}">
                                                 <li>
                                                     <a class="dropdown-item text-danger btn-hapus-saldo-awal"
-                                                        href="{{ route('penerimaan-dana.destroy-saldo-awal', $penerimaan->id ) }}" data-id="{{ $penerimaan->id }}">
+                                                        href="{{ route('penerimaan-dana.destroy-saldo-awal', $penerimaan->id ) }}"
+                                                        data-id="{{ $penerimaan->id }}">
                                                         <i class="bi bi-trash me-2"></i>Hapus
                                                     </a>
                                                 </li>
@@ -331,7 +338,7 @@
                                 @endphp
 
                                 @if($bulanPenarikanIndo === $bulan)
-                                <tr class="bg-light">
+                                <tr class="bg-light penarikan-row">
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">{{
                                         \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d M Y') }}</td>
@@ -349,20 +356,23 @@
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3 text-center">
                                         <div class="dropdown dropstart">
-                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button" id="dropdownMenuButton{{ $penarikan->id }}"
-                                                data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none;">
+                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button"
+                                                id="dropdownMenuButton{{ $penarikan->id }}" data-bs-toggle="dropdown"
+                                                aria-expanded="false" style="border: none; background: none;">
                                                 <i class="bi bi-three-dots-vertical"></i>
                                             </button>
-                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ $penarikan->id }}">
+                                            <ul class="dropdown-menu dropdown-menu-end"
+                                                aria-labelledby="dropdownMenuButton{{ $penarikan->id }}">
                                                 <li>
-                                                    <a class="dropdown-item text-danger btn-hapus-penarikan" href="{{ route('penarikan.destroy', $penarikan->id ) }}"
+                                                    <a class="dropdown-item text-danger btn-hapus-penarikan"
+                                                        href="{{ route('penarikan.destroy', $penarikan->id ) }}"
                                                         data-id="{{ $penarikan->id }}">
                                                         <i class="bi bi-trash me-2"></i>Hapus
                                                     </a>
                                                 </li>
                                             </ul>
                                         </div>
-                                </td>
+                                    </td>
                                 </tr>
                                 @endif
                                 @endforeach
@@ -390,7 +400,7 @@
                                 @endphp
 
                                 @if($bulanSetorIndo === $bulan)
-                                <tr class="bg-light">
+                                <tr class="bg-light setor-row">
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3">{{ \Carbon\Carbon::parse($setor->tanggal_setor)->format('d M
                                         Y') }}</td>
@@ -408,14 +418,17 @@
                                     <td class="px-4 py-3">-</td>
                                     <td class="px-4 py-3 text-center">
                                         <div class="dropdown dropstart">
-                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button" id="dropdownMenuButton{{ $penerimaan->id }}"
-                                                data-bs-toggle="dropdown" aria-expanded="false" style="border: none; background: none;">
+                                            <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button"
+                                                id="dropdownMenuButton{{ $penerimaan->id }}" data-bs-toggle="dropdown"
+                                                aria-expanded="false" style="border: none; background: none;">
                                                 <i class="bi bi-three-dots-vertical"></i>
                                             </button>
-                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ $setor->id }}">
+                                            <ul class="dropdown-menu dropdown-menu-end"
+                                                aria-labelledby="dropdownMenuButton{{ $setor->id }}">
                                                 <li>
                                                     <a class="dropdown-item text-danger btn-hapus-setor"
-                                                        href="{{ route('setor-tunai.destroy', $setor->id ) }}" data-id="{{ $setor->id }}">
+                                                        href="{{ route('setor-tunai.destroy', $setor->id ) }}"
+                                                        data-id="{{ $setor->id }}">
                                                         <i class="bi bi-trash me-2"></i>Hapus
                                                     </a>
                                                 </li>
@@ -429,7 +442,7 @@
 
                                 <!-- Data BKU yang sudah ada -->
                                 @forelse($bkuData as $bku)
-                                <tr>
+                                <tr class="bku-row" data-bku-id="{{ $bku->id }}">
                                     <td class="px-4 py-3">{{ $bku->id_transaksi }}</td>
                                     <td class="px-4 py-3">{{ $bku->tanggal_transaksi->format('d/m/Y') }}</td>
                                     <td class="px-4 py-3">{{ $bku->kodeKegiatan->sub_program }}</td>
@@ -475,8 +488,8 @@
                                             <ul class="dropdown-menu dropdown-menu-end"
                                                 aria-labelledby="dropdownMenuButton{{ $bku->id }}">
                                                 <li>
-                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                                        data-bs-target="#detailModal{{ $bku->id }}">
+                                                    <a class="dropdown-item btn-view-detail" href="#"
+                                                        data-bku-id="{{ $bku->id }}">
                                                         <i class="bi bi-eye me-2"></i>Lihat Detail
                                                     </a>
                                                 </li>
@@ -783,12 +796,27 @@
         color: #dc3545;
         font-weight: bold;
     }
+
+    /* Search result styling */
+    .search-result-info {
+        font-size: 0.875rem;
+        border-left: 4px solid #0dcaf0;
+    }
+
+    .search-result-row {
+        background-color: #f8f9fa !important;
+        border-left: 3px solid #0d6efd;
+    }
+
+    .search-result-row:hover {
+        background-color: #e9ecef !important;
+    }
 </style>
 
 @push('scripts')
 <script>
     $(document).ready(function() {
-        console.log('Document ready - SweetAlert script loaded');
+        console.log('Document ready - BKU script loaded');
 
         // Function untuk disable/enable elements
         function toggleBkuStatus(isClosed, hasTransactions) {
@@ -929,7 +957,7 @@
         });
 
         // SweetAlert untuk hapus data individual
-        $('a.btn-hapus-individual').on('click', function(e) {
+        $(document).on('click', 'a.btn-hapus-individual', function(e) {
             e.preventDefault();
             const url = $(this).attr('href');
             const id = $(this).data('id');
@@ -977,8 +1005,8 @@
             });
         });
 
-        // SweetAlert untuk hapus data individual
-        $('a.btn-hapus-penarikan').on('click', function(e) {
+        // SweetAlert untuk hapus data penarikan
+        $(document).on('click', 'a.btn-hapus-penarikan', function(e) {
             e.preventDefault();
             const url = $(this).attr('href');
             const id = $(this).data('id');
@@ -1027,7 +1055,7 @@
         });
 
         // SweetAlert untuk hapus data penerimaan
-        $('a.btn-hapus-penerimaan').on('click', function(e) {
+        $(document).on('click', 'a.btn-hapus-penerimaan', function(e) {
             e.preventDefault();
             const url = $(this).attr('href');
             const id = $(this).data('id');
@@ -1076,7 +1104,7 @@
         });
 
         // SweetAlert untuk hapus data saldo awal
-        $('a.btn-hapus-saldo-awal').on('click', function(e) {
+        $(document).on('click', 'a.btn-hapus-saldo-awal', function(e) {
             e.preventDefault();
             const url = $(this).attr('href');
             const id = $(this).data('id');
@@ -1124,8 +1152,8 @@
             });
         });
 
-        // SweetAlert untuk hapus data individual
-        $('a.btn-hapus-setor').on('click', function(e) {
+        // SweetAlert untuk hapus data setor
+        $(document).on('click', 'a.btn-hapus-setor', function(e) {
             e.preventDefault();
             const url = $(this).attr('href');
             const id = $(this).data('id');
@@ -1283,43 +1311,24 @@
         $('#btnDebug').on('click', function() {
             runDebugCalculation();
         });
+
+        // Initial attach event listeners
+        attachBkuEventListeners();
     });
 
-    // Function untuk update display saldo
-    function updateSaldoDisplay(saldoData) {
-        if (saldoData) {
-            $('#totalDanaTersediaDisplay').text('Rp ' + formatRupiah(saldoData.total_dana_tersedia));
-            $('#saldoNonTunaiDisplay').val('Rp ' + formatRupiah(saldoData.non_tunai));
-            $('#saldoTunaiDisplay').val('Rp ' + formatRupiah(saldoData.tunai));
-        }
-    }
-
-    // Function format rupiah
-    function formatRupiah(angka) {
-        return new Intl.NumberFormat('id-ID').format(angka);
-    }
-
-    // Event listener untuk success simpan transaksi
-    document.addEventListener('DOMContentLoaded', function() {
-        $(document).on('bkuSaved', function(e, data) {
-            if (data.saldo_update) {
-                updateSaldoDisplay(data.saldo_update);
-                
-                $('input[data-max]').each(function() {
-                    const field = $(this);
-                    if (field.attr('id') === 'jumlah_penarikan') {
-                        field.attr('data-max', data.saldo_update.non_tunai);
-                        field.next('small').text('Maksimal: Rp ' + formatRupiah(data.saldo_update.non_tunai));
-                    } else if (field.attr('id') === 'jumlah_setor') {
-                        field.attr('data-max', data.saldo_update.tunai);
-                        field.next('small').text('Maksimal: Rp ' + formatRupiah(data.saldo_update.tunai));
-                    }
-                });
-            }
+    // Function untuk attach BKU specific event listeners
+    function attachBkuEventListeners() {
+        console.log('Attaching BKU event listeners...');
+        
+        // Detail modal
+        $('.btn-view-detail').off('click').on('click', function(e) {
+            e.preventDefault();
+            const bkuId = $(this).data('bku-id');
+            $(`#detailModal${bkuId}`).modal('show');
         });
 
-        // Event listener untuk modal lapor pajak
-        $(document).on('click', '.btn-lapor-pajak', function(e) {
+        // Lapor pajak modal
+        $('.btn-lapor-pajak').off('click').on('click', function(e) {
             e.preventDefault();
             const bkuId = $(this).data('id');
             const totalPajak = $(this).data('pajak');
@@ -1357,6 +1366,50 @@
                 });
                 
                 $('#laporPajakModal').modal('show');
+            }
+        });
+
+        console.log('BKU event listeners attached successfully');
+    }
+
+    // Event listener untuk search results updated dari search.js
+    document.addEventListener('searchResultsUpdated', function(e) {
+        if (e.detail.page === 'bku') {
+            console.log('Re-attaching BKU event listeners after search...');
+            attachBkuEventListeners();
+        }
+    });
+
+    // Function untuk update display saldo
+    function updateSaldoDisplay(saldoData) {
+        if (saldoData) {
+            $('#totalDanaTersediaDisplay').text('Rp ' + formatRupiah(saldoData.total_dana_tersedia));
+            $('#saldoNonTunaiDisplay').val('Rp ' + formatRupiah(saldoData.non_tunai));
+            $('#saldoTunaiDisplay').val('Rp ' + formatRupiah(saldoData.tunai));
+        }
+    }
+
+    // Function format rupiah
+    function formatRupiah(angka) {
+        return new Intl.NumberFormat('id-ID').format(angka);
+    }
+
+    // Event listener untuk success simpan transaksi
+    document.addEventListener('DOMContentLoaded', function() {
+        $(document).on('bkuSaved', function(e, data) {
+            if (data.saldo_update) {
+                updateSaldoDisplay(data.saldo_update);
+                
+                $('input[data-max]').each(function() {
+                    const field = $(this);
+                    if (field.attr('id') === 'jumlah_penarikan') {
+                        field.attr('data-max', data.saldo_update.non_tunai);
+                        field.next('small').text('Maksimal: Rp ' + formatRupiah(data.saldo_update.non_tunai));
+                    } else if (field.attr('id') === 'jumlah_setor') {
+                        field.attr('data-max', data.saldo_update.tunai);
+                        field.next('small').text('Maksimal: Rp ' + formatRupiah(data.saldo_update.tunai));
+                    }
+                });
             }
         });
 

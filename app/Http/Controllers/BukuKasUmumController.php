@@ -247,6 +247,167 @@ class BukuKasUmumController extends Controller
         }
     }
 
+    // Tambahkan method search di BukuKasUmumController
+    public function search(Request $request, $tahun, $bulan)
+    {
+        try {
+            $searchTerm = $request->get('search');
+
+            if (empty($searchTerm)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kata pencarian tidak boleh kosong'
+                ], 400);
+            }
+
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan'
+                ], 404);
+            }
+
+            $bulanAngka = $this->convertBulanToNumber($bulan);
+
+            // Query pencarian dengan multiple criteria
+            $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
+                ->whereMonth('tanggal_transaksi', $bulanAngka)
+                ->whereYear('tanggal_transaksi', $tahun)
+                ->where('is_bunga_record', false)
+                ->where(function ($query) use ($searchTerm) {
+                    $query->where('id_transaksi', 'ILIKE', "%{$searchTerm}%")
+                        ->orWhereHas('kodeKegiatan', function ($q) use ($searchTerm) {
+                            $q->where('program', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('sub_program', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('uraian', 'ILIKE', "%{$searchTerm}%");
+                        })
+                        ->orWhereHas('rekeningBelanja', function ($q) use ($searchTerm) {
+                            $q->where('rincian_objek', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('kode_rekening', 'ILIKE', "%{$searchTerm}%");
+                        })
+                        ->orWhere('uraian', 'ILIKE', "%{$searchTerm}%")
+                        ->orWhere('uraian_opsional', 'ILIKE', "%{$searchTerm}%");
+                })
+                ->with(['kodeKegiatan', 'rekeningBelanja', 'uraianDetails'])
+                ->orderBy('tanggal_transaksi', 'asc')
+                ->orderBy('id_transaksi', 'asc')
+                ->get();
+
+            // Format data untuk response
+            $formattedData = $bkuData->map(function ($bku) {
+                return [
+                    'id' => $bku->id,
+                    'id_transaksi' => $bku->id_transaksi,
+                    'tanggal' => $bku->tanggal_transaksi->format('d/m/Y'),
+                    'kegiatan' => $bku->kodeKegiatan->sub_program ?? '-',
+                    'rekening_belanja' => $bku->rekeningBelanja->rincian_objek ?? '-',
+                    'uraian_opsional' => $bku->uraian_opsional,
+                    'uraian' => $bku->uraian,
+                    'jenis_transaksi' => ucfirst($bku->jenis_transaksi),
+                    'anggaran' => number_format($bku->anggaran, 0, ',', '.'),
+                    'dibelanjakan' => number_format($bku->total_transaksi_kotor, 0, ',', '.'),
+                    'pajak_info' => $this->getPajakInfo($bku),
+                    'actions' => $this->getActionButtons($bku)
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedData,
+                'total' => $bkuData->count(),
+                'search_term' => $searchTerm
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error searching BKU data: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mencari data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Helper method untuk info pajak
+    private function getPajakInfo($bku)
+    {
+        if ($bku->total_pajak > 0) {
+            if ($bku->ntpn) {
+                return [
+                    'amount' => number_format($bku->total_pajak, 0, ',', '.'),
+                    'status' => 'reported',
+                    'badge_class' => 'badge-sudah-lapor',
+                    'text_class' => 'text-dark',
+                    'icon' => 'bi-check-circle-fill',
+                    'message' => 'Sudah dilaporkan'
+                ];
+            } else {
+                return [
+                    'amount' => number_format($bku->total_pajak, 0, ',', '.'),
+                    'status' => 'unreported',
+                    'badge_class' => 'badge-belum-lapor',
+                    'text_class' => 'text-danger fw-bold',
+                    'icon' => 'bi-exclamation-triangle-fill',
+                    'message' => 'Belum dilaporkan'
+                ];
+            }
+        }
+
+        return [
+            'amount' => '0',
+            'status' => 'none',
+            'text_class' => 'text-muted',
+            'message' => 'Rp 0'
+        ];
+    }
+
+    // Helper method untuk action buttons
+    private function getActionButtons($bku)
+    {
+        $buttons = '
+    <div class="dropdown dropstart">
+        <button class="btn btn-sm p-0 dropdown-toggle-simple" type="button" 
+                data-bs-toggle="dropdown" aria-expanded="false" 
+                style="border: none; background: none;">
+            <i class="bi bi-three-dots-vertical"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+                <a class="dropdown-item btn-view-detail" href="#" 
+                   data-bku-id="' . $bku->id . '">
+                    <i class="bi bi-eye me-2"></i>Lihat Detail
+                </a>
+            </li>';
+
+        if ($bku->total_pajak > 0) {
+            $buttons .= '
+            <li>
+                <a href="#" class="dropdown-item btn-lapor-pajak" 
+                   data-bs-toggle="modal" data-bs-target="#laporPajakModal"
+                   data-id="' . $bku->id . '" 
+                   data-pajak="' . $bku->total_pajak . '" 
+                   data-ntpn="' . ($bku->ntpn ?? '') . '">
+                    <i class="bi bi-' . ($bku->ntpn ? 'check-circle' : 'info-circle') . ' me-2"></i>
+                    ' . ($bku->ntpn ? 'Edit Lapor Pajak' : 'Lapor Pajak') . '
+                </a>
+            </li>';
+        }
+
+        $buttons .= '
+            <li>
+                <a class="dropdown-item text-danger btn-hapus-individual" 
+                   href="' . route('bku.destroy', $bku->id) . '" 
+                   data-id="' . $bku->id . '">
+                    <i class="bi bi-trash me-2"></i>Hapus
+                </a>
+            </li>
+        </ul>
+    </div>';
+
+        return $buttons;
+    }
+
     // METHOD UNTUK FIX DATA (API)
     public function fixData($penganggaran_id)
     {
