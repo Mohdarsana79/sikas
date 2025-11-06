@@ -54,7 +54,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/bku/search/{tahun}/{bulan}', [BukuKasUmumController::class, 'search'])->name('bku.search');
 
     // Kode Kegiatan Search
-    Route::get('/kegiatan/search', [KodeKegiatanController::class, 'search'])->name('kegiatan.search');
+    Route::get('/kode-kegiatan/search', [KodeKegiatanController::class, 'search'])->name('kegiatan.search');
 
     // Rekening Belanja Search
     Route::get('/rekening-belanja/search', [RekeningBelanjaController::class, 'search'])->name('rekening-belanja.search');

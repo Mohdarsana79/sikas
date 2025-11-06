@@ -70,6 +70,7 @@ class GlobalSearch {
 
     setupRouteBasedSearch() {
         const currentPath = window.location.pathname;
+        console.log('Current path:', currentPath); // Debug
         
         if (currentPath.includes('/bku/')) {
             this.currentPage = 'bku';
@@ -77,7 +78,7 @@ class GlobalSearch {
             this.currentPage = 'rkas';
         } else if (currentPath.includes('/rkas-perubahan')) {
             this.currentPage = 'rkas-perubahan';
-        } else if (currentPath.includes('/kegiatan')) {
+        } else if (currentPath.includes('/kode-kegiatan')) {
             this.currentPage = 'kegiatan';
         } else if (currentPath.includes('/rekening-belanja')) {
             this.currentPage = 'rekening';
@@ -116,7 +117,7 @@ class GlobalSearch {
             },
             'rkas': `/rkas/search?search=${encodeURIComponent(searchTerm)}`,
             'rkas-perubahan': `/rkas-perubahan/search?search=${encodeURIComponent(searchTerm)}`,
-            'kegiatan': `/kegiatan/search?search=${encodeURIComponent(searchTerm)}`,
+            'kegiatan': `/kode-kegiatan/search?search=${encodeURIComponent(searchTerm)}`,
             'rekening': `/rekening-belanja/search?search=${encodeURIComponent(searchTerm)}`,
             'penganggaran': `/penganggaran/search?search=${encodeURIComponent(searchTerm)}`,
             'default': null
