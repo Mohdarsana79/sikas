@@ -83,14 +83,12 @@ class RkasController extends Controller
         }
     }
 
-    /**
-     * Search RKAS
-     */
     public function search(Request $request): JsonResponse
     {
         try {
+            Log::info('RKAS Search called', ['search_term' => $request->get('search')]);
+
             $searchTerm = $request->get('search', '');
-            $tahun = $request->get('tahun', date('Y'));
 
             if (empty($searchTerm)) {
                 return response()->json([
@@ -99,46 +97,43 @@ class RkasController extends Controller
                 ], 400);
             }
 
-            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
-
-            if (!$penganggaran) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan untuk tahun ' . $tahun
-                ], 404);
-            }
-
-            $rkasData = Rkas::where('penganggaran_id', $penganggaran->id)
+            // Gunakan kolom yang SESUAI dengan struktur tabel sebenarnya
+            $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja']) // Eager load relationships
                 ->where(function ($query) use ($searchTerm) {
                     $query->where('uraian', 'ILIKE', "%{$searchTerm}%")
                         ->orWhere('satuan', 'ILIKE', "%{$searchTerm}%")
+                        ->orWhere('bulan', 'ILIKE', "%{$searchTerm}%")
                         ->orWhereHas('kodeKegiatan', function ($q) use ($searchTerm) {
-                            $q->where('program', 'ILIKE', "%{$searchTerm}%")
-                                ->orWhere('sub_program', 'ILIKE', "%{$searchTerm}%");
+                            $q->where('kode', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('program', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('sub_program', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('uraian', 'ILIKE', "%{$searchTerm}%");
                         })
                         ->orWhereHas('rekeningBelanja', function ($q) use ($searchTerm) {
-                            $q->where('rincian_objek', 'ILIKE', "%{$searchTerm}%")
-                                ->orWhere('kode_rekening', 'ILIKE', "%{$searchTerm}%");
+                            $q->where('kode_rekening', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('rincian_objek', 'ILIKE', "%{$searchTerm}%");
                         });
                 })
-                ->with(['kodeKegiatan', 'rekeningBelanja'])
-                ->orderBy('bulan', 'asc')
-                ->orderBy('created_at', 'asc')
+                ->orderBy('bulan')
+                ->orderBy('kode_id')
                 ->get();
 
-            $formattedData = $rkasData->map(function ($rkas) {
+            Log::info('RKAS Search results', ['count' => $rkasData->count()]);
+
+            $formattedData = $rkasData->map(function ($item, $index) {
                 return [
-                    'id' => $rkas->id,
-                    'kode_kegiatan' => $rkas->kodeKegiatan->kode ?? '-',
-                    'program' => $rkas->kodeKegiatan->program ?? '-',
-                    'sub_program' => $rkas->kodeKegiatan->sub_program ?? '-',
-                    'uraian' => $rkas->uraian,
-                    'volume' => $rkas->jumlah,
-                    'satuan' => $rkas->satuan,
-                    'harga_satuan' => number_format($rkas->harga_satuan, 0, ',', '.'),
-                    'jumlah' => number_format($rkas->harga_satuan * $rkas->jumlah, 0, ',', '.'),
-                    'bulan' => $rkas->bulan,
-                    'actions' => $this->getRkasActionButtons($rkas)
+                    'id' => $item->id,
+                    'index' => $index + 1,
+                    'kode_kegiatan' => $item->kodeKegiatan->kode ?? '-', // Ambil dari relationship
+                    'program' => $item->kodeKegiatan->program ?? '-', // Ambil dari relationship
+                    'sub_program' => $item->kodeKegiatan->sub_program ?? '-', // Ambil dari relationship
+                    'uraian' => $item->uraian,
+                    'volume' => $item->volume ?? '0',
+                    'satuan' => $item->satuan,
+                    'harga_satuan' => number_format($item->harga_satuan, 0, ',', '.'),
+                    'jumlah' => number_format($item->jumlah, 0, ',', '.'),
+                    'bulan' => $item->bulan,
+                    'actions' => $this->getRkasActionButtons($item)
                 ];
             });
 
@@ -149,44 +144,28 @@ class RkasController extends Controller
                 'search_term' => $searchTerm
             ]);
         } catch (\Exception $e) {
-            Log::error('Error searching RKAS: ' . $e->getMessage());
+            Log::error('Error searching RKAS: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mencari data: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan saat mencari data RKAS: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    /**
-     * Generate action buttons for RKAS
-     */
-    private function getRkasActionButtons($rkas): string
+    private function getRkasActionButtons($item): string
     {
         return '
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-gear"></i>
-                </button>
-                <ul class="dropdown-menu">
-                    <li>
-                        <a class="dropdown-item" href="' . route('rkas.edit', $rkas->id) . '">
-                            <i class="bi bi-pencil me-2"></i>Edit
-                        </a>
-                    </li>
-                    <li>
-                        <form action="' . route('rkas.destroy', $rkas->id) . '" method="POST" class="d-inline">
-                            ' . csrf_field() . '
-                            ' . method_field('DELETE') . '
-                            <button type="submit" class="dropdown-item text-danger" 
-                                    onclick="return confirm(\'Apakah Anda yakin ingin menghapus data ini?\')">
-                                <i class="bi bi-trash me-2"></i>Hapus
-                            </button>
-                        </form>
-                    </li>
-                </ul>
-            </div>
+            <button class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                    data-bs-target="#editModal' . $item->id . '">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                    data-bs-target="#deleteModal' . $item->id . '">
+                <i class="bi bi-trash"></i>
+            </button>
         ';
     }
 

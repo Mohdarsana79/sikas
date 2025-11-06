@@ -104,7 +104,10 @@ class GlobalSearch {
     }
 
     performSearch(searchTerm) {
-        console.log('Performing search for:', searchTerm, 'on page:', this.currentPage);
+        console.log('=== SEARCH DEBUG START ===');
+        console.log('Search term:', searchTerm);
+        console.log('Current page:', this.currentPage);
+        console.log('Current path:', window.location.pathname);
         
         this.showLoading();
 
@@ -117,36 +120,50 @@ class GlobalSearch {
             },
             'rkas': `/rkas/search?search=${encodeURIComponent(searchTerm)}`,
             'rkas-perubahan': `/rkas-perubahan/search?search=${encodeURIComponent(searchTerm)}`,
-            'kegiatan': `/kode-kegiatan/search?search=${encodeURIComponent(searchTerm)}`,
+            'kegiatan': `/kegiatan/search?search=${encodeURIComponent(searchTerm)}`,
             'rekening': `/rekening-belanja/search?search=${encodeURIComponent(searchTerm)}`,
             'penganggaran': `/penganggaran/search?search=${encodeURIComponent(searchTerm)}`,
             'default': null
         };
 
         const endpoint = endpoints[this.currentPage];
+        console.log('Selected endpoint:', endpoint);
         
         if (!endpoint) {
+            console.log('ERROR: No endpoint found for page:', this.currentPage);
             this.hideLoading();
             this.showError('Search tidak tersedia untuk halaman ini');
             return;
         }
 
         const url = typeof endpoint === 'function' ? endpoint() : endpoint;
+        console.log('Final URL:', url);
+
+        // Cek CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        console.log('CSRF Token exists:', !!csrfToken);
+        if (csrfToken) {
+            console.log('CSRF Token content:', csrfToken.content);
+        }
 
         fetch(url, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-CSRF-TOKEN': csrfToken ? csrfToken.content : '',
                 'Accept': 'application/json'
             }
         })
         .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
+            console.log('Response data:', data);
             this.hideLoading();
             if (data.success) {
                 this.handleSearchResponse(data, searchTerm);
@@ -155,9 +172,12 @@ class GlobalSearch {
             }
         })
         .catch(error => {
+            console.error('Search error details:', error);
             this.hideLoading();
-            console.error('Search error:', error);
-            this.showError('Terjadi kesalahan saat menghubungi server');
+            this.showError('Terjadi kesalahan saat menghubungi server: ' + error.message);
+        })
+        .finally(() => {
+            console.log('=== SEARCH DEBUG END ===');
         });
     }
 
@@ -241,20 +261,37 @@ class GlobalSearch {
         `;
     }
 
-    // RKAS Table Update
+    // RKAS Table Update - VERSION WITH CLASS
     updateRkasTable(data, searchTerm) {
-        const tableBody = document.getElementById('rkasTableBody');
+        // Cari dengan ID utama dulu
+        let tableBody = document.getElementById('rkasTableBody');
+        
+        // Jika tidak ada, cari dengan class
+        if (!tableBody) {
+            tableBody = document.querySelector('.rkas-table-body');
+        }
+        
+        // Jika masih tidak ada, cari dengan pola ID dynamic
+        if (!tableBody) {
+            const dynamicTableBody = document.querySelector('[id^="table-body-"]');
+            if (dynamicTableBody) {
+                tableBody = dynamicTableBody;
+            }
+        }
+
         if (!tableBody) {
             this.showError('Tabel RKAS tidak ditemukan');
             return;
         }
 
-        this.saveOriginalContent('rkasTableBody', tableBody.innerHTML);
+        // Simpan original content dengan ID yang ditemukan
+        const tableId = tableBody.id || 'rkasDynamicTable';
+        this.saveOriginalContent(tableId, tableBody.innerHTML);
 
         if (data.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="100%" class="text-center py-5 text-muted">
+                    <td colspan="11" class="text-center py-5 text-muted">
                         <i class="bi bi-search me-2"></i>
                         Tidak ditemukan data RKAS dengan kata kunci: "<strong>${searchTerm}</strong>"
                     </td>
@@ -275,6 +312,7 @@ class GlobalSearch {
     renderRkasRow(item) {
         return `
             <tr class="search-result-row">
+                <td class="px-4 py-3">${item.index || '-'}</td>
                 <td class="px-4 py-3">${item.kode_kegiatan || '-'}</td>
                 <td class="px-4 py-3">${item.program || '-'}</td>
                 <td class="px-4 py-3">${item.sub_program || '-'}</td>
