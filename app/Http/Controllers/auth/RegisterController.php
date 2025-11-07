@@ -1,70 +1,79 @@
 <?php
 
-namespace App\Http\Controllers\auth;
+namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Auth\Events\Registered;
 
 class RegisterController extends Controller
 {
     /**
-     * Display registration page.
+     * Show the application registration form.
      */
-    public function create()
+    public function showRegistrationForm()
     {
+        // Cek apakah sudah ada user yang terdaftar
+        if (User::count() > 0) {
+            return redirect()->route('login')
+                ->with('error', 'Registrasi sudah ditutup. Sistem hanya mendukung satu user.');
+        }
+
         return view('auth.register');
     }
 
     /**
-     * Handle registration request.
+     * Handle a registration request for the application.
      */
-    public function store(Request $request)
+    public function register(Request $request)
     {
+        // Cek apakah sudah ada user yang terdaftar
+        if (User::count() > 0) {
+            return redirect()->route('login')
+                ->with('error', 'Registrasi sudah ditutup. Sistem hanya mendukung satu user.');
+        }
+
         $validator = Validator::make($request->all(), [
-            'fullname' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'username' => 'required|string|max:255|unique:users',
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => 'required|string|min:8|confirmed',
         ], [
-            'fullname.required' => 'Nama lengkap wajib diisi',
-            'email.required' => 'Email wajib diisi',
-            'email.email' => 'Format email tidak valid',
-            'email.unique' => 'Email sudah terdaftar',
-            'username.required' => 'Username wajib diisi',
-            'username.unique' => 'Username sudah digunakan',
-            'password.required' => 'Password wajib diisi',
-            'password.confirmed' => 'Konfirmasi password tidak cocok',
+            'name.required' => 'Nama lengkap wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah terdaftar.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal 8 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak sesuai.',
         ]);
 
         if ($validator->fails()) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-            return back()->withErrors($validator)->withInput();
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('error', $validator->errors()->first());
         }
 
-        $user = User::create([
-            'name' => $request->fullname,
-            'email' => $request->email,
-            'username' => $request->username,
-            'password' => Hash::make($request->password),
-        ]);
-
-        auth()->login($user);
-
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'redirect' => route('dashboard')
+        try {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
             ]);
-        }
 
-        return redirect()->intended(route('dashboard.dashboard'))->with('success', 'Pendaftaran berhasil!');
+            event(new Registered($user));
+
+            auth()->login($user);
+
+            return redirect('/dashboard')
+                ->with('success', 'Registrasi berhasil! Selamat datang.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan server. Silakan coba lagi.');
+        }
     }
 }

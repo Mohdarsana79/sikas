@@ -12,7 +12,7 @@
         <ul class="sidebar-nav list-unstyled">
             <!-- Dashboard -->
             <li class="nav-item">
-                <a href="{{ route('dashboard.dashboard') }}" class="nav-link active" data-page="dashboard">
+                <a href="{{ route('dashboard.dashboard') }}" class="nav-link" data-page="dashboard">
                     <i class="bi bi-speedometer2 nav-icon"></i>
                     <span class="nav-text">Dashboard</span>
                 </a>
@@ -31,7 +31,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('kop-sekolah.index') }}" class="nav-link" data-page="comp-kop-sekolah">Kop Sekolah
+                        <a href="{{ route('kop-sekolah.index') }}" class="nav-link" data-page="comp-kop">Kop Sekolah
                         </a>
                     </li>
                     <li>

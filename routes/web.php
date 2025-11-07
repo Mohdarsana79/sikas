@@ -29,18 +29,24 @@ use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
+// Redirect root to login
 Route::get('/', function () {
-    return view('auth.login');
+    return redirect('/login');
 });
 
-Route::get('/login', [LoginController::class, 'index'])->name('login');
-Route::post('/login', [LoginController::class, 'store'])->name('login.post');
-Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+// Login Routes
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
 
-Route::get('/register', [RegisterController::class, 'create'])->name('register');
-Route::post('/register', [RegisterController::class, 'store'])->name('register.post');
+// Register Routes - Biarkan seperti biasa, protection sudah di Controller
+Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+Route::post('/register', [RegisterController::class, 'register']);
 
-Route::post('/logout', [LogoutController::class, 'store'])->name('logout');
+// Protected Routes - Only for authenticated users
+Route::middleware('auth')->group(function () {
+    // Logout
+    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+});
 
 Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     // routes/web.php

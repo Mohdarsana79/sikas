@@ -12,6 +12,7 @@
     <link href="{{ asset('assets/css/bootstrap-icons.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/css/select2.min.css') }}" class="stylesheet">
     <link href="{{ asset('assets/css/main.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/css/auth.css') }}" rel="stylesheet">
 
     <!-- Google Fonts -->
     <link href="{{ asset('assets/css/font-family-inter.css') }}" rel="stylesheet">
@@ -30,7 +31,7 @@
         @yield('content')
     </main>
     <!-- Mobile Sidebar Overlay -->
-    <div class="sidebar-overlay d-md-none" id="sidebarOverlay"></div>
+    {{-- <div class="sidebar-overlay d-md-none" id="sidebarOverlay"></div> --}}
 
     <!-- JavaScript Files -->
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
@@ -39,8 +40,12 @@
     <script src="{{ asset('assets/js/apexcharts.min.js') }}"></script>
     <script src="{{ asset('assets/js/chart.min.js') }}"></script>
     <script src="{{ asset('assets/js/chart.js') }}"></script>
-    {{-- Di bagian head atau sebelum penutup body --}}
+    <!-- Scripts -->
+    @if (request()->is('login') || request()->is('register'))
+    <script src="{{ asset('assets/js/auth.js') }}"></script>
+    @else
     <script src="{{ asset('assets/js/main.js') }}"></script>
+    @endif
     <script src="{{ asset('assets/js/search.js') }}"></script>
     <script src="{{ asset('assets/js/sweetalert2@11.js') }}"></script>
     @stack('scripts')

@@ -6,86 +6,57 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use App\Models\User;
-use Illuminate\Support\Facades\Log;
 
 class LoginController extends Controller
 {
-    public function index()
+    /**
+     * Show the application's login form.
+     */
+    public function showLoginForm()
     {
         return view('auth.login');
     }
 
-    public function store(Request $request)
+    /**
+     * Handle a login request to the application.
+     */
+    public function login(Request $request)
     {
-        $request->validate([
-            'identity' => 'required|string',
-            'password' => 'required|string'
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string|min:8',
+        ], [
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal 8 karakter.',
         ]);
 
-        $credentials = $this->getCredentials($request);
-        $identityField = filter_var($request->identity, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $remember = $request->has('remember');
 
-        $user = User::where($identityField, $request->identity)->first();
+        if (Auth::attempt($credentials, $remember)) {
+            $request->session()->regenerate();
 
-        if (!$user) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'errors' => [
-                        'identity' => [$identityField === 'email'
-                            ? 'Email tidak terdaftar'
-                            : 'Username tidak terdaftar']
-                    ]
-                ], 422);
-            }
-            throw ValidationException::withMessages([
-                'identity' => $identityField === 'email'
-                    ? 'Email tidak terdaftar'
-                    : 'Username tidak terdaftar',
-            ]);
+            return redirect()->intended('/dashboard')
+                ->with('success', 'Login berhasil! Selamat datang kembali.');
         }
 
-        if (!Auth::attempt($credentials, $request->filled('remember'))) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'errors' => [
-                        'password' => ['Password salah']
-                    ]
-                ], 422);
-            }
-            throw ValidationException::withMessages([
-                'password' => 'Password salah',
-            ]);
-        }
-
-        $request->session()->regenerate();
-
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'redirect' => route('dashboard.dashboard')
-            ]);
-        }
-
-        return redirect()->intended(route('dashboard.dashboard'));
+        throw ValidationException::withMessages([
+            'email' => 'Email atau password salah.',
+        ]);
     }
 
-    protected function getCredentials(Request $request)
+    /**
+     * Log the user out of the application.
+     */
+    public function logout(Request $request)
     {
-        $identity = $request->input('identity');
-        $password = $request->input('password');
+        Auth::logout();
 
-        // Cek apakah input berupa email
-        if (filter_var($identity, FILTER_VALIDATE_EMAIL)) {
-            return [
-                'email' => $identity,
-                'password' => $password
-            ];
-        }
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        return [
-            'username' => $identity,
-            'password' => $password
-        ];
+        return redirect('/')
+            ->with('success', 'Logout berhasil.');
     }
 }
