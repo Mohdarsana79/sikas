@@ -70,17 +70,21 @@ class GlobalSearch {
 
     setupRouteBasedSearch() {
         const currentPath = window.location.pathname;
-        console.log('Current path:', currentPath); // Debug
+        console.log('Current path:', currentPath);
         
         if (currentPath.includes('/bku/')) {
             this.currentPage = 'bku';
         } else if (currentPath.includes('/rkas') && !currentPath.includes('/rkas-perubahan')) {
             this.currentPage = 'rkas';
+            console.log('RKAS page detected');
+            
+            // Detect active tab bulan untuk RKAS
+            this.setupRkasTabDetection();
         } else if (currentPath.includes('/rkas-perubahan')) {
             this.currentPage = 'rkas-perubahan';
-        } else if (currentPath.includes('/kode-kegiatan')) {
+        } else if (currentPath.includes('/referensi/kode-kegiatan')) {
             this.currentPage = 'kegiatan';
-        } else if (currentPath.includes('/rekening-belanja')) {
+        } else if (currentPath.includes('/referensi/rekening-belanja')) {
             this.currentPage = 'rekening';
         } else if (currentPath.includes('/penganggaran')) {
             this.currentPage = 'penganggaran';
@@ -89,6 +93,36 @@ class GlobalSearch {
         }
 
         console.log('Current page detected:', this.currentPage);
+    }
+
+    // Setup detection untuk tab aktif di RKAS
+    setupRkasTabDetection() {
+        // Cari tab yang aktif
+        const activeTab = document.querySelector('.nav-link.active[data-bs-toggle="tab"]');
+        if (activeTab) {
+            this.currentRkasMonth = activeTab.getAttribute('data-bs-target').replace('#', '');
+            console.log('Active RKAS tab:', this.currentRkasMonth);
+        } else {
+            // Fallback ke tab pertama jika tidak ada yang aktif
+            const firstTab = document.querySelector('.nav-link[data-bs-toggle="tab"]');
+            if (firstTab) {
+                this.currentRkasMonth = firstTab.getAttribute('data-bs-target').replace('#', '');
+                console.log('Using first RKAS tab:', this.currentRkasMonth);
+            }
+        }
+        
+        // Listen untuk tab changes
+        document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(tab => {
+            tab.addEventListener('shown.bs.tab', (event) => {
+                this.currentRkasMonth = event.target.getAttribute('data-bs-target').replace('#', '');
+                console.log('Tab changed to:', this.currentRkasMonth);
+                
+                // Reset search ketika ganti tab
+                this.resetSearch();
+                document.getElementById('globalSearchInput').value = '';
+                this.currentSearchTerm = '';
+            });
+        });
     }
 
     setupGlobalEvents() {
@@ -118,7 +152,11 @@ class GlobalSearch {
                 const bulan = pathParts[pathParts.length - 1];
                 return `/bku/search/${tahun}/${bulan}?search=${encodeURIComponent(searchTerm)}`;
             },
-            'rkas': `/rkas/search?search=${encodeURIComponent(searchTerm)}`,
+            'rkas': () => {
+                // Tambahkan parameter bulan untuk RKAS
+                const bulanParam = this.currentRkasMonth || 'januari'; // default ke januari
+                return `/rkas/search?search=${encodeURIComponent(searchTerm)}&bulan=${bulanParam}`;
+            },
             'rkas-perubahan': `/rkas-perubahan/search?search=${encodeURIComponent(searchTerm)}`,
             'kegiatan': `/kegiatan/search?search=${encodeURIComponent(searchTerm)}`,
             'rekening': `/rekening-belanja/search?search=${encodeURIComponent(searchTerm)}`,
@@ -261,39 +299,28 @@ class GlobalSearch {
         `;
     }
 
-    // RKAS Table Update - VERSION WITH CLASS
+    // Update RKAS Table Update untuk handle tab bulan
     updateRkasTable(data, searchTerm) {
-        // Cari dengan ID utama dulu
-        let tableBody = document.getElementById('rkasTableBody');
-        
-        // Jika tidak ada, cari dengan class
-        if (!tableBody) {
-            tableBody = document.querySelector('.rkas-table-body');
+        if (!this.currentRkasMonth) {
+            this.setupRkasTabDetection();
         }
         
-        // Jika masih tidak ada, cari dengan pola ID dynamic
+        // Cari tabel body untuk bulan yang aktif
+        const tableBody = document.getElementById(`table-body-${this.currentRkasMonth}`);
+        
         if (!tableBody) {
-            const dynamicTableBody = document.querySelector('[id^="table-body-"]');
-            if (dynamicTableBody) {
-                tableBody = dynamicTableBody;
-            }
-        }
-
-        if (!tableBody) {
-            this.showError('Tabel RKAS tidak ditemukan');
+            this.showError(`Tabel RKAS untuk bulan ${this.currentRkasMonth} tidak ditemukan`);
             return;
         }
 
-        // Simpan original content dengan ID yang ditemukan
-        const tableId = tableBody.id || 'rkasDynamicTable';
-        this.saveOriginalContent(tableId, tableBody.innerHTML);
+        this.saveOriginalContent(`rkas-${this.currentRkasMonth}`, tableBody.innerHTML);
 
         if (data.length === 0) {
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="11" class="text-center py-5 text-muted">
                         <i class="bi bi-search me-2"></i>
-                        Tidak ditemukan data RKAS dengan kata kunci: "<strong>${searchTerm}</strong>"
+                        Tidak ditemukan data RKAS dengan kata kunci: "<strong>${searchTerm}</strong>" di bulan ${this.currentRkasMonth}
                     </td>
                 </tr>
             `;
@@ -313,15 +340,15 @@ class GlobalSearch {
         return `
             <tr class="search-result-row">
                 <td class="px-4 py-3">${item.index || '-'}</td>
-                <td class="px-4 py-3">${item.kode_kegiatan || '-'}</td>
                 <td class="px-4 py-3">${item.program || '-'}</td>
                 <td class="px-4 py-3">${item.sub_program || '-'}</td>
+                <td class="px-4 py-3">${item.rincian_objek || '-'}</td>
                 <td class="px-4 py-3">${item.uraian || '-'}</td>
-                <td class="px-4 py-3 text-center">${item.volume || '0'}</td>
+                <td class="px-4 py-3 text-end">${item.dianggarkan || '0'}</td>
+                <td class="px-4 py-3 text-end">${item.dibelanjakan || '0'}</td>
                 <td class="px-4 py-3">${item.satuan || '-'}</td>
-                <td class="px-4 py-3 text-end">Rp ${item.harga_satuan || '0'}</td>
-                <td class="px-4 py-3 text-end">Rp ${item.jumlah || '0'}</td>
-                <td class="px-4 py-3">${item.bulan || '-'}</td>
+                <td class="px-4 py-3 text-end">${item.harga_satuan || '0'}</td>
+                <td class="px-4 py-3 text-end">${item.total || '0'}</td>
                 <td class="px-4 py-3 text-center">${item.actions || ''}</td>
             </tr>
         `;
@@ -629,15 +656,29 @@ class GlobalSearch {
     }
 
     resetSearch() {
-        console.log('Resetting search...');
+        console.log('Resetting search for RKAS...');
         
-        // Reset semua table yang pernah di-search
-        this.originalContents.forEach((content, tableId) => {
-            const tableBody = document.getElementById(tableId);
-            if (tableBody) {
-                tableBody.innerHTML = content;
+        if (this.currentPage === 'rkas' && this.currentRkasMonth) {
+            // Reset hanya tab yang aktif
+            const tableBody = document.getElementById(`table-body-${this.currentRkasMonth}`);
+            const originalContent = this.originalContents.get(`rkas-${this.currentRkasMonth}`);
+            
+            if (tableBody && originalContent) {
+                tableBody.innerHTML = originalContent;
             }
-        });
+            
+            // Clear hanya cache untuk tab ini
+            this.originalContents.delete(`rkas-${this.currentRkasMonth}`);
+        } else {
+            // Reset untuk halaman lain
+            this.originalContents.forEach((content, tableId) => {
+                const tableBody = document.getElementById(tableId);
+                if (tableBody) {
+                    tableBody.innerHTML = content;
+                }
+            });
+            this.originalContents.clear();
+        }
 
         // Hapus info pencarian
         this.removeSearchInfo();
@@ -645,12 +686,11 @@ class GlobalSearch {
         // Re-attach event listeners
         this.reattachEventListeners();
         
-        // Clear original contents cache
-        this.originalContents.clear();
-        
-        // Trigger custom event untuk notify halaman
         document.dispatchEvent(new CustomEvent('searchReset', {
-            detail: { page: this.currentPage }
+            detail: { 
+                page: this.currentPage,
+                month: this.currentRkasMonth 
+            }
         }));
     }
 
