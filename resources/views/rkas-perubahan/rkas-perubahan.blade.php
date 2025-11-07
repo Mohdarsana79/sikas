@@ -312,7 +312,7 @@
                                     <th width="80">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody id="table-body-{{ strtolower($month) }}">
+                            <tbody id="table-body-{{ strtolower($month) }}" class="rkas-perubahan-table-body">
                                 @if (isset($rkasData[$month]) && $rkasData[$month]->count() > 0)
                                 @foreach ($rkasData[$month] as $key => $rkas)
                                 <tr data-id="{{ $rkas->id }}" data-kode-id="{{ $rkas->kode_id }}"

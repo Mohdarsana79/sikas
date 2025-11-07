@@ -82,6 +82,10 @@ class GlobalSearch {
             this.setupRkasTabDetection();
         } else if (currentPath.includes('/rkas-perubahan')) {
             this.currentPage = 'rkas-perubahan';
+            console.log('Rkas Perubahan Page Detected');
+
+            // Detected Active Tab Bulan Untuk RKAS Perubahan
+            this.setupRkasPerubahanTabDetection();
         } else if (currentPath.includes('/referensi/kode-kegiatan')) {
             this.currentPage = 'kegiatan';
         } else if (currentPath.includes('/referensi/rekening-belanja')) {
@@ -125,6 +129,35 @@ class GlobalSearch {
         });
     }
 
+    setupRkasPerubahanTabDetection() {
+        // Cari tab yang aktif
+        const activeTab = document.querySelector('.nav-link.active[data-bs-toggle="tab"]');
+        if (activeTab) {
+            this.currentRkasPerubahanMonth = activeTab.getAttribute('data-bs-target').replace('#', '');
+            console.log('Active RKAS Perubahan tab:', this.currentRkasPerubahanMonth);
+        } else {
+            // Fallback ke tab pertama jika tidak ada yang aktif
+            const firstTab = document.querySelector('.nav-link[data-bs-toggle="tab"]');
+            if (firstTab) {
+                this.currentRkasPerubahanMonth = firstTab.getAttribute('data-bs-target').replace('#', '');
+                console.log('Using first RKAS Perubahan tab:', this.currentRkasPerubahanMonth);
+            }
+        }
+        
+        // Listen untuk tab changes
+        document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(tab => {
+            tab.addEventListener('shown.bs.tab', (event) => {
+                this.currentRkasPerubahanMonth = event.target.getAttribute('data-bs-target').replace('#', '');
+                console.log('Tab changed to:', this.currentRkasPerubahanMonth);
+                
+                // Reset search ketika ganti tab
+                this.resetSearch();
+                document.getElementById('globalSearchInput').value = '';
+                this.currentSearchTerm = '';
+            });
+        });
+    }
+
     setupGlobalEvents() {
         // Global event untuk reset search
         document.addEventListener('click', (e) => {
@@ -157,7 +190,11 @@ class GlobalSearch {
                 const bulanParam = this.currentRkasMonth || 'januari'; // default ke januari
                 return `/rkas/search?search=${encodeURIComponent(searchTerm)}&bulan=${bulanParam}`;
             },
-            'rkas-perubahan': `/rkas-perubahan/search?search=${encodeURIComponent(searchTerm)}`,
+            'rkas-perubahan': () => {
+                // Tambahkan parameter bulan untuk RKAS Perubahan
+                const bulanParam = this.currentRkasPerubahanMonth || 'januari'; // default ke januari
+                return `/rkas-perubahan/search?search=${encodeURIComponent(searchTerm)}&bulan=${bulanParam}`;
+            },
             'kegiatan': `/kegiatan/search?search=${encodeURIComponent(searchTerm)}`,
             'rekening': `/rekening-belanja/search?search=${encodeURIComponent(searchTerm)}`,
             'penganggaran': `/penganggaran/search?search=${encodeURIComponent(searchTerm)}`,
@@ -356,20 +393,26 @@ class GlobalSearch {
 
     // RKAS Perubahan Table Update
     updateRkasPerubahanTable(data, searchTerm) {
-        const tableBody = document.getElementById('rkasPerubahanTableBody');
+        if (!this.currentRkasPerubahanMonth) {
+            this.setupRkasTabDetection();
+        }
+        
+        // Cari tabel body untuk bulan yang aktif
+        const tableBody = document.getElementById(`table-body-${this.currentRkasPerubahanMonth}`);
+        
         if (!tableBody) {
-            this.showError('Tabel RKAS Perubahan tidak ditemukan');
+            this.showError(`Tabel RKAS Perubahan untuk bulan ${this.currentRkasPerubahanMonth} tidak ditemukan`);
             return;
         }
 
-        this.saveOriginalContent('rkasPerubahanTableBody', tableBody.innerHTML);
+        this.saveOriginalContent(`rkas-perubahan-${this.currentRkasPerubahanMonth}`, tableBody.innerHTML);
 
         if (data.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="100%" class="text-center py-5 text-muted">
+                    <td colspan="11" class="text-center py-5 text-muted">
                         <i class="bi bi-search me-2"></i>
-                        Tidak ditemukan data RKAS Perubahan dengan kata kunci: "<strong>${searchTerm}</strong>"
+                        Tidak ditemukan data RKAS Perubahan dengan kata kunci: "<strong>${searchTerm}</strong>" di bulan ${this.currentRkasPerubahanMonth}
                     </td>
                 </tr>
             `;
@@ -388,15 +431,16 @@ class GlobalSearch {
     renderRkasPerubahanRow(item) {
         return `
             <tr class="search-result-row">
-                <td class="px-4 py-3">${item.kode_kegiatan || '-'}</td>
+                <td class="px-4 py-3">${item.index || '-'}</td>
                 <td class="px-4 py-3">${item.program || '-'}</td>
                 <td class="px-4 py-3">${item.sub_program || '-'}</td>
+                <td class="px-4 py-3">${item.rincian_objek || '-'}</td>
                 <td class="px-4 py-3">${item.uraian || '-'}</td>
-                <td class="px-4 py-3 text-center">${item.volume || '0'}</td>
+                <td class="px-4 py-3 text-end">${item.dianggarkan || '0'}</td>
+                <td class="px-4 py-3 text-end">${item.dibelanjakan || '0'}</td>
                 <td class="px-4 py-3">${item.satuan || '-'}</td>
-                <td class="px-4 py-3 text-end">Rp ${item.harga_satuan || '0'}</td>
-                <td class="px-4 py-3 text-end">Rp ${item.jumlah || '0'}</td>
-                <td class="px-4 py-3">${item.bulan || '-'}</td>
+                <td class="px-4 py-3 text-end">${item.harga_satuan || '0'}</td>
+                <td class="px-4 py-3 text-end">${item.total || '0'}</td>
                 <td class="px-4 py-3 text-center">${item.actions || ''}</td>
             </tr>
         `;

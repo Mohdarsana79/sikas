@@ -209,14 +209,16 @@ class RkasPerubahanController extends Controller
         }
     }
 
-    /**
-     * Search RKAS Perubahan
-     */
     public function search(Request $request): JsonResponse
     {
         try {
             $searchTerm = $request->get('search', '');
-            $tahun = $request->get('tahun', date('Y'));
+            $bulan = $request->get('bulan', '');
+
+            Log::info('RKAS Perubahan Search called', [
+                'search_term' => $searchTerm,
+                'bulan' => $bulan
+            ]);
 
             if (empty($searchTerm)) {
                 return response()->json([
@@ -225,46 +227,51 @@ class RkasPerubahanController extends Controller
                 ], 400);
             }
 
-            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+            // Query dasar
+            $query = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where(function ($q) use ($searchTerm) {
+                    $q->where('uraian', 'ILIKE', "%{$searchTerm}%")
+                        ->orWhere('satuan', 'ILIKE', "%{$searchTerm}%")
+                        ->orWhereHas('kodeKegiatan', function ($q2) use ($searchTerm) {
+                            $q2->where('kode', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('program', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('sub_program', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('uraian', 'ILIKE', "%{$searchTerm}%");
+                        })
+                        ->orWhereHas('rekeningBelanja', function ($q2) use ($searchTerm) {
+                            $q2->where('kode_rekening', 'ILIKE', "%{$searchTerm}%")
+                                ->orWhere('rincian_objek', 'ILIKE', "%{$searchTerm}%");
+                        });
+                });
 
-            if (!$penganggaran) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan untuk tahun ' . $tahun
-                ], 404);
+            // Filter berdasarkan bulan jika ada parameter bulan
+            if (!empty($bulan) && $bulan !== 'all') {
+                $bulanFormatted = ucfirst($bulan);
+                $query->where('bulan', $bulanFormatted);
             }
 
-            $rkasData = RkasPerubahan::where('penganggaran_id', $penganggaran->id)
-                ->where(function ($query) use ($searchTerm) {
-                    $query->where('uraian', 'ILIKE', "%{$searchTerm}%")
-                        ->orWhere('satuan', 'ILIKE', "%{$searchTerm}%")
-                        ->orWhereHas('kodeKegiatan', function ($q) use ($searchTerm) {
-                            $q->where('program', 'ILIKE', "%{$searchTerm}%")
-                                ->orWhere('sub_program', 'ILIKE', "%{$searchTerm}%");
-                        })
-                        ->orWhereHas('rekeningBelanja', function ($q) use ($searchTerm) {
-                            $q->where('rincian_objek', 'ILIKE', "%{$searchTerm}%")
-                                ->orWhere('kode_rekening', 'ILIKE', "%{$searchTerm}%");
-                        });
-                })
-                ->with(['kodeKegiatan', 'rekeningBelanja'])
-                ->orderBy('bulan', 'asc')
-                ->orderBy('created_at', 'asc')
+            $rkasData = $query->orderBy('bulan')
+                ->orderBy('kode_id')
                 ->get();
 
-            $formattedData = $rkasData->map(function ($rkas) {
+            $formattedData = $rkasData->map(function ($item, $index) {
+                // Hitung dianggarkan dan dibelanjakan (sesuaikan dengan logika bisnis Anda)
+                $dianggarkan = $item->jumlah; // atau field lain yang sesuai
+                $dibelanjakan = 0; // Sesuaikan dengan logika realisasi belanja
+
                 return [
-                    'id' => $rkas->id,
-                    'kode_kegiatan' => $rkas->kodeKegiatan->kode ?? '-',
-                    'program' => $rkas->kodeKegiatan->program ?? '-',
-                    'sub_program' => $rkas->kodeKegiatan->sub_program ?? '-',
-                    'uraian' => $rkas->uraian,
-                    'volume' => $rkas->jumlah,
-                    'satuan' => $rkas->satuan,
-                    'harga_satuan' => number_format($rkas->harga_satuan, 0, ',', '.'),
-                    'jumlah' => number_format($rkas->harga_satuan * $rkas->jumlah, 0, ',', '.'),
-                    'bulan' => $rkas->bulan,
-                    'actions' => $this->getRkasPerubahanActionButtons($rkas)
+                    'id' => $item->id,
+                    'index' => $index + 1,
+                    'program' => $item->kodeKegiatan->program ?? '-',
+                    'sub_program' => $item->kodeKegiatan->sub_program ?? '-',
+                    'rincian_objek' => $item->rekeningBelanja->rincian_objek ?? '-',
+                    'uraian' => $item->uraian,
+                    'dianggarkan' => $dianggarkan,
+                    'dibelanjakan' => 'Rp ' . number_format($dibelanjakan, 0, ',', '.'),
+                    'satuan' => $item->satuan,
+                    'harga_satuan' => 'Rp ' . number_format($item->harga_satuan, 0, ',', '.'),
+                    'total' => 'Rp ' . number_format($item->jumlah * $item->harga_satuan, 0, ',', '.'),
+                    'actions' => $this->getRkasActionButtons($item)
                 ];
             });
 
@@ -272,48 +279,70 @@ class RkasPerubahanController extends Controller
                 'success' => true,
                 'data' => $formattedData,
                 'total' => $rkasData->count(),
-                'search_term' => $searchTerm
+                'search_term' => $searchTerm,
+                'month_filter' => $bulan
             ]);
         } catch (\Exception $e) {
-            Log::error('Error searching RKAS Perubahan: ' . $e->getMessage());
+            Log::error('Error searching RKAS: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mencari data: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan saat mencari data RKAS'
             ], 500);
         }
     }
 
     /**
-     * Generate action buttons for RKAS Perubahan
+     * Generate action buttons for RKAS - Sesuai dengan blade template
      */
-    private function getRkasPerubahanActionButtons($rkas): string
+    private function getRkasActionButtons($item): string
     {
+        $program = $item->kodeKegiatan ? $item->kodeKegiatan->program : '-';
+        $subProgram = $item->kodeKegiatan ? $item->kodeKegiatan->sub_program : '-';
+        $rekeningDisplay = $item->rekeningBelanja ? $item->rekeningBelanja->kode_rekening . ' - ' . $item->rekeningBelanja->rincian_objek : '-';
+
         return '
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-gear"></i>
-                </button>
-                <ul class="dropdown-menu">
-                    <li>
-                        <a class="dropdown-item" href="' . route('rkas-perubahan.edit', $rkas->id) . '">
-                            <i class="bi bi-pencil me-2"></i>Edit
-                        </a>
-                    </li>
-                    <li>
-                        <form action="' . route('rkas-perubahan.destroy', $rkas->id) . '" method="POST" class="d-inline">
-                            ' . csrf_field() . '
-                            ' . method_field('DELETE') . '
-                            <button type="submit" class="dropdown-item text-danger" 
-                                    onclick="return confirm(\'Apakah Anda yakin ingin menghapus data ini?\')">
-                                <i class="bi bi-trash me-2"></i>Hapus
-                            </button>
-                        </form>
-                    </li>
-                </ul>
-            </div>
-        ';
+        <div class="dropdown" style="position: relative; z-index: 1050;">
+            <button
+                class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                type="button" id="actionDropdown' . $item->id . '"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                style="border: 1px solid #dee2e6; background: white; color: #6c757d; font-size: 8pt; padding: 4px 8px; min-width: 40px;">
+                <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
+                aria-labelledby="actionDropdown' . $item->id . '"
+                style="z-index: 1060; min-width: 120px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;">
+                <li>
+                    <a class="dropdown-item d-flex align-items-center"
+                        href="#"
+                        onclick="showDetailModal(' . $item->id . ')"
+                        style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
+                        <i class="bi bi-eye me-2 text-primary"></i>Detail
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center sisipkan-btn" href="#" 
+                        data-kode-id="' . $item->kode_id . '"
+                        data-program="' . htmlspecialchars($program) . '"
+                        data-kegiatan="' . htmlspecialchars($subProgram) . '"
+                        data-rekening-id="' . $item->kode_rekening_id . '"
+                        data-rekening-display="' . htmlspecialchars($rekeningDisplay) . '"
+                        style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
+                        <i class="bi bi-archive-fill me-2 text-warning"></i>Sisipkan
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center"
+                        href="#"
+                        onclick="showEditModal(' . $item->id . ')"
+                        style="font-size: 8pt; padding: 8px 12px; transition: all 0.2s ease;">
+                        <i class="bi bi-pencil me-2 text-warning"></i>Edit
+                    </a>
+                </li>
+            </ul>
+        </div>
+    ';
     }
 
     public function store(Request $request)
