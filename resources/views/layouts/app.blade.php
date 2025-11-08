@@ -30,16 +30,14 @@
         <!-- Content Area -->
         @yield('content')
     </main>
-    <!-- Mobile Sidebar Overlay -->
-    {{-- <div class="sidebar-overlay d-md-none" id="sidebarOverlay"></div> --}}
+    <!-- Sidebar Backdrop for Mobile -->
+    <div class="sidebar-backdrop d-md-none hidden" id="sidebar-backdrop"></div>
 
     <!-- JavaScript Files -->
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
     <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('assets/js/select2.min.js') }}"></script>
     <script src="{{ asset('assets/js/apexcharts.min.js') }}"></script>
-    <script src="{{ asset('assets/js/chart.min.js') }}"></script>
-    <script src="{{ asset('assets/js/chart.js') }}"></script>
     <!-- Scripts -->
     @if (request()->is('login') || request()->is('register'))
     <script src="{{ asset('assets/js/auth.js') }}"></script>

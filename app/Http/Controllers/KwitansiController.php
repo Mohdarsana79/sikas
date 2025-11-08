@@ -15,50 +15,100 @@ use Illuminate\Support\Facades\Log;
 
 class KwitansiController extends Controller
 {
-    public function index()
-    {
-        // PERUBAHAN: Gunakan paginate dengan 50 data per halaman
-        $kwitansis = Kwitansi::with([
-            'penganggaran',
-            'kodeKegiatan',
-            'rekeningBelanja',
-            'bukuKasUmum',
-        ])->latest()->paginate(50); // Ubah dari get() ke paginate(50)
-
-        return view('kwitansi.index', compact('kwitansis'));
-    }
-
-    // Tambahkan method search di KwitansiController.php
-    public function search(Request $request)
+    public function getTahunAnggaran()
     {
         try {
-            $search = $request->input('search', '');
-            $page = $request->input('page', 1); // Tambahkan parameter page untuk pagination
+            $tahunAnggaran = Penganggaran::select('id', 'tahun_anggaran')
+                ->orderBy('tahun_anggaran', 'desc')
+                ->get()
+                ->map(function ($penganggaran) {
+                    return [
+                        'id' => $penganggaran->id,
+                        'tahun' => $penganggaran->tahun_anggaran
+                    ];
+                });
 
-            // PERUBAHAN: Gunakan paginate untuk search juga
-            $kwitansis = Kwitansi::with([
+            return response()->json([
+                'success' => true,
+                'data' => $tahunAnggaran
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting tahun anggaran: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data tahun anggaran'
+            ], 500);
+        }
+    }
+
+    public function index(Request $request)
+    {
+        try {
+            // Ambil tahun anggaran untuk dropdown
+            $tahunAnggarans = Penganggaran::select('id', 'tahun_anggaran')
+                ->orderBy('tahun_anggaran', 'desc')
+                ->get();
+
+            // Ambil tahun yang dipilih dari request atau default ke tahun terbaru
+            $selectedTahun = $request->input('tahun', $tahunAnggarans->first()->id ?? null);
+
+            // Query dengan filter tahun jika dipilih
+            $query = Kwitansi::with([
                 'penganggaran',
                 'kodeKegiatan',
                 'rekeningBelanja',
                 'bukuKasUmum',
-            ])
-                ->where(function ($query) use ($search) {
-                    // Search by uraian from buku_kas_umums
-                    $query->whereHas('bukuKasUmum', function ($q) use ($search) {
-                        $q->where('uraian', 'ILIKE', "%{$search}%")
-                            ->orWhere('uraian_opsional', 'ILIKE', "%{$search}%");
-                    })
-                        // Search by kode rekening
-                        ->orWhereHas('rekeningBelanja', function ($q) use ($search) {
-                            $q->where('kode_rekening', 'ILIKE', "%{$search}%");
-                        });
+            ]);
+
+            if ($selectedTahun) {
+                $query->where('penganggaran_id', $selectedTahun);
+            }
+
+            // PASTIKAN MENGGUNAKAN PAGINATE()
+            $kwitansis = $query->latest()->paginate(10); // Ubah ke 10 untuk testing
+
+            return view('kwitansi.index', compact('kwitansis', 'tahunAnggarans', 'selectedTahun'));
+        } catch (\Exception $e) {
+            Log::error('Error in kwitansi index: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat data kwitansi');
+        }
+    }
+
+
+    public function search(Request $request)
+    {
+        try {
+            $search = $request->input('search', '');
+            $page = $request->input('page', 1);
+            $tahun = $request->input('tahun', ''); // Tambahkan parameter tahun
+
+            // Query dengan filter tahun
+            $query = Kwitansi::with([
+                'penganggaran',
+                'kodeKegiatan',
+                'rekeningBelanja',
+                'bukuKasUmum',
+            ]);
+
+            // Filter berdasarkan tahun jika dipilih
+            if ($tahun) {
+                $query->where('penganggaran_id', $tahun);
+            }
+
+            $kwitansis = $query->where(function ($query) use ($search) {
+                $query->whereHas('bukuKasUmum', function ($q) use ($search) {
+                    $q->where('uraian', 'ILIKE', "%{$search}%")
+                        ->orWhere('uraian_opsional', 'ILIKE', "%{$search}%");
                 })
+                    ->orWhereHas('rekeningBelanja', function ($q) use ($search) {
+                        $q->where('kode_rekening', 'ILIKE', "%{$search}%");
+                    });
+            })
                 ->latest()
-                ->paginate(50); // Ubah dari get() ke paginate(50)
+                ->paginate(10);
 
             // Format data untuk response JSON
             $formattedKwitansis = $kwitansis->map(function ($kwitansi, $index) use ($kwitansis) {
-                // Hitung nomor urut berdasarkan halaman
                 $number = ($kwitansis->currentPage() - 1) * $kwitansis->perPage() + $index + 1;
 
                 return [
@@ -82,6 +132,7 @@ class KwitansiController extends Controller
                 'data' => $formattedKwitansis,
                 'total' => $kwitansis->total(),
                 'search_term' => $search,
+                'selected_tahun' => $tahun,
                 'pagination' => [
                     'current_page' => $kwitansis->currentPage(),
                     'last_page' => $kwitansis->lastPage(),

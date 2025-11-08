@@ -2,7 +2,7 @@
 <header class="header">
     <div class="header-content">
         <div class="d-flex align-items-center">
-            <button class="sidebar-toggle" id="sidebarToggle">
+            <button class="sidebar-toggle" id="sidebarToggle" data-drawer-toggle="sidebar">
                 <i class="bi bi-list"></i>
             </button>
 
