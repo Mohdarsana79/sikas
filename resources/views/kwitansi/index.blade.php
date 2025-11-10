@@ -434,6 +434,65 @@
         -webkit-text-fill-color: transparent;
         margin-bottom: 1rem;
     }
+
+    /* PERBAIKAN: Pagination Styles */
+#pagination-container {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    list-style: none;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+#pagination-container .page-item .page-link {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.3s ease;
+    background-color: white;
+    text-decoration: none;
+    display: block;
+    min-width: 44px;
+    text-align: center;
+}
+
+#pagination-container .page-item.active .page-link {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+}
+
+#pagination-container .page-item:not(.disabled):not(.active) .page-link:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+#pagination-container .page-item.disabled .page-link {
+    background-color: #f8f9fa;
+    border-color: #e2e8f0;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* Responsive pagination */
+@media (max-width: 768px) {
+    #pagination-container {
+        justify-content: center;
+    }
+    
+    #pagination-container .page-item .page-link {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.8rem;
+        min-width: 38px;
+    }
+}
 </style>
 
 <div class="main-container">
@@ -453,19 +512,19 @@
 
         <div class="d-flex flex-wrap gap-3">
             <!-- Generate Otomatis -->
-            <button class="btn btn-success btn-modern fw-semibold d-flex align-items-center" id="generate-all-btn">
+            <button class="btn btn-success btn-modern btn-sm fw-semibold d-flex align-items-center" id="generate-all-btn">
                 <i class="bi bi-magic me-2"></i>
                 Generate Otomatis
             </button>
             <!-- Download All -->
             <a href="{{ route('kwitansi.download-all') }}"
-                class="btn btn-info btn-modern fw-semibold d-flex align-items-center" id="download-all-btn" {{
+                class="btn btn-info btn-modern btn-sm fw-semibold d-flex align-items-center" id="download-all-btn" {{
                 $kwitansis->count() === 0 ? 'disabled' : '' }}>
                 <i class="bi bi-download me-2"></i>
                 Download All
             </a>
             <!-- Hapus Semua -->
-            <button class="btn btn-danger btn-modern fw-semibold d-flex align-items-center" id="delete-all-btn" {{
+            <button class="btn btn-danger btn-modern btn-sm fw-semibold d-flex align-items-center" id="delete-all-btn" {{
                 $kwitansis->count() === 0 ? 'disabled' : '' }}>
                 <i class="bi bi-trash me-2"></i>
                 Hapus Semua
@@ -595,12 +654,12 @@
                 <table class="table table-modern table-hover align-middle mb-0">
                     <thead>
                         <tr>
-                            <th scope="col" class="text-white fw-medium">No</th>
-                            <th scope="col" class="text-white fw-medium">Kode Rekening</th>
-                            <th scope="col" class="text-white fw-medium">Uraian</th>
-                            <th scope="col" class="text-white fw-medium">Tanggal</th>
-                            <th scope="col" class="text-white fw-medium">Jumlah</th>
-                            <th scope="col" class="text-center text-white fw-medium">Aksi</th>
+                            <th scope="col" class="text-dark fw-medium">No</th>
+                            <th scope="col" class="text-dark fw-medium">Kode Rekening</th>
+                            <th scope="col" class="text-dark fw-medium">Uraian</th>
+                            <th scope="col" class="text-dark fw-medium">Tanggal</th>
+                            <th scope="col" class="text-dark fw-medium">Jumlah</th>
+                            <th scope="col" class="text-center text-dark fw-medium">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="kwitansi-tbody">
@@ -634,7 +693,7 @@
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
                                     <!-- Lihat -->
-                                    <a href="{{ route('kwitansi.preview', $kwitansi->id) }}"
+                                    <a href="{{ route('kwitansi.preview', $kwitansi->id ) }}"
                                         class="btn btn-action btn-outline-primary" title="Lihat Preview"
                                         data-bs-toggle="tooltip" target="_blank">
                                         <i class="bi bi-eye"></i>
@@ -660,7 +719,6 @@
                 </table>
             </div>
 
-            <!-- PAGINATION SEDERHANA - LARAVEL DEFAULT -->
             <!-- PAGINATION - MENGGUNAKAN CUSTOM VIEW -->
             @if($kwitansis->hasPages())
             <div
@@ -672,9 +730,56 @@
                     dari <strong>{{ $kwitansis->total() }}</strong> data
                 </div>
             
-                <!-- Pagination Links -->
+                <!-- Pagination Links - CONTAINER YANG DIPERBAIKI -->
                 <nav aria-label="Page navigation">
-                    {{ $kwitansis->links('vendor.pagination.bootstrap-5') }}
+                    <ul class="pagination pagination-simple mb-0" id="pagination-container">
+                        <!-- Previous Button -->
+                        @if($kwitansis->onFirstPage())
+                        <li class="page-item disabled">
+                            <span class="page-link">&laquo;</span>
+                        </li>
+                        @else
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $kwitansis->previousPageUrl() }}" rel="prev">&laquo;</a>
+                        </li>
+                        @endif
+            
+                        <!-- Page Numbers -->
+                        @foreach($kwitansis->getUrlRange(1, $kwitansis->lastPage()) as $page => $url)
+                        @if($page == $kwitansis->currentPage())
+                        <li class="page-item active">
+                            <span class="page-link">{{ $page }}</span>
+                        </li>
+                        @else
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                        </li>
+                        @endif
+                        @endforeach
+            
+                        <!-- Next Button -->
+                        @if($kwitansis->hasMorePages())
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $kwitansis->nextPageUrl() }}" rel="next">&raquo;</a>
+                        </li>
+                        @else
+                        <li class="page-item disabled">
+                            <span class="page-link">&raquo;</span>
+                        </li>
+                        @endif
+                    </ul>
+                </nav>
+            </div>
+            @else
+            <!-- Tampilkan info jika hanya satu halaman -->
+            <div
+                class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 pt-3 border-top border-light">
+                <div class="text-muted small">
+                    Menampilkan semua <strong>{{ $kwitansis->total() }}</strong> data
+                </div>
+                <!-- Container pagination kosong untuk AJAX -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-simple mb-0" id="pagination-container" style="display: none;"></ul>
                 </nav>
             </div>
             @endif
@@ -722,10 +827,7 @@
 
 @push('scripts')
 <!-- Include Animate.css for animations -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-
-<!-- Include SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="{{ asset('assets/css/animate.min.css') }}">
 
 <!-- Include Kwitansi JavaScript -->
 <script src="{{ asset('assets/js/kwitansi.js') }}"></script>

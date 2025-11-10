@@ -9,8 +9,32 @@ class KwitansiManager {
         this.init();
     }
 
+    // Method untuk debug container
+    debugContainers() {
+        console.log('🔍 Debugging containers:');
+        
+        const containers = [
+            'pagination-container',
+            'kwitansi-tbody',
+            'searchInput',
+            'tahunFilter'
+        ];
+        
+        containers.forEach(id => {
+            const element = document.getElementById(id);
+            console.log(`Element ${id}:`, element ? 'FOUND' : 'NOT FOUND', element);
+        });
+        
+        // Cari semua pagination containers
+        const allPaginationContainers = document.querySelectorAll('.pagination, [class*="pagination"]');
+        console.log('All pagination-like containers:', allPaginationContainers);
+    }
+
     init() {
         console.log('🚀 Initializing Kwitansi Manager...');
+        
+        // Debug containers
+        this.debugContainers();
         
         // Initialize components
         this.initializeEventListeners();
@@ -25,6 +49,8 @@ class KwitansiManager {
     }
 
     initializeEventListeners() {
+        console.log('🚀 Initializing Kwitansi Manager Event Listeners...');
+        
         // Search and Filter
         const searchInput = document.getElementById('searchInput');
         const tahunFilter = document.getElementById('tahunFilter');
@@ -49,7 +75,8 @@ class KwitansiManager {
         if (clearSearchBtn) {
             clearSearchBtn.addEventListener('click', () => {
                 if (searchInput) searchInput.value = '';
-                this.performSearch('', tahunFilter?.value || '');
+                if (tahunFilter) tahunFilter.value = '';
+                this.performSearch('', '');
             });
         }
 
@@ -63,6 +90,22 @@ class KwitansiManager {
                 this.generateAllKwitansi();
             });
         }
+
+        // PERBAIKAN: Inisialisasi pagination untuk halaman pertama
+        this.attachPaginationEventListeners();
+    }
+
+    initializePaginationListeners() {
+        // Event delegation untuk pagination
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.pagination .page-link') && !e.target.closest('.disabled')) {
+                const link = e.target.closest('.page-link');
+                if (link.getAttribute('href')) {
+                    e.preventDefault();
+                    this.handlePaginationClick(e);
+                }
+            }
+        });
     }
 
     initializeActionButtons() {
@@ -121,6 +164,7 @@ class KwitansiManager {
 
     async performSearch(searchTerm = '', tahun = '') {
         try {
+            console.log('🔍 Performing search:', { searchTerm, tahun });
             this.showLoadingState('search');
             
             let url = `${this.getBaseUrl()}/kwitansi/search?search=${encodeURIComponent(searchTerm)}`;
@@ -128,10 +172,15 @@ class KwitansiManager {
                 url += `&tahun=${encodeURIComponent(tahun)}`;
             }
 
+            console.log('📡 Fetch URL:', url);
+
             const response = await fetch(url);
             const data = await response.json();
 
+            console.log('📦 Response data:', data);
+
             if (data.success) {
+                console.log('✅ Search successful, updating results...');
                 this.updateSearchResults(data.data, data.pagination);
                 this.updateCounters(data.total);
                 this.updateTableCount(data.total);
@@ -142,15 +191,18 @@ class KwitansiManager {
                     tahunFilter.value = data.selected_tahun;
                 }
             } else {
+                console.error('❌ Search failed:', data.message);
                 this.showError('Search failed', data.message);
             }
         } catch (error) {
-            console.error('Search error:', error);
+            console.error('💥 Search error:', error);
             this.showError('Search Error', 'Terjadi kesalahan saat mencari data');
         } finally {
             this.hideLoadingState('search');
         }
     }
+
+    // ==================== SEARCH & FILTER ====================
 
     updateSearchResults(data, pagination) {
         const tbody = document.getElementById('kwitansi-tbody');
@@ -158,22 +210,45 @@ class KwitansiManager {
 
         if (data.length === 0) {
             tbody.innerHTML = this.getEmptySearchHTML();
+            // Sembunyikan pagination jika tidak ada data
+            this.hidePagination();
             return;
         }
 
         let html = '';
         data.forEach((item, index) => {
             const number = (pagination.current_page - 1) * pagination.per_page + index + 1;
-            html += this.getTableRowHTML(item, number);
+            html += this.getTableRowHTML(item, number, pagination);
         });
 
         tbody.innerHTML = html;
+        
+        // PERBAIKAN: Update pagination dengan fallback
         this.updatePagination(pagination);
         this.reinitializeTooltips();
         this.reattachDeleteListeners();
     }
 
-    getTableRowHTML(item, number) {
+    hidePagination() {
+        const containers = [
+            document.getElementById('pagination-container'),
+            document.querySelector('.pagination'),
+            document.querySelector('.pagination-simple')
+        ];
+        
+        containers.forEach(container => {
+            if (container) {
+                container.innerHTML = '';
+                container.style.display = 'none';
+            }
+        });
+    }
+
+    getTableRowHTML(item, number, pagination) {
+        // Pastikan URL preview dan PDF menggunakan base URL yang benar
+        const previewUrl = `${this.getBaseUrl()}/kwitansi/${item.id}/preview`;
+        const pdfUrl = `${this.getBaseUrl()}/kwitansi/${item.id}/pdf`;
+        
         return `
             <tr id="kwitansi-row-${item.id}" class="animate__animated animate__fadeIn">
                 <td class="fw-medium text-dark">${number}</td>
@@ -194,12 +269,12 @@ class KwitansiManager {
                 </td>
                 <td class="text-center">
                     <div class="d-flex justify-content-center gap-2">
-                        <a href="${item.preview_url}" 
+                        <a href="${previewUrl}" 
                             class="btn btn-action btn-outline-primary" 
                             title="Lihat Preview" data-bs-toggle="tooltip" target="_blank">
                             <i class="bi bi-eye"></i>
                         </a>
-                        <a href="${item.pdf_url}" 
+                        <a href="${pdfUrl}" 
                             class="btn btn-action btn-outline-success" 
                             title="Download PDF" data-bs-toggle="tooltip" target="_blank">
                             <i class="bi bi-printer"></i>
@@ -232,24 +307,125 @@ class KwitansiManager {
 
     // ==================== PAGINATION HANDLING ====================
 
-    handlePaginationClick(e) {
+    async handlePaginationClick(e) {
+        console.log('🎯 Handling pagination click');
         e.preventDefault();
-        const pageUrl = e.target.getAttribute('href');
+        
+        const link = e.target.closest('.page-link');
+        if (!link) {
+            console.error('❌ No page-link found');
+            return;
+        }
+        
+        const pageUrl = link.getAttribute('href');
+        console.log('📄 Page URL:', pageUrl);
+        
         if (pageUrl) {
-            // Extract page number from URL
-            const url = new URL(pageUrl);
-            const page = url.searchParams.get('page') || 1;
-            const searchTerm = document.getElementById('searchInput')?.value || '';
-            const selectedTahun = document.getElementById('tahunFilter')?.value || '';
-            
-            this.loadPage(page, searchTerm, selectedTahun);
+            try {
+                // Extract page number from URL
+                const url = new URL(pageUrl, window.location.origin);
+                const page = url.searchParams.get('page') || 1;
+                const searchTerm = document.getElementById('searchInput')?.value || '';
+                const selectedTahun = document.getElementById('tahunFilter')?.value || '';
+                
+                console.log('🔍 Loading page:', { page, searchTerm, selectedTahun });
+                
+                await this.loadPage(page, searchTerm, selectedTahun);
+            } catch (error) {
+                console.error('💥 Error in handlePaginationClick:', error);
+            }
         }
     }
 
-    // Update method untuk handle pagination dengan AJAX
+    // ==================== PAGINATION HANDLING ====================
+
     updatePagination(pagination) {
-        const paginationContainer = document.querySelector('.pagination');
-        if (!paginationContainer || pagination.last_page <= 1) return;
+        console.log('🔄 Updating pagination with data:', pagination);
+        
+        // PERBAIKAN: Cari container dengan berbagai selector
+        let paginationContainer = document.getElementById('pagination-container');
+        
+        if (!paginationContainer) {
+            console.log('🔍 Pagination container not found by ID, searching by class...');
+            
+            // Coba berbagai selector
+            const selectors = [
+                '.pagination',
+                '.pagination-simple',
+                '[aria-label="Page navigation"] ul',
+                'nav ul.pagination'
+            ];
+            
+            for (const selector of selectors) {
+                paginationContainer = document.querySelector(selector);
+                if (paginationContainer) {
+                    console.log(`✅ Found pagination container with selector: ${selector}`);
+                    break;
+                }
+            }
+        }
+        
+        if (!paginationContainer) {
+            console.error('❌ No pagination container found anywhere! Creating one...');
+            this.createPaginationContainer();
+            paginationContainer = document.getElementById('pagination-container');
+        }
+        
+        if (paginationContainer) {
+            this.renderPagination(paginationContainer, pagination);
+        }
+    }
+
+    createPaginationContainer() {
+        console.log('🏗️ Creating pagination container...');
+        
+        // Cari tempat yang tepat untuk menambahkan pagination
+        const table = document.querySelector('.table-responsive');
+        const cardBody = document.querySelector('.card-body');
+        
+        let insertionPoint = cardBody || table || document.body;
+        
+        // Buat container pagination
+        const paginationHtml = `
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 pt-3 border-top border-light">
+                <div class="text-muted small mb-3 mb-md-0" id="pagination-info">
+                    Menampilkan data
+                </div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-simple mb-0" id="pagination-container"></ul>
+                </nav>
+            </div>
+        `;
+        
+        if (insertionPoint === cardBody) {
+            insertionPoint.insertAdjacentHTML('beforeend', paginationHtml);
+        } else if (table) {
+            table.parentNode.insertAdjacentHTML('afterend', paginationHtml);
+        } else {
+            document.body.insertAdjacentHTML('beforeend', paginationHtml);
+        }
+        
+        console.log('✅ Pagination container created');
+    }
+
+    renderPagination(container, pagination) {
+        console.log('🎨 Rendering pagination in container:', container);
+        
+        // PERBAIKAN: Jika hanya ada 1 halaman, sembunyikan pagination
+        if (pagination.last_page <= 1) {
+            console.log('ℹ️ Only one page, hiding pagination');
+            container.innerHTML = '';
+            container.style.display = 'none';
+            
+            // Update info
+            const infoElement = document.getElementById('pagination-info');
+            if (infoElement) {
+                infoElement.textContent = `Menampilkan semua ${pagination.total} data`;
+            }
+            return;
+        }
+        
+        container.style.display = 'flex';
 
         let paginationHtml = '';
         
@@ -257,7 +433,7 @@ class KwitansiManager {
         if (pagination.current_page > 1) {
             paginationHtml += `
                 <li class="page-item">
-                    <a class="page-link" href="${this.getBaseUrl()}/kwitansi?page=${pagination.current_page - 1}" rel="prev">&laquo;</a>
+                    <a class="page-link" href="javascript:void(0)" data-page="${pagination.current_page - 1}" rel="prev">&laquo;</a>
                 </li>
             `;
         } else {
@@ -268,8 +444,27 @@ class KwitansiManager {
             `;
         }
 
-        // Page numbers
-        for (let i = 1; i <= pagination.last_page; i++) {
+        // Page numbers - Tampilkan maksimal 5 halaman
+        const startPage = Math.max(1, pagination.current_page - 2);
+        const endPage = Math.min(pagination.last_page, pagination.current_page + 2);
+        
+        // Tampilkan ellipsis di awal jika perlu
+        if (startPage > 1) {
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link" href="javascript:void(0)" data-page="1">1</a>
+                </li>
+            `;
+            if (startPage > 2) {
+                paginationHtml += `
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                `;
+            }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
             if (i === pagination.current_page) {
                 paginationHtml += `
                     <li class="page-item active">
@@ -279,17 +474,33 @@ class KwitansiManager {
             } else {
                 paginationHtml += `
                     <li class="page-item">
-                        <a class="page-link" href="${this.getBaseUrl()}/kwitansi?page=${i}">${i}</a>
+                        <a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a>
                     </li>
                 `;
             }
+        }
+        
+        // Tampilkan ellipsis di akhir jika perlu
+        if (endPage < pagination.last_page) {
+            if (endPage < pagination.last_page - 1) {
+                paginationHtml += `
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                `;
+            }
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link" href="javascript:void(0)" data-page="${pagination.last_page}">${pagination.last_page}</a>
+                </li>
+            `;
         }
 
         // Next button
         if (pagination.current_page < pagination.last_page) {
             paginationHtml += `
                 <li class="page-item">
-                    <a class="page-link" href="${this.getBaseUrl()}/kwitansi?page=${pagination.current_page + 1}" rel="next">&raquo;</a>
+                    <a class="page-link" href="javascript:void(0)" data-page="${pagination.current_page + 1}" rel="next">&raquo;</a>
                 </li>
             `;
         } else {
@@ -300,19 +511,58 @@ class KwitansiManager {
             `;
         }
 
-        paginationContainer.innerHTML = paginationHtml;
+        container.innerHTML = paginationHtml;
+        console.log('✅ Pagination HTML updated successfully');
+        
+        // Update pagination info
+        this.updatePaginationInfo(pagination);
+        
+        // Re-attach event listeners
+        this.attachPaginationEventListeners();
+    }
 
-        // Add event listeners to pagination links
-        paginationContainer.querySelectorAll('.page-link').forEach(link => {
-            if (link.getAttribute('href') && !link.parentElement.classList.contains('disabled') && !link.parentElement.classList.contains('active')) {
-                link.addEventListener('click', (e) => this.handlePaginationClick(e));
+    updatePaginationInfo(pagination) {
+        const infoElement = document.getElementById('pagination-info');
+        if (infoElement) {
+            const startItem = ((pagination.current_page - 1) * pagination.per_page) + 1;
+            const endItem = Math.min(pagination.current_page * pagination.per_page, pagination.total);
+            
+            infoElement.textContent = `Menampilkan ${startItem} sampai ${endItem} dari ${pagination.total} data`;
+        }
+    }
+
+    attachPaginationEventListeners() {
+        console.log('🔗 Attaching pagination event listeners');
+        const paginationLinks = document.querySelectorAll('.pagination .page-link[data-page]');
+        
+        console.log(`Found ${paginationLinks.length} pagination links`);
+        
+        paginationLinks.forEach((link) => {
+            if (!link.parentElement.classList.contains('disabled') && 
+                !link.parentElement.classList.contains('active')) {
+                
+                const page = link.getAttribute('data-page');
+                console.log(`Attaching listener to page: ${page}`);
+                
+                // Hapus event listener lama dan tambahkan yang baru
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('🖱️ Pagination link clicked, loading page:', page);
+                    const searchTerm = document.getElementById('searchInput')?.value || '';
+                    const selectedTahun = document.getElementById('tahunFilter')?.value || '';
+                    
+                    this.loadPage(page, searchTerm, selectedTahun);
+                });
             }
         });
     }
 
-    // Update method loadPage untuk handle pagination
+    // PERBAIKAN: Method loadPage yang lebih baik
     async loadPage(page, searchTerm = '', tahun = '') {
         try {
+            console.log('📄 Loading page:', page);
+            this.showLoadingState('search');
+            
             let url = `${this.getBaseUrl()}/kwitansi/search?page=${page}`;
             if (searchTerm) {
                 url += `&search=${encodeURIComponent(searchTerm)}`;
@@ -321,32 +571,34 @@ class KwitansiManager {
                 url += `&tahun=${encodeURIComponent(tahun)}`;
             }
 
+            console.log('📡 Loading URL:', url);
+
             const response = await fetch(url);
             const data = await response.json();
+
+            console.log('📦 Page response:', data);
 
             if (data.success) {
                 this.updateSearchResults(data.data, data.pagination);
                 this.updateCounters(data.total);
                 this.updateTableCount(data.total);
                 
-                // Update URL without reloading page
-                const newUrl = new URL(window.location);
-                newUrl.searchParams.set('page', page);
-                if (searchTerm) {
-                    newUrl.searchParams.set('search', searchTerm);
-                } else {
-                    newUrl.searchParams.delete('search');
+                // Scroll ke atas tabel
+                const table = document.querySelector('.table-responsive');
+                if (table) {
+                    table.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
-                if (tahun) {
-                    newUrl.searchParams.set('tahun', tahun);
-                } else {
-                    newUrl.searchParams.delete('tahun');
-                }
-                window.history.pushState({}, '', newUrl);
+                
+                console.log('✅ Page loaded successfully');
+            } else {
+                console.error('❌ Page load failed:', data.message);
+                this.showError('Load Failed', data.message);
             }
         } catch (error) {
-            console.error('Pagination error:', error);
+            console.error('💥 Page load error:', error);
             this.showError('Pagination Error', 'Terjadi kesalahan saat memuat halaman');
+        } finally {
+            this.hideLoadingState('search');
         }
     }
 
@@ -484,7 +736,7 @@ class KwitansiManager {
         const safePercent = Math.min(100, Math.max(0, percent));
 
         Swal.update({
-            title: `Generate Kwitansi - ${safePercent}%`,
+            title: `Generate Kwitansi ${safePercent}%`,
             html: `
                 <div class="text-center">
                     <div class="mb-3">

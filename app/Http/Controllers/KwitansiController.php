@@ -24,19 +24,20 @@ class KwitansiController extends Controller
                 ->map(function ($penganggaran) {
                     return [
                         'id' => $penganggaran->id,
-                        'tahun' => $penganggaran->tahun_anggaran
+                        'tahun' => $penganggaran->tahun_anggaran,
                     ];
                 });
 
             return response()->json([
                 'success' => true,
-                'data' => $tahunAnggaran
+                'data' => $tahunAnggaran,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting tahun anggaran: ' . $e->getMessage());
+            Log::error('Error getting tahun anggaran: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data tahun anggaran'
+                'message' => 'Gagal mengambil data tahun anggaran',
             ], 500);
         }
     }
@@ -64,23 +65,21 @@ class KwitansiController extends Controller
                 $query->where('penganggaran_id', $selectedTahun);
             }
 
-            // PASTIKAN MENGGUNAKAN PAGINATE()
-            $kwitansis = $query->latest()->paginate(10); // Ubah ke 10 untuk testing
+            $kwitansis = $query->latest()->paginate(10);
 
             return view('kwitansi.index', compact('kwitansis', 'tahunAnggarans', 'selectedTahun'));
         } catch (\Exception $e) {
-            Log::error('Error in kwitansi index: ' . $e->getMessage());
+            Log::error('Error in kwitansi index: '.$e->getMessage());
+
             return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat data kwitansi');
         }
     }
-
 
     public function search(Request $request)
     {
         try {
             $search = $request->input('search', '');
-            $page = $request->input('page', 1);
-            $tahun = $request->input('tahun', ''); // Tambahkan parameter tahun
+            $tahun = $request->input('tahun', '');
 
             // Query dengan filter tahun
             $query = Kwitansi::with([
@@ -95,17 +94,20 @@ class KwitansiController extends Controller
                 $query->where('penganggaran_id', $tahun);
             }
 
-            $kwitansis = $query->where(function ($query) use ($search) {
-                $query->whereHas('bukuKasUmum', function ($q) use ($search) {
-                    $q->where('uraian', 'ILIKE', "%{$search}%")
-                        ->orWhere('uraian_opsional', 'ILIKE', "%{$search}%");
-                })
-                    ->orWhereHas('rekeningBelanja', function ($q) use ($search) {
-                        $q->where('kode_rekening', 'ILIKE', "%{$search}%");
-                    });
-            })
-                ->latest()
-                ->paginate(10);
+            // Filter pencarian
+            if ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->whereHas('bukuKasUmum', function ($q) use ($search) {
+                        $q->where('uraian', 'ILIKE', "%{$search}%")
+                            ->orWhere('uraian_opsional', 'ILIKE', "%{$search}%");
+                    })
+                        ->orWhereHas('rekeningBelanja', function ($q) use ($search) {
+                            $q->where('kode_rekening', 'ILIKE', "%{$search}%");
+                        });
+                });
+            }
+
+            $kwitansis = $query->latest()->paginate(10);
 
             // Format data untuk response JSON
             $formattedKwitansis = $kwitansis->map(function ($kwitansi, $index) use ($kwitansis) {
@@ -120,6 +122,7 @@ class KwitansiController extends Controller
                     'jumlah' => 'Rp ' . number_format($kwitansi->bukuKasUmum->total_transaksi_kotor, 0, ',', '.'),
                     'preview_url' => route('kwitansi.preview', $kwitansi->id),
                     'pdf_url' => route('kwitansi.pdf', $kwitansi->id),
+                    'delete_url' => route('kwitansi.destroy', $kwitansi->id),
                     'delete_data' => [
                         'id' => $kwitansi->id,
                         'uraian' => $kwitansi->bukuKasUmum->uraian_opsional ?? $kwitansi->bukuKasUmum->uraian
@@ -226,11 +229,11 @@ class KwitansiController extends Controller
                 'redirect_url' => route('kwitansi.index'),
             ]);
         } catch (\Exception $e) {
-            Log::error('Error creating kwitansi: ' . $e->getMessage());
+            Log::error('Error creating kwitansi: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal membuat kwitansi: ' . $e->getMessage(),
+                'message' => 'Gagal membuat kwitansi: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -272,7 +275,7 @@ class KwitansiController extends Controller
         $defaultSubProgram = '-';
         $defaultUraian = '-';
 
-        if (!$kodeKegiatan) {
+        if (! $kodeKegiatan) {
             return [
                 'kode_full' => '06.05.01',
                 'kode_program' => '06',
@@ -280,7 +283,7 @@ class KwitansiController extends Controller
                 'kode_uraian' => '06.05.01',
                 'program' => $defaultProgram,
                 'sub_program' => $defaultSubProgram,
-                'uraian' => $defaultUraian
+                'uraian' => $defaultUraian,
             ];
         }
 
@@ -292,7 +295,7 @@ class KwitansiController extends Controller
 
         // Bangun bagian-bagian kode
         $kodeProgram = $kodeParts[0] ?? '-';
-        $kodeSubProgram = ($kodeParts[0] ?? '-') . '.' . ($kodeParts[1] ?? '-');
+        $kodeSubProgram = ($kodeParts[0] ?? '-').'.'.($kodeParts[1] ?? '-');
         $kodeUraian = $kode;
 
         return [
@@ -302,7 +305,7 @@ class KwitansiController extends Controller
             'kode_uraian' => $kodeUraian,
             'program' => $kodeKegiatan->program ?? $defaultProgram,
             'sub_program' => $kodeKegiatan->sub_program ?? $defaultSubProgram,
-            'uraian' => $kodeKegiatan->uraian ?? $defaultUraian
+            'uraian' => $kodeKegiatan->uraian ?? $defaultUraian,
         ];
     }
 
@@ -348,77 +351,78 @@ class KwitansiController extends Controller
 
             return $pdf->stream($filename);
         } catch (\Exception $e) {
-            Log::error('Error generating kwitansi PDF: ' . $e->getMessage());
-            return redirect()->route('kwitansi.index')->with('error', 'Gagal generate PDF: ' . $e->getMessage());
+            Log::error('Error generating kwitansi PDF: '.$e->getMessage());
+
+            return redirect()->route('kwitansi.index')->with('error', 'Gagal generate PDF: '.$e->getMessage());
         }
     }
 
     // Tambahkan method downloadAll di KwitansiController
-public function downloadAll()
-{
-    try {
-        // Ambil semua kwitansi dengan relasi yang diperlukan
-        $kwitansis = Kwitansi::with([
-            'sekolah',
-            'penganggaran',
-            'kodeKegiatan',
-            'rekeningBelanja',
-            'penerimaanDana',
-            'bukuKasUmum' => function ($query) {
-                $query->with(['uraianDetails']);
-            },
-            'bkuUraianDetail',
-        ])->latest()->get();
+    public function downloadAll()
+    {
+        try {
+            // Ambil semua kwitansi dengan relasi yang diperlukan
+            $kwitansis = Kwitansi::with([
+                'sekolah',
+                'penganggaran',
+                'kodeKegiatan',
+                'rekeningBelanja',
+                'penerimaanDana',
+                'bukuKasUmum' => function ($query) {
+                    $query->with(['uraianDetails']);
+                },
+                'bkuUraianDetail',
+            ])->latest()->get();
 
-        // Jika tidak ada data
-        if ($kwitansis->isEmpty()) {
-            return redirect()->route('kwitansi.index')
-                ->with('error', 'Tidak ada data kwitansi untuk diunduh');
-        }
+            // Jika tidak ada data
+            if ($kwitansis->isEmpty()) {
+                return redirect()->route('kwitansi.index')
+                    ->with('error', 'Tidak ada data kwitansi untuk diunduh');
+            }
 
-        // Siapkan data untuk PDF
-        $kwitansiData = [];
-        foreach ($kwitansis as $kwitansi) {
-            // Parse kode kegiatan
-            $parsedKode = $this->parseKodeKegiatan($kwitansi->kodeKegiatan);
+            // Siapkan data untuk PDF
+            $kwitansiData = [];
+            foreach ($kwitansis as $kwitansi) {
+                // Parse kode kegiatan
+                $parsedKode = $this->parseKodeKegiatan($kwitansi->kodeKegiatan);
 
-            // Hitung total amount
-            $totalAmount = $this->calculateTotalFromUraianDetails($kwitansi->bukuKasUmum);
-            $jumlahUang = $this->convertToText($totalAmount);
+                // Hitung total amount
+                $totalAmount = $this->calculateTotalFromUraianDetails($kwitansi->bukuKasUmum);
+                $jumlahUang = $this->convertToText($totalAmount);
 
-            // Klasifikasi pajak
-            $pajakData = $this->klasifikasiPajak($kwitansi->bukuKasUmum);
+                // Klasifikasi pajak
+                $pajakData = $this->klasifikasiPajak($kwitansi->bukuKasUmum);
 
-            $kwitansiData[] = [
-                'kwitansi' => $kwitansi,
-                'parsedKode' => $parsedKode,
-                'jumlahUangText' => $jumlahUang,
-                'totalAmount' => $totalAmount,
-                'tanggalLunas' => $this->formatTanggalLunas($kwitansi->bukuKasUmum->tanggal_transaksi),
-                'pajakData' => $pajakData,
+                $kwitansiData[] = [
+                    'kwitansi' => $kwitansi,
+                    'parsedKode' => $parsedKode,
+                    'jumlahUangText' => $jumlahUang,
+                    'totalAmount' => $totalAmount,
+                    'tanggalLunas' => $this->formatTanggalLunas($kwitansi->bukuKasUmum->tanggal_transaksi),
+                    'pajakData' => $pajakData,
+                ];
+            }
+
+            $data = [
+                'kwitansis' => $kwitansiData,
+                'totalKwitansi' => $kwitansis->count(),
+                'tanggalDownload' => now()->format('d/m/Y H:i'),
             ];
+
+            // Generate PDF
+            $pdf = PDF::loadView('kwitansi.download-all', $data);
+            $pdf->setPaper('Folio', 'portrait');
+
+            $filename = 'Kwitansi_All_'.now()->format('Y-m-d_H-i-s').'.pdf';
+
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            Log::error('Error downloading all kwitansi: '.$e->getMessage());
+
+            return redirect()->route('kwitansi.index')
+                ->with('error', 'Gagal mengunduh semua kwitansi: '.$e->getMessage());
         }
-
-        $data = [
-            'kwitansis' => $kwitansiData,
-            'totalKwitansi' => $kwitansis->count(),
-            'tanggalDownload' => now()->format('d/m/Y H:i'),
-        ];
-
-        // Generate PDF
-        $pdf = PDF::loadView('kwitansi.download-all', $data);
-        $pdf->setPaper('Folio', 'portrait');
-
-        $filename = "Kwitansi_All_" . now()->format('Y-m-d_H-i-s') . ".pdf";
-
-        return $pdf->download($filename);
-
-    } catch (\Exception $e) {
-        Log::error('Error downloading all kwitansi: ' . $e->getMessage());
-        return redirect()->route('kwitansi.index')
-            ->with('error', 'Gagal mengunduh semua kwitansi: ' . $e->getMessage());
     }
-}
 
     // PERBAIKAN: Method klasifikasiPajak yang lebih robust
     private function klasifikasiPajak($bukuKasUmum)
@@ -440,7 +444,7 @@ public function downloadAll()
             // Jika ada nama pajak spesifik, klasifikasikan berdasarkan nama
             if (strpos($pajakName, 'pph') !== false) {
                 $pajakData['pph'] = $bukuKasUmum->total_pajak;
-            } else if (strpos($pajakName, 'ppn') !== false) {
+            } elseif (strpos($pajakName, 'ppn') !== false) {
                 $pajakData['ppn'] = $bukuKasUmum->total_pajak;
             } else {
                 // Default: jika tidak ada indikasi PPh, anggap sebagai PPn
@@ -478,9 +482,10 @@ public function downloadAll()
     {
         // Cari angka dalam string
         preg_match('/\d+/', $pajakName, $matches);
-        if (!empty($matches)) {
+        if (! empty($matches)) {
             return (float) $matches[0];
         }
+
         return 0;
     }
 
@@ -520,8 +525,9 @@ public function downloadAll()
 
             return view('kwitansi.preview', $data);
         } catch (\Exception $e) {
-            Log::error('Error preview kwitansi: ' . $e->getMessage());
-            return redirect()->route('kwitansi.index')->with('error', 'Gagal preview kwitansi: ' . $e->getMessage());
+            Log::error('Error preview kwitansi: '.$e->getMessage());
+
+            return redirect()->route('kwitansi.index')->with('error', 'Gagal preview kwitansi: '.$e->getMessage());
         }
     }
 
