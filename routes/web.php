@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\auth\LoginController;
-use App\Http\Controllers\auth\LogoutController;
 use App\Http\Controllers\auth\RegisterController;
 use App\Http\Controllers\BeritaAcaraPenutupanController;
 use App\Http\Controllers\BukuBankController;
@@ -9,6 +8,7 @@ use App\Http\Controllers\BukuKasPembantuTunaiController;
 use App\Http\Controllers\BukuKasUmumController;
 use App\Http\Controllers\BukuPajakController;
 use App\Http\Controllers\BukuRobController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DatabaseController;
 use App\Http\Controllers\KodeKegiatanController;
 use App\Http\Controllers\KopSekolahController;
@@ -25,7 +25,9 @@ use App\Http\Controllers\RkasController;
 use App\Http\Controllers\RkasPerubahanController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\SetorTunaiController;
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SpmthController;
+use App\Http\Controllers\SptjController;
+use App\Http\Controllers\LaporanRealisasiController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
@@ -251,7 +253,6 @@ Route::middleware(['auth'])->prefix('referensi')->group(function () {
     Route::get('/referensi/rekening-belanja/download-template', [RekeningBelanjaController::class, 'downloadTemplate'])
         ->name('referensi.rekening-belanja.download-template');
 
-    
     // Kode Kegiatan
     Route::get('/referensi/kode-kegiatan', [KodeKegiatanController::class, 'index'])->name('referensi.kode-kegiatan.index');
     Route::post('/kode-kegiatan', [KodeKegiatanController::class, 'store'])->name('referensi.kode-kegiatan.store');
@@ -456,4 +457,16 @@ Route::middleware(['auth'])->prefix('kwitansi')->group(function () {
     // Route debug untuk melihat data count
     Route::get('/debug-count', [KwitansiController::class, 'debugDataCount'])->name('kwitansi.debug-count');
 
+});
+
+Route::middleware(['auth'])->prefix('spmth')->group(function () {
+    Route::get('/', [SpmthController::class, 'index'])->name('spmth.index');
+});
+
+Route::middleware(['auth'])->prefix('sptj')->group(function () {
+    Route::get('/', [SptjController::class, 'index'])->name('sptj.index');
+});
+
+Route::middleware(['auth'])->prefix('laporan-realisasi')->group(function () {
+    Route::get('/', [LaporanRealisasiController::class, 'index'])->name('laporan-realisasi.index');
 });

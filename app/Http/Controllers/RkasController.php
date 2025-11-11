@@ -77,7 +77,7 @@ class RkasController extends Controller
                 'sekolah'
             ));
         } catch (\Exception $e) {
-            Log::error('Error in RKAS index: '.$e->getMessage());
+            Log::error('Error in RKAS index: ' . $e->getMessage());
 
             return back()->with('error', 'Terjadi kesalahan saat memuat data RKAS.');
         }
@@ -240,7 +240,7 @@ class RkasController extends Controller
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
             if (! $penganggaran) {
-                return back()->with('error', 'Data penganggaran untuk tahun '.$tahun.' belum tersedia.');
+                return back()->with('error', 'Data penganggaran untuk tahun ' . $tahun . ' belum tersedia.');
             }
 
             DB::beginTransaction();
@@ -287,7 +287,7 @@ class RkasController extends Controller
             return redirect()->route('rkas.index')->with('success', 'Data RKAS berhasil ditambahkan.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error storing RKAS: '.$e->getMessage());
+            Log::error('Error storing RKAS: ' . $e->getMessage());
 
             return back()->withErrors(['error' => 'Terjadi kesalahan saat menyimpan data.']);
         }
@@ -296,13 +296,13 @@ class RkasController extends Controller
     public function show($id)
     {
         try {
-            Log::info('🔧 [DETAIL DEBUG] Fetching ALL monthly data for detail, ID: '.$id);
+            Log::info('🔧 [DETAIL DEBUG] Fetching ALL monthly data for detail, ID: ' . $id);
 
             // Dapatkan data utama berdasarkan ID
             $mainRkas = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])->find($id);
 
             if (! $mainRkas) {
-                Log::warning('❌ [DETAIL DEBUG] Main data not found for ID: '.$id);
+                Log::warning('❌ [DETAIL DEBUG] Main data not found for ID: ' . $id);
 
                 return response()->json([
                     'success' => false,
@@ -319,7 +319,7 @@ class RkasController extends Controller
                 ->where('harga_satuan', $mainRkas->harga_satuan)
                 ->get();
 
-            Log::info('🔧 [DETAIL DEBUG] Found '.$allRkasData->count().' monthly records for:', [
+            Log::info('🔧 [DETAIL DEBUG] Found ' . $allRkasData->count() . ' monthly records for:', [
                 'kode_id' => $mainRkas->kode_id,
                 'kode_rekening_id' => $mainRkas->kode_rekening_id,
                 'uraian' => $mainRkas->uraian,
@@ -348,9 +348,9 @@ class RkasController extends Controller
                 'kegiatan' => $mainRkas->kodeKegiatan->sub_program ?? '-',
                 'rekening_belanja' => $mainRkas->rekeningBelanja->rincian_objek ?? '-',
                 'uraian' => $mainRkas->uraian,
-                'harga_satuan' => 'Rp '.number_format($mainRkas->harga_satuan, 0, ',', '.'),
+                'harga_satuan' => 'Rp ' . number_format($mainRkas->harga_satuan, 0, ',', '.'),
                 'harga_satuan_raw' => $mainRkas->harga_satuan,
-                'total_anggaran' => 'Rp '.number_format($totalAnggaran, 0, ',', '.'),
+                'total_anggaran' => 'Rp ' . number_format($totalAnggaran, 0, ',', '.'),
 
                 // DATA SEMUA BULAN
                 'bulan_data' => $bulanData,
@@ -368,19 +368,19 @@ class RkasController extends Controller
                 ],
             ];
 
-            Log::info('🔧 [DETAIL DEBUG] Sending data with '.count($bulanData).' months');
+            Log::info('🔧 [DETAIL DEBUG] Sending data with ' . count($bulanData) . ' months');
 
             return response()->json([
                 'success' => true,
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
-            Log::error('❌ [DETAIL DEBUG] Error in show method: '.$e->getMessage());
-            Log::error('❌ [DETAIL DEBUG] Stack trace: '.$e->getTraceAsString());
+            Log::error('❌ [DETAIL DEBUG] Error in show method: ' . $e->getMessage());
+            Log::error('❌ [DETAIL DEBUG] Stack trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mengambil data untuk detail: '.$e->getMessage(),
+                'message' => 'Terjadi kesalahan saat mengambil data untuk detail: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -433,15 +433,15 @@ class RkasController extends Controller
             $penganggaran = Penganggaran::where('tahun_anggaran', $request->tahun_anggaran)->first();
 
             if (! $penganggaran) {
-                Log::error('Penganggaran not found for year: '.$request->tahun_anggaran);
+                Log::error('Penganggaran not found for year: ' . $request->tahun_anggaran);
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data penganggaran untuk tahun '.$request->tahun_anggaran.' tidak ditemukan.',
+                    'message' => 'Data penganggaran untuk tahun ' . $request->tahun_anggaran . ' tidak ditemukan.',
                 ], 404);
             }
 
-            Log::info('Penganggaran found: '.$penganggaran->id);
+            Log::info('Penganggaran found: ' . $penganggaran->id);
 
             // Check for duplicate
             $exists = Rkas::where('penganggaran_id', $penganggaran->id)
@@ -473,15 +473,15 @@ class RkasController extends Controller
                 'bulan' => $request->bulan,
             ]);
 
-            Log::info('RKAS created successfully: '.$rkas->id);
+            Log::info('RKAS created successfully: ' . $rkas->id);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data berhasil disisipkan ke bulan '.$request->bulan,
+                'message' => 'Data berhasil disisipkan ke bulan ' . $request->bulan,
                 'bulan' => $request->bulan,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation error: '.json_encode($e->errors()));
+            Log::error('Validation error: ' . json_encode($e->errors()));
 
             $errorMessages = [];
             foreach ($e->errors() as $field => $messages) {
@@ -490,16 +490,16 @@ class RkasController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Validasi gagal: '.implode(', ', $errorMessages),
+                'message' => 'Validasi gagal: ' . implode(', ', $errorMessages),
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error in sisipkan: '.$e->getMessage());
-            Log::error('Stack trace: '.$e->getTraceAsString());
+            Log::error('Error in sisipkan: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan server: '.$e->getMessage(),
+                'message' => 'Terjadi kesalahan server: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -507,13 +507,13 @@ class RkasController extends Controller
     public function edit($id)
     {
         try {
-            Log::info('🔧 [EDIT DEBUG] Fetching ALL monthly data for edit, ID: '.$id);
+            Log::info('🔧 [EDIT DEBUG] Fetching ALL monthly data for edit, ID: ' . $id);
 
             // Dapatkan data utama berdasarkan ID
             $mainRkas = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])->find($id);
 
             if (! $mainRkas) {
-                Log::warning('❌ [EDIT DEBUG] Main data not found for ID: '.$id);
+                Log::warning('❌ [EDIT DEBUG] Main data not found for ID: ' . $id);
 
                 return response()->json([
                     'success' => false,
@@ -530,7 +530,7 @@ class RkasController extends Controller
                 ->where('harga_satuan', $mainRkas->harga_satuan)
                 ->get();
 
-            Log::info('🔧 [EDIT DEBUG] Found '.$allRkasData->count().' monthly records for:', [
+            Log::info('🔧 [EDIT DEBUG] Found ' . $allRkasData->count() . ' monthly records for:', [
                 'kode_id' => $mainRkas->kode_id,
                 'kode_rekening_id' => $mainRkas->kode_rekening_id,
                 'uraian' => $mainRkas->uraian,
@@ -559,9 +559,9 @@ class RkasController extends Controller
                 'kegiatan' => $mainRkas->kodeKegiatan->sub_program ?? '-',
                 'rekening_belanja' => $mainRkas->rekeningBelanja->rincian_objek ?? '-',
                 'uraian' => $mainRkas->uraian,
-                'harga_satuan' => 'Rp '.number_format($mainRkas->harga_satuan, 0, ',', '.'),
+                'harga_satuan' => 'Rp ' . number_format($mainRkas->harga_satuan, 0, ',', '.'),
                 'harga_satuan_raw' => $mainRkas->harga_satuan,
-                'total_anggaran' => 'Rp '.number_format($totalAnggaran, 0, ',', '.'),
+                'total_anggaran' => 'Rp ' . number_format($totalAnggaran, 0, ',', '.'),
 
                 // DATA SEMUA BULAN
                 'bulan_data' => $bulanData,
@@ -579,19 +579,19 @@ class RkasController extends Controller
                 ],
             ];
 
-            Log::info('🔧 [EDIT DEBUG] Sending data with '.count($bulanData).' months');
+            Log::info('🔧 [EDIT DEBUG] Sending data with ' . count($bulanData) . ' months');
 
             return response()->json([
                 'success' => true,
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
-            Log::error('❌ [EDIT DEBUG] Error in edit method: '.$e->getMessage());
-            Log::error('❌ [EDIT DEBUG] Stack trace: '.$e->getTraceAsString());
+            Log::error('❌ [EDIT DEBUG] Error in edit method: ' . $e->getMessage());
+            Log::error('❌ [EDIT DEBUG] Stack trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mengambil data untuk edit: '.$e->getMessage(),
+                'message' => 'Terjadi kesalahan saat mengambil data untuk edit: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -599,7 +599,7 @@ class RkasController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            Log::info('🔧 [UPDATE DEBUG] Starting update process for ID: '.$id);
+            Log::info('🔧 [UPDATE DEBUG] Starting update process for ID: ' . $id);
             Log::info('🔧 [UPDATE DEBUG] Request data:', [
                 'bulan' => $request->bulan,
                 'jumlah' => $request->jumlah,
@@ -624,7 +624,7 @@ class RkasController extends Controller
             // Dapatkan data utama
             $mainRkas = Rkas::find($id);
             if (! $mainRkas) {
-                Log::error('❌ [UPDATE DEBUG] Data not found for ID: '.$id);
+                Log::error('❌ [UPDATE DEBUG] Data not found for ID: ' . $id);
 
                 return response()->json([
                     'success' => false,
@@ -651,7 +651,7 @@ class RkasController extends Controller
                     ->where('harga_satuan', $mainRkas->harga_satuan) // Harga satuan lama
                     ->delete();
 
-                Log::info('🔧 [UPDATE DEBUG] Deleted '.$deletedCount.' old records');
+                Log::info('🔧 [UPDATE DEBUG] Deleted ' . $deletedCount . ' old records');
 
                 // BUAT DATA BARU untuk semua bulan yang dipilih
                 $createdRecords = [];
@@ -674,28 +674,28 @@ class RkasController extends Controller
                     ]);
 
                     $createdRecords[] = $newRkas;
-                    Log::info('🔧 [UPDATE DEBUG] Created record for bulan: '.$bulanArray[$i]);
+                    Log::info('🔧 [UPDATE DEBUG] Created record for bulan: ' . $bulanArray[$i]);
                 }
 
                 DB::commit();
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Data RKAS berhasil diupdate untuk '.count($createdRecords).' bulan.',
+                    'message' => 'Data RKAS berhasil diupdate untuk ' . count($createdRecords) . ' bulan.',
                     'redirect' => route('rkas.index', ['tahun' => $request->tahun_anggaran]),
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
-                Log::error('❌ [UPDATE DEBUG] Database error: '.$e->getMessage());
+                Log::error('❌ [UPDATE DEBUG] Database error: ' . $e->getMessage());
                 throw $e;
             }
         } catch (\Exception $e) {
-            Log::error('❌ [UPDATE DEBUG] Error updating RKAS: '.$e->getMessage());
-            Log::error('❌ [UPDATE DEBUG] Stack trace: '.$e->getTraceAsString());
+            Log::error('❌ [UPDATE DEBUG] Error updating RKAS: ' . $e->getMessage());
+            Log::error('❌ [UPDATE DEBUG] Stack trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mengupdate data: '.$e->getMessage(),
+                'message' => 'Terjadi kesalahan saat mengupdate data: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -711,7 +711,7 @@ class RkasController extends Controller
                 'message' => 'Data RKAS berhasil dihapus.',
             ]);
         } catch (\Exception $e) {
-            Log::error('Error deleting RKAS: '.$e->getMessage());
+            Log::error('Error deleting RKAS: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -723,13 +723,13 @@ class RkasController extends Controller
     public function deleteAll($id)
     {
         try {
-            Log::info('🔧 [DELETE ALL] Starting delete all process for ID: '.$id);
+            Log::info('🔧 [DELETE ALL] Starting delete all process for ID: ' . $id);
 
             // Dapat data utama
             $mainRkas = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])->find($id);
 
             if (! $mainRkas) {
-                Log::error('❌ [DELETE ALL] Main data not found for ID: '.$id);
+                Log::error('❌ [DELETE ALL] Main data not found for ID: ' . $id);
 
                 return response()->json([
                     'success' => false,
@@ -754,21 +754,21 @@ class RkasController extends Controller
 
             DB::commit();
 
-            Log::info('🔧 [DELETE ALL] Successfully deleted '.$deletedCount.' records');
+            Log::info('🔧 [DELETE ALL] Successfully deleted ' . $deletedCount . ' records');
 
             return response()->json([
                 'success' => true,
-                'message' => 'Berhasil menghapus '.$deletedCount.' data untuk kegiatan ini.',
+                'message' => 'Berhasil menghapus ' . $deletedCount . ' data untuk kegiatan ini.',
                 'deleted_count' => $deletedCount,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('❌ [DELETE ALL] Error deleting all data: '.$e->getMessage());
-            Log::error('❌ [DELETE ALL] Stack trace: '.$e->getTraceAsString());
+            Log::error('❌ [DELETE ALL] Error deleting all data: ' . $e->getMessage());
+            Log::error('❌ [DELETE ALL] Stack trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat menghapus data: '.$e->getMessage(),
+                'message' => 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -812,7 +812,7 @@ class RkasController extends Controller
                 return response()->json([
                     'success' => true,
                     'data' => [],
-                    'message' => 'Tidak ada data untuk bulan '.$bulan.' tahun '.$tahun,
+                    'message' => 'Tidak ada data untuk bulan ' . $bulan . ' tahun ' . $tahun,
                 ]);
             }
 
@@ -826,8 +826,8 @@ class RkasController extends Controller
                     'dianggaran' => $rkas->jumlah,
                     'dibelanjakan' => 0,
                     'satuan' => $rkas->satuan,
-                    'harga_satuan' => 'Rp '.number_format($rkas->harga_satuan, 0, ',', '.'),
-                    'total' => 'Rp '.number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
+                    'harga_satuan' => 'Rp ' . number_format($rkas->harga_satuan, 0, ',', '.'),
+                    'total' => 'Rp ' . number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
                     'bulan' => $rkas->bulan,
                 ];
             });
@@ -837,7 +837,7 @@ class RkasController extends Controller
                 'data' => $formattedData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting RKAS by month: '.$e->getMessage());
+            Log::error('Error getting RKAS by month: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -858,7 +858,7 @@ class RkasController extends Controller
                 'data' => $rkasData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting all RKAS data: '.$e->getMessage());
+            Log::error('Error getting all RKAS data: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -897,7 +897,7 @@ class RkasController extends Controller
                 'data' => $totals,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting total per month: '.$e->getMessage());
+            Log::error('Error getting total per month: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -945,7 +945,7 @@ class RkasController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting total Tahap 1: '.$e->getMessage());
+            Log::error('Error getting total Tahap 1: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -993,7 +993,7 @@ class RkasController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting total Tahap 2: '.$e->getMessage());
+            Log::error('Error getting total Tahap 2: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -1040,8 +1040,8 @@ class RkasController extends Controller
                     'dianggaran' => $rkas->jumlah,
                     'dibelanjakan' => 0,
                     'satuan' => $rkas->satuan,
-                    'harga_satuan' => 'Rp '.number_format($rkas->harga_satuan, 0, ',', '.'),
-                    'total' => 'Rp '.number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
+                    'harga_satuan' => 'Rp ' . number_format($rkas->harga_satuan, 0, ',', '.'),
+                    'total' => 'Rp ' . number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
                     'bulan' => $rkas->bulan,
                 ];
             });
@@ -1051,7 +1051,7 @@ class RkasController extends Controller
                 'data' => $formattedData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting RKAS by tahap: '.$e->getMessage());
+            Log::error('Error getting RKAS by tahap: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -1112,8 +1112,8 @@ class RkasController extends Controller
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
             if (! $penganggaran) {
-                Log::error('Data penganggaran tidak ditemukan untuk tahun: '.$tahun);
-                throw new \Exception('Data penganggaran untuk tahun '.$tahun.' tidak ditemukan');
+                Log::error('Data penganggaran tidak ditemukan untuk tahun: ' . $tahun);
+                throw new \Exception('Data penganggaran untuk tahun ' . $tahun . ' tidak ditemukan');
             }
 
             // Ambil data sekolah
@@ -1210,17 +1210,17 @@ class RkasController extends Controller
 
             Log::info('PDF RKA Tahapan berhasil di-generate');
 
-            return $pdf->stream('RKAS-Tahap-'.$tahun.'.pdf');
+            return $pdf->stream('RKAS-Tahap-' . $tahun . '.pdf');
         } catch (\Exception $e) {
-            Log::error('Error saat membuat PDF RKAS: '.$e->getMessage());
+            Log::error('Error saat membuat PDF RKAS: ' . $e->getMessage());
 
-            Log::error('Stack trace: '.$e->getTraceAsString());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
 
             return response('
             <html>
                 <body>
                     <h1>Error Generating PDF RKA Tahapan</h1>
-                    <p>Terjadi kesalahan saat membuat PDF: '.$e->getMessage()."</p>
+                    <p>Terjadi kesalahan saat membuat PDF: ' . $e->getMessage() . "</p>
                     <p>Silakan coba lagi atau hubungi administrator.</p>
                     <button onclick='window.history.back()'>Kembali</button>
                 </body>
@@ -1255,7 +1255,7 @@ class RkasController extends Controller
             }
 
             // Level sub-program (contoh: "03.03")
-            $kodeSubProgram = count($bagian) > 1 ? $bagian[0].'.'.$bagian[1] : null;
+            $kodeSubProgram = count($bagian) > 1 ? $bagian[0] . '.' . $bagian[1] : null;
             if ($kodeSubProgram && ! isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram])) {
                 $firstItem = $items->first();
                 $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram] = [
@@ -1290,7 +1290,7 @@ class RkasController extends Controller
                     continue;
                 }
 
-                $key = $item->rekeningBelanja->kode_rekening.'-'.$item->uraian;
+                $key = $item->rekeningBelanja->kode_rekening . '-' . $item->uraian;
                 if (! isset($groupedItems[$key])) {
                     $groupedItems[$key] = [
                         'kode_rekening' => $item->rekeningBelanja->kode_rekening,
@@ -1365,11 +1365,11 @@ class RkasController extends Controller
     {
         try {
             $tahun = $request->input('tahun');
-            Log::info('Parameter tahun dari URL: '.$tahun);
+            Log::info('Parameter tahun dari URL: ' . $tahun);
 
             // Ambil data penganggaran berdasarkan tahun yang diminta, bukan yang terbaru
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
-            Log::info('ID Penganggaran ditemukan: '.$penganggaran->id);
+            Log::info('ID Penganggaran ditemukan: ' . $penganggaran->id);
 
             $sekolah = Sekolah::first();
 
@@ -1436,7 +1436,7 @@ class RkasController extends Controller
                 ->sum(DB::raw('jumlah * harga_satuan'));
 
             // Debug: Log ID penganggaran yang ditemukan
-            Log::info('ID Penganggaran ditemukan: '.$penganggaran->id);
+            Log::info('ID Penganggaran ditemukan: ' . $penganggaran->id);
             // Data penerimaan - ambil dari penganggaran yang dipilih
             $penerimaan = [
                 'total' => $penganggaran->pagu_anggaran,
@@ -1485,9 +1485,9 @@ class RkasController extends Controller
                 'grafikData' => $grafikData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error showing rekapan: '.$e->getMessage());
+            Log::error('Error showing rekapan: ' . $e->getMessage());
 
-            return back()->with('error', 'Terjadi kesalahan saat menampilkan rekapan RKAS: '.$e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat menampilkan rekapan RKAS: ' . $e->getMessage());
         }
     }
 
@@ -1519,7 +1519,7 @@ class RkasController extends Controller
             $kode = $item->rekeningBelanja->kode_rekening;
             $mainCode = $this->findClosestMainCode($kode, array_keys($mainStructure));
 
-            $key = $kode.'-'.$item->uraian.'-'.$item->harga_satuan;
+            $key = $kode . '-' . $item->uraian . '-' . $item->harga_satuan;
 
             if (! isset($groupedItems[$mainCode][$key])) {
                 $groupedItems[$mainCode][$key] = [
@@ -1728,7 +1728,7 @@ class RkasController extends Controller
 
             return $rekapData;
         } catch (\Exception $e) {
-            Log::error('Error getting rekap RKAS: '.$e->getMessage());
+            Log::error('Error getting rekap RKAS: ' . $e->getMessage());
 
             return [];
         }
@@ -1755,7 +1755,7 @@ class RkasController extends Controller
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
             if (! $penganggaran) {
-                Log::error('Data penganggaran tidak ditemukan untuk tahun: '.$tahun);
+                Log::error('Data penganggaran tidak ditemukan untuk tahun: ' . $tahun);
                 throw new \Exception("Data penganggaran untuk tahun {$tahun} tidak ditemukan");
             }
 
@@ -1849,17 +1849,17 @@ class RkasController extends Controller
 
             Log::info('PDF berhasil di-generate');
 
-            return $pdf->stream('RKA-Rekap-'.$tahun.'.pdf');
+            return $pdf->stream('RKA-Rekap-' . $tahun . '.pdf');
         } catch (\Exception $e) {
-            Log::error('Error saat membuat PDF RKA Rekap: '.$e->getMessage());
+            Log::error('Error saat membuat PDF RKA Rekap: ' . $e->getMessage());
 
-            Log::error('Stack trace: '.$e->getTraceAsString());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
 
             return response('
             <html>
                 <body>
                     <h1>Error Generating PDF</h1>
-                    <p>Terjadi kesalahan saat membuat PDF: '.$e->getMessage()."</p>
+                    <p>Terjadi kesalahan saat membuat PDF: ' . $e->getMessage() . "</p>
                     <p>Silakan coba lagi atau hubungi administrator.</p>
                     <button onclick='window.history.back()'>Kembali</button>
                 </body>
@@ -1947,7 +1947,7 @@ class RkasController extends Controller
                 'tahun_anggaran' => $penganggaran->tahun_anggaran,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in rekapRkaDuaSatu: '.$e->getMessage());
+            Log::error('Error in rekapRkaDuaSatu: ' . $e->getMessage());
 
             return back()->with('error', 'Terjadi kesalahan saat memuat data Lembar Kerja 221.');
         }
@@ -1970,7 +1970,7 @@ class RkasController extends Controller
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->firstOrFail();
 
             if (! $penganggaran) {
-                Log::error('Data penganggaran tidak ditemukan untuk tahun: '.$tahun);
+                Log::error('Data penganggaran tidak ditemukan untuk tahun: ' . $tahun);
                 throw new \Exception("Data penganggaran untuk tahun {$tahun} tidak ditemukan");
             }
 
@@ -2019,7 +2019,7 @@ class RkasController extends Controller
                 $mainCode = $this->findClosestMainCode($kode, array_keys($mainStructure));
 
                 // Buat key unik berdasarkan kode rekening, uraian, dan harga satuan
-                $itemKey = $kode.'-'.$uraian.'-'.$hargaSatuan;
+                $itemKey = $kode . '-' . $uraian . '-' . $hargaSatuan;
 
                 if (! isset($groupedItems[$mainCode])) {
                     $groupedItems[$mainCode] = [];
@@ -2091,17 +2091,17 @@ class RkasController extends Controller
 
             Log::info('PDF RKA 221 berhasil di-generate');
 
-            return $pdf->stream('RKA-221-'.$tahun.'.pdf');
+            return $pdf->stream('RKA-221-' . $tahun . '.pdf');
         } catch (\Exception $e) {
-            Log::error('Error generating RKA 221 PDF: '.$e->getMessage());
+            Log::error('Error generating RKA 221 PDF: ' . $e->getMessage());
 
-            Log::error('Stack trace: '.$e->getTraceAsString());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
 
             return response('
             <html>
                 <body>
                     <h1>Error Generating PDF RKA 221</h1>
-                    <p>Terjadi kesalahan saat membuat PDF: '.$e->getMessage()."</p>
+                    <p>Terjadi kesalahan saat membuat PDF: ' . $e->getMessage() . "</p>
                     <p>Silakan coba lagi atau hubungi administrator.</p>
                     <button onclick='window.history.back()'>Kembali</button>
                 </body>
@@ -2130,7 +2130,7 @@ class RkasController extends Controller
     public function getRekapBulanan($bulan)
     {
         try {
-            Log::info('Mengambil data rekap untuk bulan: '.$bulan);
+            Log::info('Mengambil data rekap untuk bulan: ' . $bulan);
 
             $rkasData = Rkas::with(['kodeKegiatan', 'rekeningBelanja'])
                 ->where('bulan', $bulan)
@@ -2155,7 +2155,7 @@ class RkasController extends Controller
                 'bulan' => $bulan,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting rekap bulanan: '.$e->getMessage());
+            Log::error('Error getting rekap bulanan: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -2190,7 +2190,7 @@ class RkasController extends Controller
                 ];
             }
 
-            $kodeSubProgram = count($bagian) > 1 ? $bagian[0].'.'.$bagian[1] : null;
+            $kodeSubProgram = count($bagian) > 1 ? $bagian[0] . '.' . $bagian[1] : null;
             if ($kodeSubProgram && ! isset($terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram])) {
                 $firstItem = $items->first();
                 $terorganisir[$kodeProgram]['sub_programs'][$kodeSubProgram] = [
@@ -2363,9 +2363,9 @@ class RkasController extends Controller
 
             return $pdf->stream("RKAS-Bulanan-{$validBulan}-{$tahun}.pdf");
         } catch (\Exception $e) {
-            Log::error('Error saat membuat PDF RKAS Bulanan: '.$e->getMessage());
+            Log::error('Error saat membuat PDF RKAS Bulanan: ' . $e->getMessage());
 
-            return back()->with('error', 'Gagal menghasilkan PDF: '.$e->getMessage());
+            return back()->with('error', 'Gagal menghasilkan PDF: ' . $e->getMessage());
         }
     }
 
@@ -2402,7 +2402,7 @@ class RkasController extends Controller
                 'totalBulanan' => $totalBulanan,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting monthly data: '.$e->getMessage());
+            Log::error('Error getting monthly data: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -2430,13 +2430,13 @@ class RkasController extends Controller
                         'program_kegiatan' => $item->kodeKegiatan->program ?? '-',
                         'kegiatan' => $item->kodeKegiatan->sub_program ?? '-',
                         'rekening_belanja' => $item->rekeningBelanja ?
-                            $item->rekeningBelanja->kode_rekening.' - '.$item->rekeningBelanja->rincian_objek : '-',
+                            $item->rekeningBelanja->kode_rekening . ' - ' . $item->rekeningBelanja->rincian_objek : '-',
                         'uraian' => $item->uraian,
                         'dianggaran' => $item->jumlah,
                         'dibelanjakan' => 0, // Sesuaikan dengan logika Anda
                         'satuan' => $item->satuan,
-                        'harga_satuan' => 'Rp '.number_format($item->harga_satuan, 0, ',', '.'),
-                        'total' => 'Rp '.number_format($item->jumlah * $item->harga_satuan, 0, ',', '.'),
+                        'harga_satuan' => 'Rp ' . number_format($item->harga_satuan, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($item->jumlah * $item->harga_satuan, 0, ',', '.'),
                         'kode_id' => $item->kode_id,
                         'kode_rekening_id' => $item->kode_rekening_id,
                     ];
@@ -2450,7 +2450,7 @@ class RkasController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat data: '.$e->getMessage(),
+                'message' => 'Gagal memuat data: ' . $e->getMessage(),
             ], 500);
         }
     }

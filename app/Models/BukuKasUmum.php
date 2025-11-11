@@ -323,36 +323,45 @@ class BukuKasUmum extends Model
     public static function getBulanTertutupTanpaBelanja($penganggaran_id, $bulanTarget)
     {
         $bulanList = [
-            'Januari' => 1, 'Februari' => 2, 'Maret' => 3, 'April' => 4,
-            'Mei' => 5, 'Juni' => 6, 'Juli' => 7, 'Agustus' => 8,
-            'September' => 9, 'Oktober' => 10, 'November' => 11, 'Desember' => 12
+            'Januari' => 1,
+            'Februari' => 2,
+            'Maret' => 3,
+            'April' => 4,
+            'Mei' => 5,
+            'Juni' => 6,
+            'Juli' => 7,
+            'Agustus' => 8,
+            'September' => 9,
+            'Oktober' => 10,
+            'November' => 11,
+            'Desember' => 12
         ];
-        
+
         $bulanTargetNumber = $bulanList[$bulanTarget];
-        
+
         // Cari bulan-bulan sebelumnya yang ditutup tanpa belanja
         $bulanTertutup = [];
-        
+
         for ($i = 1; $i < $bulanTargetNumber; $i++) {
             $bulanNama = array_search($i, $bulanList);
-            
+
             // Cek apakah bulan ini ditutup
             $isClosed = self::where('penganggaran_id', $penganggaran_id)
                 ->whereMonth('tanggal_transaksi', $i)
                 ->where('status', 'closed')
                 ->exists();
-                
+
             // Cek apakah ada transaksi reguler
             $hasTransactions = self::where('penganggaran_id', $penganggaran_id)
                 ->whereMonth('tanggal_transaksi', $i)
                 ->where('is_bunga_record', false)
                 ->exists();
-                
+
             if ($isClosed && !$hasTransactions) {
                 $bulanTertutup[] = $bulanNama;
             }
         }
-        
+
         return $bulanTertutup;
     }
 
@@ -520,6 +529,4 @@ class BukuKasUmum extends Model
 
         return $data;
     }
-
-    
 }
