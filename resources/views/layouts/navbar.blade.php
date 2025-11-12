@@ -34,13 +34,6 @@
                         alt="Profile" class="profile-avatar">
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="pages/profile.html"><i class="bi bi-person me-2"></i>Profile</a>
-                    </li>
-                    <li><a class="dropdown-item" href="pages/settings.html"><i class="bi bi-gear me-2"></i>Settings</a>
-                    </li>
-                    <li>
-                        <hr class="dropdown-divider">
-                    </li>
                     <li>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf

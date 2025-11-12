@@ -62,7 +62,7 @@ body {
 .sidebar.collapsed:hover .sidebar-brand-text,
 .sidebar.collapsed:hover .nav-text,
 .sidebar.collapsed:hover .nav-arrow {
-    opacity: 1;
+    opacity: 0;
     visibility: visible;
 }
 .sidebar.collapsed:hover .nav-submenu {
