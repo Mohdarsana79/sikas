@@ -1,0 +1,315 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Times New Roman", serif;
+    font-size: 10px;
+    line-height: 1.2;
+    color: #000;
+    background: #fff;
+}
+
+/* Page setup for landscape A4/F4 */
+@page {
+    size: A4 landscape;
+    margin: 1.5cm;
+}
+
+.container {
+    width: 100%;
+    max-width: 297mm; /* A4 landscape width */
+    margin: 0 auto;
+    padding: 15px;
+    background: white;
+    min-height: 210mm; /* A4 landscape height */
+}
+
+/* Header styles */
+header {
+    text-align: center;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 15px;
+}
+
+header h1 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+header p {
+    font-size: 12px;
+    margin: 3px 0;
+    line-height: 1.3;
+}
+
+/* Section styles */
+.penerimaan,
+.belanja {
+    margin-bottom: 20px;
+}
+
+.penerimaan h2,
+.belanja h2 {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.penerimaan h3 {
+    font-size: 11px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Table styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+    font-size: 9px;
+}
+
+table th,
+table td {
+    border: 1px solid #000;
+    padding: 3px 5px;
+    text-align: left;
+    vertical-align: top;
+}
+
+table th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+    text-align: center;
+    font-size: 9px;
+}
+
+/* Header table for penerimaan */
+.penerimaan table th:nth-child(1) {
+    width: 10%;
+}
+
+.penerimaan table th:nth-child(2) {
+    width: 60%;
+}
+
+.penerimaan table th:nth-child(3) {
+    width: 30%;
+}
+
+/* Main table for belanja */
+.belanja table th:nth-child(1) {
+    width: 4%; /* No. Urut */
+}
+
+.belanja table th:nth-child(2) {
+    width: 12%; /* Kode Rekening */
+}
+
+.belanja table th:nth-child(3) {
+    width: 35%; /* Uraian */
+}
+
+.belanja table th:nth-child(4) {
+    width: 12%; /* Program */
+}
+
+.belanja table th:nth-child(5) {
+    width: 8%; /* Volume */
+}
+
+.belanja table th:nth-child(6) {
+    width: 8%; /* Satuan */
+}
+
+.belanja table th:nth-child(7) {
+    width: 10%; /* Tarif Harga */
+}
+
+.belanja table th:nth-child(8) {
+    width: 8%; /* Tahap 1 */
+}
+
+.belanja table th:nth-child(9) {
+    width: 8%; /* Tahap 2 */
+}
+
+/* Number alignment */
+table td:nth-child(1),
+table td:nth-child(7),
+table td:nth-child(8),
+table td:nth-child(9),
+.penerimaan table td:nth-child(3) {
+    text-align: right;
+}
+
+/* Specific styling for different row types */
+.belanja table tbody tr:nth-child(odd) {
+    background-color: #fafafa;
+}
+
+/* Bold styling for main categories */
+.belanja table tbody tr td:nth-child(3) {
+    font-weight: normal;
+}
+
+/* Make main program categories bold */
+.main-category {
+    font-weight: bold;
+}
+
+.sub-category {
+    font-weight: normal;
+    padding-left: 15px;
+}
+
+.detail-item {
+    font-weight: normal;
+    padding-left: 25px;
+}
+
+/* Footer styles */
+footer {
+    margin-top: 30px;
+    page-break-inside: avoid;
+}
+
+footer p {
+    text-align: right;
+    margin-bottom: 15px;
+    font-size: 11px;
+}
+
+.signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+}
+
+.signature-block {
+    text-align: center;
+    width: 30%;
+    font-size: 10px;
+}
+
+.signature-block p {
+    margin: 3px 0;
+    text-align: center;
+}
+
+.signature-block p:first-child {
+    margin-bottom: 8px;
+}
+
+.signature-block p:last-child {
+    margin-top: 40px; /* Space for signature */
+    text-decoration: underline;
+}
+
+/* Total row styling */
+table tfoot tr {
+    font-weight: bold;
+    background-color: #e0e0e0;
+}
+
+table tfoot td {
+    text-align: center;
+}
+
+table tfoot td:last-child,
+table tfoot td:nth-last-child(2),
+table tfoot td:nth-last-child(3) {
+    text-align: right;
+}
+
+/* Print styles */
+@media print {
+    body {
+        font-size: 9px;
+    }
+
+    .container {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    table {
+        font-size: 8px;
+    }
+
+    table th,
+    table td {
+        padding: 2px 3px;
+    }
+
+    .signatures {
+        margin-top: 30px;
+    }
+
+    .signature-block p:last-child {
+        margin-top: 30px;
+    }
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 1200px) {
+    .container {
+        padding: 5px;
+    }
+
+    table {
+        font-size: 8px;
+    }
+
+    table th,
+    table td {
+        padding: 2px 3px;
+    }
+}
+
+/* Empty row styling */
+table tbody tr:has(td:empty) {
+    height: 15px;
+}
+
+table tbody tr:has(td:empty) td {
+    border-top: none;
+    border-bottom: none;
+}
+
+/* Specific styling for code columns */
+table td:nth-child(2) {
+    font-family: "Courier New", monospace;
+    font-size: 8px;
+}
+
+/* Indentation for sub-items */
+table tbody tr td:nth-child(3) {
+    padding-left: 5px;
+}
+
+/* Sub-category indentation */
+table tbody tr:has(td:nth-child(3):contains("03.03")) td:nth-child(3),
+table tbody tr:has(td:nth-child(3):contains("04.06")) td:nth-child(3),
+table tbody tr:has(td:nth-child(3):contains("05.08")) td:nth-child(3),
+table tbody tr:has(td:nth-child(3):contains("06.05")) td:nth-child(3),
+table tbody tr:has(td:nth-child(3):contains("06.07")) td:nth-child(3),
+table tbody tr:has(td:nth-child(3):contains("07.05")) td:nth-child(3),
+table tbody tr:has(td:nth-child(3):contains("07.12")) td:nth-child(3),
+table tbody tr:has(td:nth-child(3):contains("08.04")) td:nth-child(3) {
+    padding-left: 15px;
+}
+
+/* Detail item indentation */
+table tbody tr:has(td:nth-child(2):not(:empty)) td:nth-child(3) {
+    padding-left: 25px;
+}

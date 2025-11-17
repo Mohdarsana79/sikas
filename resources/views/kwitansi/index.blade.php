@@ -1,0 +1,853 @@
+@extends('layouts.app')
+@include('layouts.sidebar')
+@include('layouts.navbar')
+@section('content')
+<style>
+    /* Menggunakan font Inter untuk tampilan yang bersih dan modern */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-size: 10pt;
+        min-height: 100vh;
+    }
+
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        margin: 20px;
+        padding: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .main-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+        background-size: 200% 100%;
+        animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+        0% {
+            background-position: -200% 0;
+        }
+
+        100% {
+            background-position: 200% 0;
+        }
+    }
+
+    /* Kelas untuk Kartu yang lebih modern */
+    .modern-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        padding-top: 2rem;
+        overflow: hidden;
+        background: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .modern-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+        background: linear-gradient(90deg, currentColor 0%, transparent 100%);
+        opacity: 0.8;
+    }
+
+    /* Efek Hover yang lebih dramatis */
+    .modern-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Warna Border Aksen dengan gradient */
+    .card-blue {
+        color: #3b82f6;
+    }
+
+    .card-green {
+        color: #10b981;
+    }
+
+    .card-yellow {
+        color: #f59e0b;
+    }
+
+    .card-red {
+        color: #ef4444;
+    }
+
+    /* Icon styling */
+    .card-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+        transition: all 0.3s ease;
+    }
+
+    .modern-card:hover .card-icon {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    /* Badge untuk Kode Rekening */
+    .badge-code {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: 600;
+        padding: 0.5em 1em;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .badge-code:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Button styling */
+    .btn-modern {
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        font-weight: 600;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-modern::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s;
+    }
+
+    .btn-modern:hover::before {
+        left: 100%;
+    }
+
+    .btn-modern:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .btn-info {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    }
+
+    /* Table styling */
+    .table-modern {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .table-modern thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .table-modern thead th {
+        border: none;
+        padding: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.85rem;
+    }
+
+    .table-modern tbody tr {
+        transition: all 0.3s ease;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .table-modern tbody tr:hover {
+        background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, transparent 100%);
+        transform: translateX(4px);
+    }
+
+    .table-modern tbody td {
+        padding: 1rem;
+        border: none;
+        vertical-align: middle;
+    }
+
+    /* Action buttons */
+    .btn-action {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px) scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Search and filter styling - UPDATED FOR SMALLER SIZE */
+    .search-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Smaller form controls */
+    .form-control-modern {
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+    }
+
+    .form-control-modern.form-control-sm {
+        padding: 0.375rem 0.75rem;
+        height: calc(1.5em + 0.75rem + 3px);
+    }
+
+    .form-control-modern:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .form-select-modern {
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+    }
+
+    .form-select-modern.form-select-sm {
+        padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+        height: calc(1.5em + 0.75rem + 3px);
+    }
+
+    .form-select-modern:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .input-group-sm>.form-control,
+    .input-group-sm>.form-select,
+    .input-group-sm>.input-group-text {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 8px;
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border: 1.5px solid #e2e8f0;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 8px;
+    }
+
+    /* Smaller labels */
+    .form-label.small {
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 0.375rem;
+        color: #374151;
+    }
+
+    /* Pagination Sederhana */
+    .pagination-simple {
+        margin: 0;
+        padding: 0;
+    }
+
+    .pagination-simple .page-link {
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        margin: 0 3px;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+        transition: all 0.3s ease;
+        background-color: white;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .pagination-simple .page-item.active .page-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+        color: white;
+    }
+
+    .pagination-simple .page-link:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+        color: white;
+        text-decoration: none;
+    }
+
+    .pagination-simple .page-item.disabled .page-link {
+        background-color: #f8f9fa;
+        border-color: #e2e8f0;
+        color: #9ca3af;
+    }
+
+    /* Loading animation */
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
+    }
+
+    .loading-pulse {
+        animation: pulse 2s infinite;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .main-container {
+            margin: 10px;
+            padding: 20px;
+            border-radius: 16px;
+        }
+
+        .btn-modern {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+        }
+
+        .table-modern {
+            font-size: 0.9rem;
+        }
+
+        .search-container {
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-control-modern.form-control-sm,
+        .form-select-modern.form-select-sm {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .btn-sm {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Responsive pagination */
+        .pagination-simple .page-link {
+            padding: 0.375rem 0.5rem;
+            font-size: 0.8rem;
+            margin: 0 2px;
+        }
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+    }
+
+    /* Empty state styling */
+    .empty-state {
+        padding: 4rem 2rem;
+        text-align: center;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 16px;
+        border: 2px dashed #cbd5e1;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+    }
+
+    /* PERBAIKAN: Pagination Styles */
+#pagination-container {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    list-style: none;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+#pagination-container .page-item .page-link {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.3s ease;
+    background-color: white;
+    text-decoration: none;
+    display: block;
+    min-width: 44px;
+    text-align: center;
+}
+
+#pagination-container .page-item.active .page-link {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+}
+
+#pagination-container .page-item:not(.disabled):not(.active) .page-link:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+#pagination-container .page-item.disabled .page-link {
+    background-color: #f8f9fa;
+    border-color: #e2e8f0;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* Responsive pagination */
+@media (max-width: 768px) {
+    #pagination-container {
+        justify-content: center;
+    }
+    
+    #pagination-container .page-item .page-link {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.8rem;
+        min-width: 38px;
+    }
+}
+</style>
+
+<div class="main-container">
+    <!-- HEADER DENGAN GRADIENT -->
+    <header
+        class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 pb-4 border-bottom border-light">
+        <div class="mb-4 mb-md-0">
+            <h1 class="display-5 fw-bold text-dark mb-2">
+                <i class="bi bi-receipt me-3"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                Manajemen Kwitansi
+            </h1>
+            <p class="text-muted lead fs-6 mb-0">
+                Kelola dan pantau semua dokumen kwitansi dalam satu tempat yang terintegrasi
+            </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-3">
+            <!-- Generate Otomatis -->
+            <button class="btn btn-success btn-modern btn-sm fw-semibold d-flex align-items-center" id="generate-all-btn">
+                <i class="bi bi-magic me-2"></i>
+                Generate Otomatis
+            </button>
+            <!-- Download All -->
+            <a href="{{ route('kwitansi.download-all') }}"
+                class="btn btn-info btn-modern btn-sm fw-semibold d-flex align-items-center" id="download-all-btn" {{
+                $kwitansis->count() === 0 ? 'disabled' : '' }}>
+                <i class="bi bi-download me-2"></i>
+                Download All
+            </a>
+            <!-- Hapus Semua -->
+            <button class="btn btn-danger btn-modern btn-sm fw-semibold d-flex align-items-center" id="delete-all-btn" {{
+                $kwitansis->count() === 0 ? 'disabled' : '' }}>
+                <i class="bi bi-trash me-2"></i>
+                Hapus Semua
+            </button>
+        </div>
+    </header>
+
+    <!-- KARTU RINGKASAN/WIDGETS DENGAN ANIMASI -->
+    <div class="row g-4 mb-5">
+        <!-- Kartu 1: Total Kwitansi (Biru) -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="card modern-card card-blue p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h3 class="fs-6 text-secondary fw-semibold mb-2">Total Kwitansi</h3>
+                        <p class="h2 fw-bolder text-dark mb-0" id="total-kwitansi">{{ $kwitansis->total() }}</p>
+                        <p class="small text-muted mt-1">Update real-time</p>
+                    </div>
+                    <i class="bi bi-file-earmark-text card-icon"></i>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-blue" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kartu 2: Siap Generate (Hijau) -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="card modern-card card-green p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h3 class="fs-6 text-secondary fw-semibold mb-2">Siap Generate</h3>
+                        <p class="h2 fw-bolder text-dark mb-0" id="ready-generate">0</p>
+                        <p class="small text-muted mt-1">Menunggu proses</p>
+                    </div>
+                    <i class="bi bi-check-circle card-icon"></i>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-success" style="width: 75%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kartu 3: Dalam Antrian (Kuning) -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="card modern-card card-yellow p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h3 class="fs-6 text-secondary fw-semibold mb-2">Dalam Antrian</h3>
+                        <p class="h2 fw-bolder text-dark mb-0" id="pending-count">0</p>
+                        <p class="small text-muted mt-1">Sedang diproses</p>
+                    </div>
+                    <i class="bi bi-hourglass-split card-icon"></i>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-warning" style="width: 50%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kartu 4: Gagal Generate (Merah) -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="card modern-card card-red p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h3 class="fs-6 text-secondary fw-semibold mb-2">Gagal Generate</h3>
+                        <p class="h2 fw-bolder text-dark mb-0" id="failed-count">0</p>
+                        <p class="small text-muted mt-1">Perlu perbaikan</p>
+                    </div>
+                    <i class="bi bi-x-octagon card-icon"></i>
+                </div>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar bg-danger" style="width: 25%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCH DAN FILTER SECTION - UPDATED WITH SMALLER CONTROLS -->
+    <div class="search-container">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-4 col-lg-3">
+                <label class="form-label fw-semibold text-dark mb-1 small">
+                    <i class="bi bi-funnel me-1"></i>Tahun Anggaran
+                </label>
+                <select class="form-select form-select-modern form-select-sm" id="tahunFilter">
+                    <option value="">Semua Tahun</option>
+                    @foreach($tahunAnggarans as $tahun)
+                    <option value="{{ $tahun->id }}" {{ $selectedTahun==$tahun->id ? 'selected' : '' }}>
+                        {{ $tahun->tahun_anggaran }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-12 col-md-8 col-lg-9">
+                <label class="form-label fw-semibold text-dark mb-1 small">
+                    <i class="bi bi-search me-1"></i>Pencarian
+                </label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0 rounded-start-pill">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text"
+                        class="form-control form-control-modern form-control-sm border-start-0 rounded-end-pill"
+                        placeholder="Cari uraian, kode rekening, tanggal..." id="searchInput">
+                    <button class="btn btn-primary btn-sm rounded-pill ms-2 px-3" type="button" id="clearSearch">
+                        <i class="bi bi-x-circle me-1"></i>Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABEL DATA -->
+    <div class="card modern-card p-0 border-0">
+        <div class="card-header bg-transparent border-0 p-4 pb-0">
+            <h2 class="fs-4 fw-bold text-dark mb-0 d-flex align-items-center">
+                <i class="bi bi-list-ul me-3 text-primary"></i>
+                Daftar Kwitansi
+                <span class="badge bg-primary ms-3 fs-6" id="table-count">{{ $kwitansis->total() }}</span>
+            </h2>
+        </div>
+
+        <div class="card-body p-4">
+            @if($kwitansis->count() > 0)
+            <div class="table-responsive">
+                <table class="table table-modern table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="text-dark fw-medium">No</th>
+                            <th scope="col" class="text-dark fw-medium">Kode Rekening</th>
+                            <th scope="col" class="text-dark fw-medium">Uraian</th>
+                            <th scope="col" class="text-dark fw-medium">Tanggal</th>
+                            <th scope="col" class="text-dark fw-medium">Jumlah</th>
+                            <th scope="col" class="text-center text-dark fw-medium">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kwitansi-tbody">
+                        @foreach($kwitansis as $index => $kwitansi)
+                        <tr id="kwitansi-row-{{ $kwitansi->id }}" class="animate__animated animate__fadeIn">
+                            <td class="fw-medium text-dark">
+                                {{ ($kwitansis->currentPage() - 1) * $kwitansis->perPage() + $index + 1 }}
+                            </td>
+                            <td>
+                                <span class="badge badge-code">
+                                    {{ $kwitansi->rekeningBelanja->kode_rekening ?? '-' }}
+                                </span>
+                            </td>
+                            <td class="text-dark"
+                                title="{{ $kwitansi->bukuKasUmum->uraian_opsional ?? $kwitansi->bukuKasUmum->uraian }}">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-file-text me-2 text-muted"></i>
+                                    <span class="text-truncate" style="max-width: 300px;">
+                                        {{ $kwitansi->bukuKasUmum->uraian_opsional ?? $kwitansi->bukuKasUmum->uraian }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="text-muted">
+                                <i class="bi bi-calendar me-2"></i>
+                                {{ \Carbon\Carbon::parse($kwitansi->bukuKasUmum->tanggal_transaksi)->format('d/m/Y') }}
+                            </td>
+                            <td class="fw-bold text-success">
+                                <i class="bi bi-currency-dollar me-2"></i>
+                                Rp {{ number_format($kwitansi->bukuKasUmum->total_transaksi_kotor, 0, ',', '.') }}
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <!-- Lihat -->
+                                    <a href="{{ route('kwitansi.preview', $kwitansi->id ) }}"
+                                        class="btn btn-action btn-outline-primary" title="Lihat Preview"
+                                        data-bs-toggle="tooltip" target="_blank">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <!-- Cetak -->
+                                    <a href="{{ route('kwitansi.pdf', $kwitansi->id) }}"
+                                        class="btn btn-action btn-outline-success" title="Download PDF"
+                                        data-bs-toggle="tooltip" target="_blank">
+                                        <i class="bi bi-printer"></i>
+                                    </a>
+                                    <!-- Hapus -->
+                                    <button class="btn btn-action btn-outline-danger delete-kwitansi"
+                                        data-id="{{ $kwitansi->id }}"
+                                        data-uraian="{{ $kwitansi->bukuKasUmum->uraian_opsional ?? $kwitansi->bukuKasUmum->uraian }}"
+                                        title="Hapus Kwitansi" data-bs-toggle="tooltip">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION - MENGGUNAKAN CUSTOM VIEW -->
+            @if($kwitansis->hasPages())
+            <div
+                class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 pt-3 border-top border-light">
+                <!-- Pagination Info -->
+                <div class="text-muted small mb-3 mb-md-0">
+                    Menampilkan <strong>{{ $kwitansis->firstItem() ?? 0 }}</strong>
+                    sampai <strong>{{ $kwitansis->lastItem() ?? 0 }}</strong>
+                    dari <strong>{{ $kwitansis->total() }}</strong> data
+                </div>
+            
+                <!-- Pagination Links - CONTAINER YANG DIPERBAIKI -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-simple mb-0" id="pagination-container">
+                        <!-- Previous Button -->
+                        @if($kwitansis->onFirstPage())
+                        <li class="page-item disabled">
+                            <span class="page-link">&laquo;</span>
+                        </li>
+                        @else
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $kwitansis->previousPageUrl() }}" rel="prev">&laquo;</a>
+                        </li>
+                        @endif
+            
+                        <!-- Page Numbers -->
+                        @foreach($kwitansis->getUrlRange(1, $kwitansis->lastPage()) as $page => $url)
+                        @if($page == $kwitansis->currentPage())
+                        <li class="page-item active">
+                            <span class="page-link">{{ $page }}</span>
+                        </li>
+                        @else
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                        </li>
+                        @endif
+                        @endforeach
+            
+                        <!-- Next Button -->
+                        @if($kwitansis->hasMorePages())
+                        <li class="page-item">
+                            <a class="page-link" href="{{ $kwitansis->nextPageUrl() }}" rel="next">&raquo;</a>
+                        </li>
+                        @else
+                        <li class="page-item disabled">
+                            <span class="page-link">&raquo;</span>
+                        </li>
+                        @endif
+                    </ul>
+                </nav>
+            </div>
+            @else
+            <!-- Tampilkan info jika hanya satu halaman -->
+            <div
+                class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 pt-3 border-top border-light">
+                <div class="text-muted small">
+                    Menampilkan semua <strong>{{ $kwitansis->total() }}</strong> data
+                </div>
+                <!-- Container pagination kosong untuk AJAX -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-simple mb-0" id="pagination-container" style="display: none;"></ul>
+                </nav>
+            </div>
+            @endif
+
+            @else
+            <!-- EMPTY STATE -->
+            <div class="empty-state">
+                <i class="bi bi-file-earmark-x empty-state-icon"></i>
+                <h4 class="text-dark mb-3">Belum ada data kwitansi</h4>
+                <p class="text-muted mb-4">Mulai dengan membuat kwitansi baru atau generate otomatis dari data yang
+                    tersedia.</p>
+                <button class="btn btn-primary btn-modern" id="generate-empty-btn">
+                    <i class="bi bi-magic me-2"></i>Generate Kwitansi Otomatis
+                </button>
+            </div>
+            @endif
+        </div>
+
+        @if($kwitansis->count() > 0)
+        <div class="card-footer bg-transparent border-top border-light py-3">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-info-circle text-primary me-2"></i>
+                        <small class="text-muted">
+                            Total: <strong id="footer-total" class="text-primary">{{ $kwitansis->total() }}</strong>
+                            kwitansi ditemukan
+                        </small>
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="d-flex align-items-center justify-content-end">
+                        <i class="bi bi-clock text-muted me-2"></i>
+                        <small class="text-muted">
+                            Terakhir diperbarui: <span id="last-updated" class="fw-semibold">{{ now()->format('d/m/Y
+                                H:i') }}</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+    </div>
+</div>
+
+@push('scripts')
+<!-- Include Animate.css for animations -->
+<link rel="stylesheet" href="{{ asset('assets/css/animate.min.css') }}">
+
+<!-- Include Kwitansi JavaScript -->
+<script src="{{ asset('assets/js/kwitansi.js') }}"></script>
+
+<script>
+    // Fallback untuk CSRF token
+    if (!document.querySelector('meta[name="csrf-token"]')) {
+        const meta = document.createElement('meta');
+        meta.name = 'csrf-token';
+        meta.content = '{{ csrf_token() }}';
+        document.head.appendChild(meta);
+    }
+
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+@endpush
+@endsection
