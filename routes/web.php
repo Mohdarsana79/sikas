@@ -472,8 +472,8 @@ Route::middleware(['auth'])->prefix('tanda-terima')->group(function () {
     Route::get('/{id}', [TandaTerimaController::class, 'show'])->name('tanda-terima.show');
     Route::get('/{id}/preview-pdf', [TandaTerimaController::class, 'previewPdf'])->name('tanda-terima.preview-pdf');
     Route::get('/{id}/pdf', [TandaTerimaController::class, 'generatePdf'])->name('tanda-terima.pdf');
-    Route::get('/{id}/preview', [TandaTerimaController::class, 'previewPdf'])->name('tanda-terima.preview'); // Optional: bisa diarahkan ke preview juga
-    Route::get('/{id}/preview-modal', [TandaTerimaController::class, 'previewModal'])->name('tanda-terima.preview-modal');
+    Route::get('/{id}/preview', [TandaTerimaController::class, 'previewPdf'])->name('tanda-terima.preview')->middleware('noCache'); 
+    Route::get('/{id}/preview-modal', [TandaTerimaController::class, 'previewModal'])->name('tanda-terima.preview-modal')->middleware('noCache');
     Route::delete('/{id}', [TandaTerimaController::class, 'destroy'])->name('tanda-terima.destroy');
 
     // Route untuk hapus semua tanda terima

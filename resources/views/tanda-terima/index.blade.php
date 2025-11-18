@@ -481,8 +481,8 @@
 
 <!-- Preview Modal -->
 <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl h-100">
-        <div class="modal-content h-100">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="previewModalLabel">Preview Tanda Terima</h5>
                 <div class="d-flex gap-2">
@@ -492,25 +492,27 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
             </div>
-            <div class="modal-body p-0 d-flex flex-column">
-                <div class="modal-pdf-container flex-fill">
-                    <div id="pdfLoading" class="pdf-loading" style="display: none;">
+            <div class="modal-body p-0">
+                <div class="modal-pdf-container">
+                    <div id="pdfLoading" class="pdf-loading">
                         <div class="spinner-border text-primary" role="status"></div>
                         <p class="mt-2">Memuat PDF...</p>
                     </div>
-                    <object id="pdfPreview" data="" type="application/pdf" width="100%" height="100%"
+                    <iframe id="pdfIframe" src="about:blank" width="100%" height="100%"
+                        style="border: none; display: none;"
+                        onload="document.getElementById('pdfLoading').style.display='none'; this.style.display='block';"
+                        onerror="document.getElementById('pdfLoading').style.display='none'; this.style.display='none'; document.getElementById('pdfFallback').style.display='block';">
+                    </iframe>
+                    <div id="pdfFallback" class="d-flex justify-content-center align-items-center h-100"
                         style="display: none;">
-                        <div class="d-flex justify-content-center align-items-center h-100 w-100">
-                            <div class="text-center">
-                                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
-                                <p class="mt-3">Browser tidak mendukung preview PDF.</p>
-                                <p class="text-muted">Silakan download file untuk melihat.</p>
-                                <a href="#" id="fallbackDownload" class="btn btn-primary">
-                                    <i class="bi bi-download me-2"></i>Download PDF
-                                </a>
-                            </div>
+                        <div class="text-center">
+                            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
+                            <p class="mt-3">Browser tidak mendukung preview PDF.</p>
+                            <a href="#" id="fallbackDownload" class="btn btn-primary" target="_blank">
+                                <i class="bi bi-download me-2"></i>Download PDF
+                            </a>
                         </div>
-                    </object>
+                    </div>
                 </div>
             </div>
         </div>
@@ -526,111 +528,7 @@
 </div>
 
 @push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize modal functionality
-        const previewModal = document.getElementById('previewModal');
-        const pdfPreview = document.getElementById('pdfPreview');
-        const pdfLoading = document.getElementById('pdfLoading');
-        const fallbackDownload = document.getElementById('fallbackDownload');
-        const fullscreenToggle = document.getElementById('fullscreenToggle');
-        
-        if (previewModal) {
-            // When modal is about to be shown
-            previewModal.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-                const tandaTerimaId = button.getAttribute('data-id');
-                const previewUrl = "{{ route('tanda-terima.preview-pdf', ':id') }}".replace(':id', tandaTerimaId);
-                const downloadUrl = "{{ route('tanda-terima.pdf', ':id') }}".replace(':id', tandaTerimaId);
-                
-                // Show loading
-                pdfLoading.style.display = 'flex';
-                pdfPreview.style.display = 'none';
-                
-                // Set PDF source
-                pdfPreview.setAttribute('data', previewUrl);
-                fallbackDownload.setAttribute('href', downloadUrl);
-                
-                // Update modal title
-                document.getElementById('previewModalLabel').textContent = `Preview Tanda Terima #${tandaTerimaId}`;
-            });
-
-            // When modal is fully shown
-            previewModal.addEventListener('shown.bs.modal', function() {
-                // Hide loading and show PDF after a short delay
-                setTimeout(() => {
-                    pdfLoading.style.display = 'none';
-                    pdfPreview.style.display = 'block';
-                }, 1000);
-            });
-
-            // Reset modal when closed
-            previewModal.addEventListener('hidden.bs.modal', function() {
-                pdfPreview.setAttribute('data', '');
-                pdfLoading.style.display = 'none';
-                pdfPreview.style.display = 'none';
-                
-                // Reset fullscreen
-                const modalDialog = previewModal.querySelector('.modal-dialog');
-                modalDialog.classList.remove('modal-fullscreen');
-                if (fullscreenToggle) {
-                    fullscreenToggle.innerHTML = '<i class="bi bi-arrows-fullscreen"></i>';
-                    fullscreenToggle.setAttribute('title', 'Fullscreen');
-                }
-            });
-        }
-
-        // Fullscreen toggle
-        if (fullscreenToggle) {
-            fullscreenToggle.addEventListener('click', function() {
-                const modalDialog = previewModal.querySelector('.modal-dialog');
-                const isFullscreen = modalDialog.classList.contains('modal-fullscreen');
-                
-                if (isFullscreen) {
-                    modalDialog.classList.remove('modal-fullscreen');
-                    this.innerHTML = '<i class="bi bi-arrows-fullscreen"></i>';
-                    this.setAttribute('title', 'Fullscreen');
-                } else {
-                    modalDialog.classList.add('modal-fullscreen');
-                    this.innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
-                    this.setAttribute('title', 'Exit Fullscreen');
-                }
-            });
-        }
-
-        // Handle PDF loading events
-        if (pdfPreview) {
-            pdfPreview.addEventListener('load', function() {
-                console.log('PDF loaded successfully in modal');
-                pdfLoading.style.display = 'none';
-                this.style.display = 'block';
-            });
-
-            pdfPreview.addEventListener('error', function(e) {
-                console.error('Error loading PDF in modal:', e);
-                pdfLoading.style.display = 'none';
-                
-                // Show error message
-                const container = this.parentElement;
-                container.innerHTML = `
-                    <div class="d-flex justify-content-center align-items-center h-100">
-                        <div class="text-center">
-                            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
-                            <h5 class="mt-3">Gagal Memuat PDF</h5>
-                            <p class="text-muted">Terjadi kesalahan saat memuat preview PDF.</p>
-                            <a href="${fallbackDownload.getAttribute('href')}" class="btn btn-primary" target="_blank">
-                                <i class="bi bi-download me-2"></i>Download PDF
-                            </a>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-    });
-</script>
-
 <!-- Include Kwitansi JavaScript -->
 <script src="{{ asset('assets/js/tandaterima.js') }}"></script>
 @endpush
 @endsection
-

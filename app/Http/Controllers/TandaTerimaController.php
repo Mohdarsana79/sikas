@@ -587,6 +587,8 @@ class TandaTerimaController extends Controller
     public function previewPdf($id)
     {
         try {
+            Log::info('Starting PDF preview for tanda terima ID: ' . $id);
+
             $tandaTerima = TandaTerima::with([
                 'sekolah',
                 'penganggaran',
@@ -596,20 +598,18 @@ class TandaTerimaController extends Controller
                 'bukuKasUmum',
             ])->findOrFail($id);
 
+            Log::info('Tanda terima found: ' . $tandaTerima->id);
+
             $kodeKegiatan = $tandaTerima->kodeKegiatan;
             $rekeningBelanja = $tandaTerima->rekeningBelanja;
             $bukuKasUmum = $tandaTerima->bukuKasUmum;
 
             // Hitung total amount dari BukuKasUmum
             $totalAmount = $tandaTerima->bukuKasUmum->total_transaksi_kotor ?? 0;
-
-            // Ambil pajak pusat dari BukuKasUmum
             $pajakPusat = $tandaTerima->bukuKasUmum->total_pajak ?? 0;
-
-            // Hitung jumlah terima = total amount - pajak pusat
             $jumlahTerima = $totalAmount - $pajakPusat;
 
-            // Format jumlah uang dalam text (gunakan jumlah terima)
+            // Format jumlah uang dalam text
             $jumlahUang = $this->formatJumlahUang($jumlahTerima);
 
             $data = [
@@ -625,18 +625,26 @@ class TandaTerimaController extends Controller
                 'sekolah' => Sekolah::first(),
             ];
 
-            // Generate PDF untuk preview dengan landscape folio
+            Log::info('Data prepared for PDF, generating...');
+
+            // Generate PDF untuk preview
             $pdf = PDF::loadView('tanda-terima.pdf', $data);
-            $pdf->setPaper('folio', 'landscape'); // Ubah ke landscape folio
+            $pdf->setPaper('folio', 'landscape');
+
+            Log::info('PDF generated successfully for ID: ' . $id);
 
             // Return PDF sebagai response dengan header yang tepat untuk preview
-            return $pdf->stream('Tanda_Terima_Honor_'.$tandaTerima->id.'.pdf');
+            return $pdf->stream('Tanda_Terima_Preview_' . $tandaTerima->id . '.pdf', [
+                'Content-Type' => 'application/pdf',
+            ]);
         } catch (\Exception $e) {
-            Log::error('Error generating preview PDF: '.$e->getMessage());
+            Log::error('Error generating preview PDF for ID ' . $id . ': ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
 
+            // Return error response
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal generate preview PDF: '.$e->getMessage(),
+                'message' => 'Gagal generate preview PDF: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -761,7 +769,7 @@ class TandaTerimaController extends Controller
 
             $filename = 'Tanda_Terima_All_'.now()->format('Y-m-d_H-i-s').'.pdf';
 
-            return $pdf->stream($filename);
+            return $pdf->download($filename);
         } catch (\Exception $e) {
             Log::error('Error downloading all tanda terima: '.$e->getMessage());
             Log::error('Stack trace: '.$e->getTraceAsString());
