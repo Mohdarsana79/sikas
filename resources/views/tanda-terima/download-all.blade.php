@@ -13,7 +13,7 @@
         }
 
         body {
-            font-family: "Times New Roman", Times, serif;
+            font-family: "Arial", Times, serif;
             font-size: 12pt;
             line-height: 1.2;
             margin: 0;
@@ -22,9 +22,16 @@
 
         .header {
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 3px;
             border-bottom: 2px solid #000;
-            padding-bottom: 10px;
+            padding-bottom: 5px;
+            max-width: 100%;
+            page-break-inside: always;
+        }
+
+        .letterhead {
+            width: 60%;
+            height: auto;
         }
 
         .header h2 {
@@ -41,9 +48,8 @@
 
         .info-header {
             margin-bottom: 10px;
-            padding: 8px;
-            background-color: #f8f8f8;
-            border: 1px solid #000;
+            /* padding: 8px; */
+            
         }
 
         .info-row {
@@ -83,24 +89,24 @@
 
         .table td {
             border: 1px solid #000;
-            padding: 6px 4px;
+            padding: 20px 4px;
             text-align: left;
         }
 
         .table td:first-child,
         .table th:first-child {
             text-align: center;
-            width: 4%;
+            width: 2%;
         }
 
         .table td:nth-child(2) {
-            width: 20%;
+            width: 15%;
         }
 
         .table td:nth-child(3),
         .table th:nth-child(3) {
             text-align: center;
-            width: 7%;
+            width: 5%;
         }
 
         .table td:nth-child(4),
@@ -111,32 +117,28 @@
 
         .table td:nth-child(5),
         .table th:nth-child(5) {
-            text-align: right;
-            width: 10%;
+            width: 7%;
         }
 
         .table td:nth-child(6),
         .table th:nth-child(6) {
-            text-align: right;
-            width: 10%;
+            width: 7%;
         }
 
         .table td:nth-child(7),
         .table th:nth-child(7) {
-            text-align: right;
-            width: 10%;
+            width: 7%;
         }
 
         .table td:nth-child(8),
         .table th:nth-child(8) {
-            text-align: right;
-            width: 10%;
+            width: 7%;
         }
 
         .table td:last-child,
         .table th:last-child {
             text-align: center;
-            width: 5%;
+            width: 10%;
         }
 
         .terbilang-section {
@@ -148,12 +150,12 @@
         }
 
         .footer {
-            margin-top: 20px;
+            margin-top: 5px;
         }
 
         .signature-table {
             width: 100%;
-            margin-top: 40px;
+            margin-top: 5px;
         }
 
         .signature-table td {
@@ -163,8 +165,9 @@
         }
 
         .signature-name {
-            margin-top: 40px;
+            margin-top: 60px;
             font-weight: bold;
+            font-size: 10pt;
             text-decoration: underline;
         }
 
@@ -195,8 +198,8 @@
         }
 
         .separator {
-            border-top: 2px solid #000;
-            margin: 8px 0;
+            border-top: 3px solid #000;
+            margin: 0;
         }
 
         .document-info {
@@ -209,7 +212,6 @@
         /* Untuk multiple pages */
         .tanda-terima-item {
             margin-bottom: 25px;
-            page-break-inside: avoid;
         }
 
         .item-counter {
@@ -223,49 +225,51 @@
 </head>
 
 <body>
-    <!-- Document Info -->
-    <div class="document-info">
-        Dicetak pada: {{ $tanggalDownload }} | Total: {{ $totalTandaTerima }} tanda terima
-    </div>
-
-    <!-- Header -->
-    <div class="header">
-        <h2>PEMERINTAH KABUPATEN TOLITOLI</h2>
-        <h2>DINAS PENDIDIKAN DAN KEBUDAYAAN</h2>
-        <h2>{{ $sekolah->nama_sekolah ?? 'SMP MUHAMMADIYAH SONI' }}</h2>
-        <p>Alamat : {{ $sekolah->alamat ?? 'Jl. Santa No. 150 Desa Paddumpu Kec. Damsel' }} NPSN : {{ $sekolah->npsn ??
-            '40202255' }} Kode Pos : {{ $sekolah->kode_pos ?? '94554' }}</p>
-        <p>Email : {{ $sekolah->email ?? 'smpmuhammadiyahsoni@yahoo.com' }}</p>
-    </div>
-
-    <div class="separator"></div>
-
     <!-- Loop melalui semua tanda terima -->
     @foreach($tandaTerimas as $index => $item)
+    @php
+    $kopSekolah = \App\Models\KopSekolah::latest()->first();
+    @endphp
+    
+    @if ($kopSekolah && $kopSekolah->file_path)
+    <div class="header">
+        <img src="{{ public_path('storage/kop_sekolah/' . $kopSekolah->file_path) }}" class="letterhead" alt="Kop Surat">
+    </div>
+    @endif
+    
+    <div class="separator"></div>
     <div class="tanda-terima-item">
-        <!-- Item Counter -->
-        <div class="item-counter">
-            Tanda Terima #{{ $index + 1 }} dari {{ $totalTandaTerima }}
-        </div>
-
-        <!-- Information Section -->
+      <!-- Information Section -->
         <div class="info-header">
-            <div class="info-row">
-                <div class="info-label">Kode Kegiatan</div>
-                <div class="info-value">: {{ $item['kodeKegiatan']->kode ?? '06.05.03' }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Kode Rekening</div>
-                <div class="info-value">: {{ $item['rekeningBelanja']->kode_rekening ?? '5.1.02.02.01.0027' }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Uraian Kegiatan</div>
-                <div class="info-value">: {{ $item['bukuKasUmum']->uraian ?? 'Lunas Bayar Insentif tenaga Operator
-                    Komputer / Dagodik' }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Sumber Dana</div>
-                <div class="info-value">: BOSP Reguler</div>
+            <div>
+                <table style="width: 100%; font-size: 10pt;">
+                    <tbody>
+                        <tr>
+                            <td>Kode Kegiatan</td>
+                            <td>:</td>
+                            <td>{{ $item['kodeKegiatan']->kode ?? '-' }}</td>
+                            <td>{{ $item['kodeKegiatan']->sub_program ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Kode Rekening</td>
+                            <td>:</td>
+                            <td>{{ $item['rekeningBelanja']->kode_rekening ?? '-' }}</td>
+                            <td>{{ $item['rekeningBelanja']->rincian_objek ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Uraian</td>
+                            <td>:</td>
+                            <td colspan="2">{{ $item['bukuKasUmum']->uraian_opsional ?? '-' }}</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Sumber Dana</td>
+                            <td>:</td>
+                            <td colspan="2">BOSP Reguler</td>
+                            <td></td>
+                        </tr>
+                    </tbody>>
+                <table>
             </div>
         </div>
 
@@ -289,74 +293,48 @@
                     <!-- Row 1 - Data utama -->
                     <tr>
                         <td class="text-center">1</td>
-                        <td>{{ $item['bukuKasUmum']->nama_penerima_pembayaran ?? 'Divi Ivana Rlandini, S.Pd' }}</td>
-                        <td class="text-center">{{ $item['bukuKasUmum']->uraianDetails->first()->volume ?? '3' }}</td>
-                        <td class="text-center">{{ $item['bukuKasUmum']->uraianDetails->first()->satuan ?? 'OK' }}</td>
-                        <td class="currency">Rp {{
+                        <td>{{ $item['bukuKasUmum']->nama_penerima_pembayaran ?? '-' }}</td>
+                        <td class="text-center">{{ $item['bukuKasUmum']->uraianDetails->first()->volume ?? '-' }}</td>
+                        <td class="text-center">{{ $item['bukuKasUmum']->uraianDetails->first()->satuan ?? '-' }}</td>
+                        <td class="currency" style="text-align: right;">Rp {{
                             number_format($item['bukuKasUmum']->uraianDetails->first()->harga_satuan ?? 500000, 0, ',',
                             '.') }}</td>
-                        <td class="currency">Rp {{ number_format($item['totalAmount'], 0, ',', '.') }}</td>
-                        <td class="currency">
+                        <td class="currency" style="text-align: right;">Rp {{ number_format($item['totalAmount'], 0, ',', '.') }}</td>
+                        <td class="currency" style="text-align: right;">
                             @if($item['pajakPusat'] > 0)
                             Rp {{ number_format($item['pajakPusat'], 0, ',', '.') }}
                             @else
                             -
                             @endif
                         </td>
-                        <td class="currency">Rp {{ number_format($item['jumlahTerima'], 0, ',', '.') }}</td>
-                        <td class="text-center">1</td>
+                        <td class="currency" style="text-align: right;">Rp {{ number_format($item['jumlahTerima'], 0, ',', '.') }}</td>
+                        <td class="text-center"></td>
                     </tr>
-
-                    <!-- Empty rows 2-5 -->
-                    @for($i = 2; $i <= 5; $i++) <tr>
-                        <td class="text-center">{{ $i }}</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td class="currency"></td>
-                        <td class="currency"></td>
-                        <td class="currency"></td>
-                        <td class="currency"></td>
-                        <td class="text-center">{{ $i }}</td>
-                        </tr>
-                        @endfor
                 </tbody>
             </table>
         </div>
-
-        <!-- Terbilang Section -->
-        <div class="terbilang-section">
-            <div class="text-bold">Terbilang: {{ $item['jumlahUangText'] }}</div>
-            @if($item['pajakPusat'] > 0)
-            <div style="margin-top: 3px;">
-                <strong>Keterangan Pajak:</strong> Telah dipotong Pajak Pusat sebesar Rp {{
-                number_format($item['pajakPusat'], 0, ',', '.') }}
-            </div>
-            @endif
-        </div>
-
         <!-- Footer Signature -->
         <div class="footer">
             <table class="signature-table">
                 <tr>
-                    <td>
+                    <td style="font-size: 10pt;">
                         Mengetahui,<br>
                         Kepala Sekolah
                         <div class="signature-name">
-                            {{ $sekolah->kepala_sekolah ?? 'Dra. MASTIAH ABDULLAH' }}
+                            {{ $item['penganggaran']->kepala_sekolah ?? '-' }}
                         </div>
                         <div class="signature-nip">
-                            NIP. {{ $sekolah->nip_kepala_sekolah ?? '196909172007012017' }}
+                            NIP. {{ $item['penganggaran']->nip_kepala_sekolah ?? '-' }}
                         </div>
                     </td>
-                    <td>
-                        {{ $sekolah->kota ?? 'Tolitoli' }}, {{ $item['tanggalLunas'] }}<br>
+                    <td style="font-size: 10pt;">
+                        {{ $item['tanggalLunas'] }}<br>
                         Bendahara BOSP
                         <div class="signature-name">
-                            {{ $sekolah->bendahara ?? 'Dra. MASTIAH ABDULLAH' }}
+                            {{ $item['penganggaran']->bendahara ?? '-' }}
                         </div>
                         <div class="signature-nip">
-                            NIP. {{ $sekolah->nip_bendahara ?? '196909172007012017' }}
+                            NIP. {{ $item['penganggaran']->nip_bendahara ?? '-' }}
                         </div>
                     </td>
                 </tr>

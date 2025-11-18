@@ -27,7 +27,6 @@ class BukuKasUmumUraianDetail extends Model
 
     protected $casts = [
         'harga_satuan' => 'decimal:2',
-        'volume' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
 
@@ -89,20 +88,20 @@ class BukuKasUmumUraianDetail extends Model
     }
 
     // Di file BukuKasUmumUraianDetail.php
-    public static function getVolumeSudahDibelanjakan($penganggaran_id, $kegiatan_id, $rekening_id, $uraian, $bulan = null)
-    {
-        $query = self::where('penganggaran_id', $penganggaran_id)
-            ->where('kode_kegiatan_id', $kegiatan_id)
-            ->where('kode_rekening_id', $rekening_id)
-            ->where('uraian', 'LIKE', '%' . $uraian . '%');
+    // public static function getVolumeSudahDibelanjakan($penganggaran_id, $kegiatan_id, $rekening_id, $uraian, $bulan = null)
+    // {
+    //     $query = self::where('penganggaran_id', $penganggaran_id)
+    //         ->where('kode_kegiatan_id', $kegiatan_id)
+    //         ->where('kode_rekening_id', $rekening_id)
+    //         ->where('uraian', 'LIKE', '%' . $uraian . '%');
 
-        if ($bulan) {
-            $bulanAngka = \App\Models\BukuKasUmum::convertBulanToNumber($bulan);
-            $query->whereHas('bukuKasUmum', function ($q) use ($bulanAngka) {
-                $q->whereMonth('tanggal_transaksi', $bulanAngka);
-            });
-        }
+    //     if ($bulan) {
+    //         $bulanAngka = \App\Models\BukuKasUmum::convertBulanToNumber($bulan);
+    //         $query->whereHas('bukuKasUmum', function ($q) use ($bulanAngka) {
+    //             $q->whereMonth('tanggal_transaksi', $bulanAngka);
+    //         });
+    //     }
 
-        return $query->sum('volume');
-    }
+    //     return $query->sum('volume');
+    // }
 }

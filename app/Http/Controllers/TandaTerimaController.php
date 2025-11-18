@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\BukuKasUmum;
-use App\Models\KodeKegiatan;
 use App\Models\PenerimaanDana;
 use App\Models\Penganggaran;
-use App\Models\RekeningBelanja;
 use App\Models\Sekolah;
 use App\Models\TandaTerima;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class TandaTerimaController extends Controller
 {
@@ -32,7 +30,8 @@ class TandaTerimaController extends Controller
 
             return $tahunAnggaran;
         } catch (\Exception $e) {
-            Log::error('Error fetching tahun anggaran: ' . $e->getMessage());
+            Log::error('Error fetching tahun anggaran: '.$e->getMessage());
+
             return collect(); // Return empty collection jika error
         }
     }
@@ -48,7 +47,7 @@ class TandaTerimaController extends Controller
                 'data' => $tahunAnggaran,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching tahun anggaran: ' . $e->getMessage());
+            Log::error('Error fetching tahun anggaran: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -72,7 +71,7 @@ class TandaTerimaController extends Controller
                 'penganggaran',
                 'kodeKegiatan',
                 'rekeningBelanja',
-                'bukuKasUmum'
+                'bukuKasUmum',
             ]);
 
             if ($selectedTahun) {
@@ -83,7 +82,7 @@ class TandaTerimaController extends Controller
 
             return view('tanda-terima.index', compact('tandaTerimas', 'tahunAnggarans', 'selectedTahun'));
         } catch (\Exception $e) {
-            Log::error('Error Tanda Terima Index: ' . $e->getMessage());
+            Log::error('Error Tanda Terima Index: '.$e->getMessage());
 
             return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat data tanda terima.');
         }
@@ -133,14 +132,14 @@ class TandaTerimaController extends Controller
                     'kode_rekening' => $tandaTerima->rekeningBelanja->kode_rekening ?? '-',
                     'uraian' => $tandaTerima->bukuKasUmum->uraian_opsional ?? $tandaTerima->bukuKasUmum->uraian,
                     'tanggal' => \Carbon\Carbon::parse($tandaTerima->bukuKasUmum->tanggal_transaksi)->format('d/m/Y'),
-                    'jumlah' => 'Rp ' . number_format($tandaTerima->bukuKasUmum->total_transaksi_kotor, 0, ',', '.'),
+                    'jumlah' => 'Rp '.number_format($tandaTerima->bukuKasUmum->total_transaksi_kotor, 0, ',', '.'),
                     'preview_url' => route('tanda-terima.preview', $tandaTerima->id),
                     'pdf_url' => route('tanda-terima.pdf', $tandaTerima->id),
                     'delete_url' => route('tanda-terima.destroy', $tandaTerima->id),
                     'delete_data' => [
                         'id' => $tandaTerima->id,
-                        'uraian' => $tandaTerima->bukuKasUmum->uraian_opsional ?? $tandaTerima->bukuKasUmum->uraian
-                    ]
+                        'uraian' => $tandaTerima->bukuKasUmum->uraian_opsional ?? $tandaTerima->bukuKasUmum->uraian,
+                    ],
                 ];
             });
 
@@ -156,15 +155,15 @@ class TandaTerimaController extends Controller
                     'per_page' => $tandaTerimas->perPage(),
                     'total' => $tandaTerimas->total(),
                     'has_more' => $tandaTerimas->hasMorePages(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error searching tanda terima: ' . $e->getMessage());
+            Log::error('Error searching tanda terima: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat mencari data',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -177,7 +176,7 @@ class TandaTerimaController extends Controller
             'kodeKegiatan',
             'rekeningBelanja',
             'penerimaanDana',
-            'bukuKasUmum'
+            'bukuKasUmum',
         ]);
 
         return view('tanda-terima.show', compact('tandaTerima'));
@@ -195,7 +194,7 @@ class TandaTerimaController extends Controller
                 'data' => $bukuKasUmum,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching transaksi detail: ' . $e->getMessage());
+            Log::error('Error fetching transaksi detail: '.$e->getMessage());
 
             return response()->json([
                 'status' => 'error',
@@ -214,7 +213,7 @@ class TandaTerimaController extends Controller
                 ->where('nama_penerima_pembayaran', '!=', '') // Hanya yang tidak kosong
                 ->count();
 
-            Log::info("Available data count for Tanda Terima (with nama_penerima_pembayaran): " . $availableCount);
+            Log::info('Available data count for Tanda Terima (with nama_penerima_pembayaran): '.$availableCount);
 
             return response()->json([
                 'success' => true,
@@ -225,7 +224,7 @@ class TandaTerimaController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error checking available data for Tanda Terima: ' . $e->getMessage());
+            Log::error('Error checking available data for Tanda Terima: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -315,12 +314,13 @@ class TandaTerimaController extends Controller
                         // Double check - pastikan tanda terima belum ada untuk BukuKasUmum ini
                         $existingTandaTerima = TandaTerima::where('buku_kas_umum_id', $bukuKasUmum->id)->first();
 
-                        if (!$existingTandaTerima) {
+                        if (! $existingTandaTerima) {
                             // PERBAIKAN: Validasi nama_penerima_pembayaran lagi (double check)
                             if (empty($bukuKasUmum->nama_penerima_pembayaran)) {
-                                Log::warning('Skipping BukuKasUmum without nama_penerima_pembayaran: ' . $bukuKasUmum->id);
+                                Log::warning('Skipping BukuKasUmum without nama_penerima_pembayaran: '.$bukuKasUmum->id);
                                 $failed++;
                                 $processed++;
+
                                 continue;
                             }
 
@@ -338,9 +338,10 @@ class TandaTerimaController extends Controller
                                     $sekolahId = $sekolahDefault->id;
                                     Log::info("Using default sekolah_id: {$sekolahId} for BukuKasUmum: {$bukuKasUmum->id}");
                                 } else {
-                                    Log::warning('No sekolah found for BukuKasUmum: ' . $bukuKasUmum->id);
+                                    Log::warning('No sekolah found for BukuKasUmum: '.$bukuKasUmum->id);
                                     $failed++;
                                     $processed++;
+
                                     continue;
                                 }
                             }
@@ -348,7 +349,7 @@ class TandaTerimaController extends Controller
                             // Cari penerimaan dana berdasarkan penganggaran_id
                             $penerimaanDana = PenerimaanDana::where('penganggaran_id', $bukuKasUmum->penganggaran_id)->first();
 
-                            if (!$penerimaanDana) {
+                            if (! $penerimaanDana) {
                                 // Buat penerimaan dana default jika tidak ada
                                 $penerimaanDana = PenerimaanDana::create([
                                     'penganggaran_id' => $bukuKasUmum->penganggaran_id,
@@ -360,17 +361,19 @@ class TandaTerimaController extends Controller
                             }
 
                             // Validasi data yang diperlukan
-                            if (!$bukuKasUmum->kode_kegiatan_id) {
-                                Log::warning('Kode kegiatan ID not found for BukuKasUmum: ' . $bukuKasUmum->id);
+                            if (! $bukuKasUmum->kode_kegiatan_id) {
+                                Log::warning('Kode kegiatan ID not found for BukuKasUmum: '.$bukuKasUmum->id);
                                 $failed++;
                                 $processed++;
+
                                 continue;
                             }
 
-                            if (!$bukuKasUmum->kode_rekening_id) {
-                                Log::warning('Kode rekening ID not found for BukuKasUmum: ' . $bukuKasUmum->id);
+                            if (! $bukuKasUmum->kode_rekening_id) {
+                                Log::warning('Kode rekening ID not found for BukuKasUmum: '.$bukuKasUmum->id);
                                 $failed++;
                                 $processed++;
+
                                 continue;
                             }
 
@@ -391,7 +394,7 @@ class TandaTerimaController extends Controller
                         }
                         $processed++;
                     } catch (\Exception $e) {
-                        Log::error('Error generating tanda terima for BukuKasUmum ' . $bukuKasUmum->id . ': ' . $e->getMessage());
+                        Log::error('Error generating tanda terima for BukuKasUmum '.$bukuKasUmum->id.': '.$e->getMessage());
                         $failed++;
                         $processed++;
                     }
@@ -402,7 +405,7 @@ class TandaTerimaController extends Controller
                 Log::info("Generate Batch Result - SUCCESS: Created {$success} tanda terima for data with nama_penerima_pembayaran");
             } catch (\Exception $e) {
                 DB::rollBack();
-                Log::error('Transaction failed in generateBatch: ' . $e->getMessage());
+                Log::error('Transaction failed in generateBatch: '.$e->getMessage());
                 throw $e;
             }
 
@@ -448,7 +451,7 @@ class TandaTerimaController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in generateBatch: ' . $e->getMessage());
+            Log::error('Error in generateBatch: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -463,7 +466,7 @@ class TandaTerimaController extends Controller
             // Cari tanda terima by ID
             $tandaTerima = TandaTerima::with(['bukuKasUmum'])->find($id);
 
-            if (!$tandaTerima) {
+            if (! $tandaTerima) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Data tanda terima tidak ditemukan',
@@ -480,11 +483,11 @@ class TandaTerimaController extends Controller
                 'message' => "Tanda terima untuk '{$uraian}' berhasil dihapus!",
             ]);
         } catch (\Exception $e) {
-            Log::error('Error deleting tanda terima: ' . $e->getMessage());
+            Log::error('Error deleting tanda terima: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menghapus tanda terima: ' . $e->getMessage(),
+                'message' => 'Gagal menghapus tanda terima: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -516,11 +519,11 @@ class TandaTerimaController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error deleting all tanda terima: ' . $e->getMessage());
+            Log::error('Error deleting all tanda terima: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menghapus semua data tanda terima: ' . $e->getMessage(),
+                'message' => 'Gagal menghapus semua data tanda terima: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -569,15 +572,15 @@ class TandaTerimaController extends Controller
             $pdf = PDF::loadView('tanda-terima.pdf', $data);
             $pdf->setPaper('folio', 'landscape'); // Ubah ke landscape folio
 
-            $filename = 'Tanda_Terima_Honor_' . $tandaTerima->id . '_' . now()->format('Y-m-d') . '.pdf';
+            $filename = 'Tanda_Terima_Honor_'.$tandaTerima->id.'_'.now()->format('Y-m-d').'.pdf';
 
-            return $pdf->download($filename);
+            return $pdf->stream($filename);
         } catch (\Exception $e) {
-            Log::error('Error generating PDF tanda terima: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Error generating PDF tanda terima: '.$e->getMessage());
+            Log::error('Stack trace: '.$e->getTraceAsString());
 
             return redirect()->route('tanda-terima.index')
-                ->with('error', 'Gagal generate PDF: ' . $e->getMessage());
+                ->with('error', 'Gagal generate PDF: '.$e->getMessage());
         }
     }
 
@@ -627,13 +630,13 @@ class TandaTerimaController extends Controller
             $pdf->setPaper('folio', 'landscape'); // Ubah ke landscape folio
 
             // Return PDF sebagai response dengan header yang tepat untuk preview
-            return $pdf->stream('Tanda_Terima_Honor_' . $tandaTerima->id . '.pdf');
+            return $pdf->stream('Tanda_Terima_Honor_'.$tandaTerima->id.'.pdf');
         } catch (\Exception $e) {
-            Log::error('Error generating preview PDF: ' . $e->getMessage());
+            Log::error('Error generating preview PDF: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal generate preview PDF: ' . $e->getMessage()
+                'message' => 'Gagal generate preview PDF: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -682,11 +685,11 @@ class TandaTerimaController extends Controller
 
             return view('tanda-terima.pdf', $data);
         } catch (\Exception $e) {
-            Log::error('Error preview modal tanda terima: ' . $e->getMessage());
+            Log::error('Error preview modal tanda terima: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat preview: ' . $e->getMessage(),
+                'message' => 'Gagal memuat preview: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -714,6 +717,7 @@ class TandaTerimaController extends Controller
             // Siapkan data untuk PDF
             $tandaTerimaData = [];
             foreach ($tandaTerimas as $tandaTerima) {
+                $penganggaran = $tandaTerima->penganggaran;
                 $kodeKegiatan = $tandaTerima->kodeKegiatan;
                 $rekeningBelanja = $tandaTerima->rekeningBelanja;
                 $bukuKasUmum = $tandaTerima->bukuKasUmum;
@@ -732,6 +736,7 @@ class TandaTerimaController extends Controller
 
                 $tandaTerimaData[] = [
                     'tandaTerima' => $tandaTerima,
+                    'penganggaran' => $penganggaran,
                     'kodeKegiatan' => $kodeKegiatan,
                     'rekeningBelanja' => $rekeningBelanja,
                     'bukuKasUmum' => $bukuKasUmum,
@@ -754,15 +759,15 @@ class TandaTerimaController extends Controller
             $pdf = PDF::loadView('tanda-terima.download-all', $data);
             $pdf->setPaper('folio', 'landscape');
 
-            $filename = 'Tanda_Terima_All_' . now()->format('Y-m-d_H-i-s') . '.pdf';
+            $filename = 'Tanda_Terima_All_'.now()->format('Y-m-d_H-i-s').'.pdf';
 
-            return $pdf->download($filename);
+            return $pdf->stream($filename);
         } catch (\Exception $e) {
-            Log::error('Error downloading all tanda terima: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Error downloading all tanda terima: '.$e->getMessage());
+            Log::error('Stack trace: '.$e->getTraceAsString());
 
             return redirect()->route('tanda-terima.index')
-                ->with('error', 'Gagal mengunduh semua tanda terima: ' . $e->getMessage());
+                ->with('error', 'Gagal mengunduh semua tanda terima: '.$e->getMessage());
         }
     }
 
@@ -773,7 +778,7 @@ class TandaTerimaController extends Controller
         $words = $formatter->format($amount);
 
         // Tambahkan "Rupiah" di akhir
-        return ucfirst($words) . ' Rupiah';
+        return ucfirst($words).' Rupiah';
     }
 
     private function formatTanggalLunas($tanggal)

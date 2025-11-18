@@ -796,7 +796,7 @@ class TandaTerimaManager {
                 window.location.href = `${this.getBaseUrl()}/tanda-terima/download/all`;
             }, 1000);
 
-            // Auto close loading setelah 2 detik (file sudah mulai download)
+            // Auto close loading setelah 10 detik (file sudah mulai download)
             setTimeout(() => {
                 Swal.close();
             }, 10000);
