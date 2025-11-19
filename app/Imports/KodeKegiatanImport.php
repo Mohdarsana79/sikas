@@ -24,12 +24,11 @@ class KodeKegiatanImport implements
 
     public function startRow(): int
     {
-        return 3; // Mulai dari baris ke-2 (abaikan judul dan header)
+        return 3;
     }
 
-    public function model(array $row)
+    public function model(array $row): ?KodeKegiatan
     {
-        // Skip jika baris kosong
         if (empty($row[0]) && empty($row[1])) {
             return null;
         }
@@ -39,7 +38,6 @@ class KodeKegiatanImport implements
         $subProgram = Str::trim($row[2]);
         $uraian = Str::trim($row[3]);
 
-        // Cek duplikasi kode
         if (KodeKegiatan::where('kode', $kode)->exists()) {
             $this->duplicates[] = [
                 'row' => $this->rowCount + $this->startRow(),
@@ -64,22 +62,20 @@ class KodeKegiatanImport implements
     public function rules(): array
     {
         return [
-            '0.unique' => 'Kode :input sudah ada di database',
+            '0' => 'required',
+            '1' => 'required',
+            '2' => 'required',
+            '3' => 'required',
+        ];
+    }
+
+    public function customValidationMessages(): array
+    {
+        return [
             '0.required' => 'Kolom Kode harus diisi',
             '1.required' => 'Kolom Program harus diisi',
             '2.required' => 'Kolom Sub Program harus diisi',
             '3.required' => 'Kolom Uraian harus diisi',
-        ];
-    }
-
-    public function customValidationMessages()
-    {
-        return [
-            '0.unique' => 'Kode :input sudah ada pada baris :attribute',
-            '0.required' => 'Kolom Kode harus diisi pada baris :attribute',
-            '1.required' => 'Kolom program harus diisi pada baris :attribute',
-            '2.required' => 'Kolom sub program harus diisi pada baris :attribute',
-            '3.required' => 'Kolom uraian harus diisi pada baris :attribute',
         ];
     }
 

@@ -8,6 +8,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use App\Imports\KodeKegiatanImport;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Log;
 
@@ -18,7 +20,6 @@ class KodeKegiatanController extends Controller
      */
     public function index(Request $request)
     {
-        //
         $search = request()->input('search');
 
         $kodeKegiatans = KodeKegiatan::when($search, function ($query) use ($search) {
@@ -28,7 +29,9 @@ class KodeKegiatanController extends Controller
                 ->orWhere('uraian', 'like', '%' . $search . '%');
         })
             ->orderBy('kode')
-            ->paginate(20);
+            ->paginate(10)
+            ->onEachSide(1);
+
         return view('referensi.kode-kegiatan', compact('kodeKegiatans', 'search'));
     }
 
@@ -56,12 +59,12 @@ class KodeKegiatanController extends Controller
             $formattedData = $kegiatans->map(function ($kegiatan, $index) {
                 return [
                     'id' => $kegiatan->id,
-                    'index' => $index + 1, // Nomor urut
+                    'index' => $index + 1,
                     'kode' => $kegiatan->kode,
                     'program' => $kegiatan->program,
                     'sub_program' => $kegiatan->sub_program,
                     'uraian' => $kegiatan->uraian,
-                    'actions' => $this->getKegiatanActionButtons($kegiatan) // Tombol aksi
+                    'actions' => $this->getKegiatanActionButtons($kegiatan)
                 ];
             });
 
@@ -91,19 +94,12 @@ class KodeKegiatanController extends Controller
                 data-bs-target="#editModal' . $kegiatan->id . '">
             <i class="bi bi-pencil"></i>
         </button>
-        <button class="btn btn-sm btn-danger" data-bs-toggle="modal"
-                data-bs-target="#deleteModal' . $kegiatan->id . '">
+        <button class="btn btn-sm btn-danger btn-delete" data-id="' . $kegiatan->id . '" 
+                data-kode="' . $kegiatan->kode . '" data-program="' . $kegiatan->program . '"
+                data-sub-program="' . $kegiatan->sub_program . '" data-uraian="' . $kegiatan->uraian . '">
             <i class="bi bi-trash"></i>
         </button>
     ';
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
     }
 
     /**
@@ -111,39 +107,53 @@ class KodeKegiatanController extends Controller
      */
     public function store(Request $request)
     {
-        //
-        $request->validate([
-            'kode' => 'required|string|max:10',
+        $validator = Validator::make($request->all(), [
+            'kode' => 'required|string|max:10|unique:kode_kegiatans,kode',
             'program' => 'required|string|max:255',
             'sub_program' => 'required|string',
             'uraian' => 'required|string',
-        ], [
-            'kode.required' => 'Kode Wajib Di Isi',
-            'kode.max' => 'Kode Maksimal 10 Karakter',
-            'program.required' => 'Program wajib di isi',
-            'sub_program.required' => 'Sub program wajib di isi',
-            'uraian.required' => 'Uraian kegiatan wajib di isi'
         ]);
 
-        KodeKegiatan::create($request->all());
+        if ($validator->fails()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
-        return redirect()->route('referensi.kode-kegiatan.index')->with('success', 'Data berhasil ditambahkan');
-    }
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(KodeKegiatan $kodeKegiatan)
-    {
-        //
-    }
+        try {
+            KodeKegiatan::create($request->all());
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(KodeKegiatan $kodeKegiatan)
-    {
-        //
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data berhasil ditambahkan'
+                ]);
+            }
+
+            return redirect()->route('referensi.kode-kegiatan.index')
+                ->with('success', 'Data berhasil ditambahkan');
+        } catch (\Exception $e) {
+            Log::error('Error creating kode kegiatan: ' . $e->getMessage());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menambahkan data: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->back()
+                ->with('error', 'Gagal menambahkan data: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
@@ -151,7 +161,6 @@ class KodeKegiatanController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
         $kodeKegiatan = KodeKegiatan::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
@@ -164,41 +173,102 @@ class KodeKegiatanController extends Controller
             'program' => 'required|string|max:255',
             'sub_program' => 'required|string',
             'uraian' => 'required|string'
-        ], [
-            'kode.required' => 'Kode Wajib Di Isi',
-            'kode.max' => 'Kode Maksimal 10 Karakter',
-            'kode.unique' => 'Kode sudah ada',
-            'program.required' => 'Program wajib di isi',
-            'sub_program.required' => 'Sub program wajib di isi',
-            'uraian.required' => 'Uraian kegiatan wajib di isi'
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput()->with('error', 'Gagal memperbaharui kode kegiatan. silahkan periksa kembali inputan anda');
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
-        $kodeKegiatan->update($request->all());
-        return redirect()->route('referensi.kode-kegiatan.index')->with('success', 'Data berhasil diperbaharui');
+        try {
+            $kodeKegiatan->update($request->all());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data berhasil diperbarui'
+                ]);
+            }
+
+            return redirect()->route('referensi.kode-kegiatan.index')
+                ->with('success', 'Data berhasil diperbarui');
+        } catch (\Exception $e) {
+            Log::error('Error updating kode kegiatan: ' . $e->getMessage());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memperbarui data: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->back()
+                ->with('error', 'Gagal memperbarui data: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy($id): RedirectResponse|\Illuminate\Http\JsonResponse
     {
-        //
-        $kodeKegiatan = KodeKegiatan::findOrFail($id);
+        try {
+            $kodeKegiatan = KodeKegiatan::findOrFail($id);
+            $kodeKegiatan->delete();
 
-        $kodeKegiatan->delete();
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data berhasil dihapus'
+                ]);
+            }
 
-        return redirect()->route('referensi.kode-kegiatan.index')->with('Data Berhasil dihapus');
+            return redirect()->route('referensi.kode-kegiatan.index')->with('success', 'Data Berhasil dihapus');
+        } catch (\Exception $e) {
+            Log::error('Error deleting kode kegiatan: ' . $e->getMessage());
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus data: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->route('referensi.kode-kegiatan.index')->with('error', 'Gagal menghapus data');
+        }
     }
 
-    public function import(Request $request)
+    /**
+     * Import data from Excel file with AJAX support
+     */
+    public function import(Request $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'file' => 'required|mimes:xlsx,xls,csv|max:2048'
         ]);
+
+        if ($validator->fails()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi file gagal',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            return redirect()->back()
+                ->with('error', 'File tidak valid: ' . implode(', ', $validator->errors()->all()));
+        }
 
         try {
             $import = new KodeKegiatanImport();
@@ -207,6 +277,17 @@ class KodeKegiatanController extends Controller
             $successCount = $import->getRowCount();
             $duplicateCount = count($import->getDuplicates());
             $errorCount = count($import->failures());
+
+            // Jika request AJAX, return JSON response
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'imported_count' => $successCount,
+                    'duplicate_count' => $duplicateCount,
+                    'error_count' => $errorCount,
+                    'message' => "Berhasil mengimport {$successCount} data"
+                ]);
+            }
 
             $messages = [];
 
@@ -225,6 +306,7 @@ class KodeKegiatanController extends Controller
 
             if ($errorCount > 0) {
                 $errorMessages = [];
+                /** @var \Maatwebsite\Excel\Validators\Failure $failure */
                 foreach ($import->failures() as $failure) {
                     $errorMessages[] = "Baris {$failure->row()}: " . implode(', ', $failure->errors());
                 }
@@ -235,12 +317,25 @@ class KodeKegiatanController extends Controller
             return redirect()->route('referensi.kode-kegiatan.index')
                 ->with($messages);
         } catch (\Exception $e) {
+            Log::error('Error importing kode kegiatan: ' . $e->getMessage());
+
+            // Jika request AJAX
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ], 500);
+            }
+
             return redirect()->back()
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
-    public function downloadTemplate()
+    /**
+     * Download template for import
+     */
+    public function downloadTemplate(): BinaryFileResponse|RedirectResponse
     {
         $path = storage_path('app/public/templates/template_kode_kegiatan.xlsx');
 
