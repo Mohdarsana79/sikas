@@ -489,7 +489,71 @@ class KwitansiController extends Controller
         return 0;
     }
 
+    // Di KwitansiController - PERBAIKI method previewPdf
     public function previewPdf($id)
+    {
+        try {
+            Log::info('Starting PDF preview for kwitansi ID: ' . $id);
+
+            $kwitansi = Kwitansi::with([
+                'sekolah',
+                'penganggaran',
+                'kodeKegiatan',
+                'rekeningBelanja',
+                'penerimaanDana',
+                'bukuKasUmum' => function ($query) {
+                    $query->with(['uraianDetails']);
+                },
+                'bkuUraianDetail',
+            ])->findOrFail($id);
+
+            Log::info('Kwitansi found: ' . $kwitansi->id);
+
+            // Parse kode kegiatan
+            $parsedKode = $this->parseKodeKegiatan($kwitansi->kodeKegiatan);
+
+            // Hitung total dari uraian details
+            $totalAmount = $this->calculateTotalFromUraianDetails($kwitansi->bukuKasUmum);
+            $jumlahUang = $this->convertToText($totalAmount);
+
+            // Klasifikasi pajak
+            $pajakData = $this->klasifikasiPajak($kwitansi->bukuKasUmum);
+
+            $data = [
+                'kwitansi' => $kwitansi,
+                'parsedKode' => $parsedKode,
+                'jumlahUangText' => $jumlahUang,
+                'totalAmount' => $totalAmount,
+                'tanggalLunas' => $this->formatTanggalLunas($kwitansi->bukuKasUmum->tanggal_transaksi),
+                'pajakData' => $pajakData,
+            ];
+
+            Log::info('Data prepared for PDF, generating...');
+
+            // Generate PDF untuk preview (STREAM, bukan download)
+            $pdf = PDF::loadView('kwitansi.pdf', $data);
+            $pdf->setPaper('Folio', 'portrait');
+
+            Log::info('PDF generated successfully for ID: ' . $id);
+
+            // Return PDF sebagai response dengan header yang tepat untuk preview
+            return $pdf->stream('Kwitansi_Preview_' . $kwitansi->id . '.pdf', [
+                'Content-Type' => 'application/pdf',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error generating preview PDF for ID ' . $id . ': ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            // Return error response
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal generate preview PDF: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Tambahkan method previewModal di KwitansiController
+    public function previewModal($id)
     {
         try {
             $kwitansi = Kwitansi::with([
@@ -499,7 +563,7 @@ class KwitansiController extends Controller
                 'rekeningBelanja',
                 'penerimaanDana',
                 'bukuKasUmum' => function ($query) {
-                    $query->with(['uraianDetails']); // Pastikan memuat uraianDetails
+                    $query->with(['uraianDetails']);
                 },
                 'bkuUraianDetail',
             ])->findOrFail($id);
@@ -511,23 +575,26 @@ class KwitansiController extends Controller
             $totalAmount = $this->calculateTotalFromUraianDetails($kwitansi->bukuKasUmum);
             $jumlahUang = $this->convertToText($totalAmount);
 
-            // Klasifikasi pajak - PERBAIKAN: Pastikan data pajak diproses
+            // Klasifikasi pajak
             $pajakData = $this->klasifikasiPajak($kwitansi->bukuKasUmum);
 
             $data = [
                 'kwitansi' => $kwitansi,
                 'parsedKode' => $parsedKode,
                 'jumlahUangText' => $jumlahUang,
-                'totalAmount' => $totalAmount, // Kirim totalAmount ke view
+                'totalAmount' => $totalAmount,
                 'tanggalLunas' => $this->formatTanggalLunas($kwitansi->bukuKasUmum->tanggal_transaksi),
                 'pajakData' => $pajakData,
             ];
 
-            return view('kwitansi.preview', $data);
+            return view('kwitansi.pdf', $data);
         } catch (\Exception $e) {
-            Log::error('Error preview kwitansi: ' . $e->getMessage());
+            Log::error('Error preview modal kwitansi: ' . $e->getMessage());
 
-            return redirect()->route('kwitansi.index')->with('error', 'Gagal preview kwitansi: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat preview: ' . $e->getMessage(),
+            ], 500);
         }
     }
 

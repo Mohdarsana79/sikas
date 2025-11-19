@@ -492,6 +492,266 @@
         font-size: 0.8rem;
         min-width: 38px;
     }
+
+    /* Modal Styles untuk Landscape PDF - FIXED FULLSCREEN */
+    .modal-pdf-container {
+        height: 85vh; /* DIPERBESAR dari 70vh */
+        width: 100%;
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        position: relative;
+        border: 1px solid #dee2e6;
+    }
+
+    .modal-pdf-container iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+    }
+
+    .modal-pdf-container object {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    /* Modal XL untuk PDF - DIPERBESAR */
+    .modal-xl {
+        max-width: 98%; /* DIPERBESAR dari 95% */
+        height: 95vh; /* DIPERBESAR dari 80vh */
+        margin: 2.5vh auto;
+    }
+
+    /* FIXED FULLSCREEN - BENAR-BENAR MEMENUHI LAYAR */
+    .modal-fullscreen {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        position: fixed !important;
+    }
+
+    .modal-fullscreen .modal-content {
+        height: 100vh;
+        width: 100vw;
+        border-radius: 0;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        background: #f8f9fa;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+
+    .modal-fullscreen .modal-header {
+        flex-shrink: 0;
+        background: white;
+        border-bottom: 1px solid #e9ecef;
+        padding: 1rem 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .modal-fullscreen .modal-body {
+        padding: 0;
+        flex: 1;
+        overflow: hidden;
+        background: #f8f9fa;
+        height: calc(100vh - 120px); /* Header + Footer height */
+    }
+    
+    .modal-fullscreen .modal-pdf-container {
+        height: 100%;
+        border-radius: 0;
+        border: none;
+    }
+
+    .modal-fullscreen .modal-footer {
+        flex-shrink: 0;
+    }
+
+    /* Pastikan modal backdrop juga fullscreen */
+    .modal-fullscreen ~ .modal-backdrop {
+        background-color: rgba(0,0,0,0.8) !important;
+    }
+
+    /* Untuk landscape PDF */
+    @media (min-width: 1200px) {
+        .modal-xl {
+            max-width: 1200px;
+        }
+    }
+
+    /* Responsive modal */
+    @media (max-width: 768px) {
+        .modal-xl {
+            max-width: 95%;
+            height: 70vh;
+            margin: 2.5vh auto;
+        }
+        
+        .modal-pdf-container {
+            height: 60vh;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .modal-xl {
+            max-width: 98%;
+            height: 65vh;
+            margin: 2.5vh auto;
+        }
+        
+        .modal-pdf-container {
+            height: 55vh;
+        }
+        
+        .modal-fullscreen .modal-body {
+            height: calc(100vh - 140px); /* Adjust for mobile */
+        }
+    }
+
+    /* PDF Loading Styles */
+    .pdf-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        flex-direction: column;
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+    }
+
+    .pdf-loading .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        border-width: 0.3em;
+    }
+
+    .pdf-loading p {
+        margin-top: 1rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    /* Fallback styles */
+    #pdfFallback {
+        display: none;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    #pdfFallback .bi-exclamation-triangle {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    #pdfFallback p {
+        color: #6c757d;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Modal header improvements */
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-bottom: none;
+        padding: 0.75rem 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .modal-header .modal-title {
+        font-weight: 600;
+        font-size: 1.25rem;
+    }
+
+    .modal-header .btn-close {
+        filter: invert(1);
+        opacity: 0.8;
+    }
+
+    .modal-header .btn-close:hover {
+        opacity: 1;
+    }
+
+    .modal-footer {
+        padding: 0.75rem 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .modal-body {
+        padding: 1rem;
+        flex: 1;
+        overflow: hidden;
+        background: #f8f9fa;
+    }
+
+
+
+    /* Fullscreen toggle button */
+    #fullscreenToggle {
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: white;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    #fullscreenToggle:hover {
+        background: rgba(255,255,255,0.3);
+        border-color: rgba(255,255,255,0.5);
+        transform: translateY(-1px);
+    }
+
+    /* Smooth transitions */
+    .modal-content,
+    .modal-dialog {
+        transition: all 0.3s ease;
+    }
+
+    /* Custom scrollbar for modal */
+    .modal-body::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .modal-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+
+    /* Fullscreen specific styles */
+    body.modal-fullscreen-active {
+        overflow: hidden !important;
+        padding-right: 0 !important;
+    }
+
+    .modal-fullscreen-active .navbar,
+    .modal-fullscreen-active .sidebar {
+        display: none !important;
+    }
 }
 </style>
 
@@ -692,21 +952,18 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
-                                    <!-- Lihat -->
-                                    <a href="{{ route('kwitansi.preview', $kwitansi->id ) }}"
-                                        class="btn btn-action btn-outline-primary" title="Lihat Preview"
-                                        data-bs-toggle="tooltip" target="_blank">
+                                    <!-- Preview Button - Modal Trigger -->
+                                    <button class="btn btn-action btn-outline-primary preview-kwitansi" title="Lihat Preview"
+                                        data-id="{{ $kwitansi->id }}" data-bs-toggle="modal" data-bs-target="#previewModal">
                                         <i class="bi bi-eye"></i>
-                                    </a>
-                                    <!-- Cetak -->
-                                    <a href="{{ route('kwitansi.pdf', $kwitansi->id) }}"
-                                        class="btn btn-action btn-outline-success" title="Download PDF"
+                                    </button>
+                                    <!-- Download PDF -->
+                                    <a href="{{ route('kwitansi.pdf', $kwitansi->id) }}" class="btn btn-action btn-outline-success" title="Download PDF"
                                         data-bs-toggle="tooltip" target="_blank">
-                                        <i class="bi bi-printer"></i>
+                                        <i class="bi bi-download"></i>
                                     </a>
                                     <!-- Hapus -->
-                                    <button class="btn btn-action btn-outline-danger delete-kwitansi"
-                                        data-id="{{ $kwitansi->id }}"
+                                    <button class="btn btn-action btn-outline-danger delete-kwitansi" data-id="{{ $kwitansi->id }}"
                                         data-uraian="{{ $kwitansi->bukuKasUmum->uraian_opsional ?? $kwitansi->bukuKasUmum->uraian }}"
                                         title="Hapus Kwitansi" data-bs-toggle="tooltip">
                                         <i class="bi bi-trash"></i>
@@ -822,6 +1079,83 @@
             </div>
         </div>
         @endif
+    </div>
+</div>
+
+<!-- Preview Modal - DIPERBESAR -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true"
+    data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="previewModalLabel">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>
+                    Preview Kwitansi
+                </h5>
+                <div class="d-flex gap-2 align-items-center">
+                    <button type="button" class="btn btn-sm btn-light" id="refreshPdf" title="Refresh PDF">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-light" id="fullscreenToggle" title="Fullscreen">
+                        <i class="bi bi-arrows-fullscreen"></i>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-2">
+                <!-- Padding diperkecil untuk ruang lebih -->
+                <div class="modal-pdf-container">
+                    <!-- Loading State -->
+                    <div id="pdfLoading" class="pdf-loading">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-3 text-muted">Memuat dokumen PDF...</p>
+                        <small class="text-muted">Mohon tunggu, dokumen sedang diproses</small>
+                    </div>
+
+                    <!-- PDF Iframe - DIPERBESAR -->
+                    <iframe id="pdfIframe" src="about:blank"
+                        style="border: none; display: none; width: 100%; height: 100%;"
+                        onload="this.style.display='block'; document.getElementById('pdfLoading').style.display='none';"
+                        onerror="this.style.display='none'; document.getElementById('pdfLoading').style.display='none'; document.getElementById('pdfFallback').style.display='flex';">
+                    </iframe>
+
+                    <!-- Fallback State -->
+                    <div id="pdfFallback" style="display: none;">
+                        <div class="text-center">
+                            <i class="bi bi-exclamation-triangle text-warning mb-3"></i>
+                            <h5 class="text-dark mb-3">Tidak dapat memuat PDF</h5>
+                            <p class="text-muted mb-4">Browser tidak mendukung preview PDF atau terjadi kesalahan.</p>
+                            <div class="d-flex gap-2 justify-content-center">
+                                <a href="#" id="fallbackDownload" class="btn btn-primary" target="_blank">
+                                    <i class="bi bi-download me-2"></i>Download PDF
+                                </a>
+                                <button class="btn btn-outline-secondary" onclick="location.reload()">
+                                    <i class="bi bi-arrow-repeat me-2"></i>Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <small class="text-muted me-auto" id="pdfInfo">PDF akan dimuat dalam beberapa detik...</small>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Tutup
+                </button>
+                <a href="#" id="downloadPdf" class="btn btn-success" target="_blank">
+                    <i class="bi bi-download me-2"></i>Download
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div class="position-fixed top-50 start-50 translate-middle" id="global-loading" style="display: none; z-index: 9999;">
+    <div class="d-flex align-items-center bg-white rounded p-3 shadow">
+        <div class="spinner-border text-primary me-3" role="status"></div>
+        <span class="text-dark">Memproses...</span>
     </div>
 </div>
 

@@ -6,6 +6,11 @@
 
 class KwitansiManager {
     constructor() {
+        this.currentFilters = {
+            search: '',
+            tahun: ''
+        };
+        this.searchTimeout = null;
         this.init();
     }
 
@@ -41,6 +46,7 @@ class KwitansiManager {
         this.initializeTooltips();
         this.checkAvailableData();
         this.updateLastUpdated();
+        this.initializeModalHandlers();
         
         // Start periodic updates
         this.startPeriodicUpdates();
@@ -93,6 +99,345 @@ class KwitansiManager {
 
         // PERBAIKAN: Inisialisasi pagination untuk halaman pertama
         this.attachPaginationEventListeners();
+    }
+
+    initializeModalHandlers() {
+        const previewModal = document.getElementById('previewModal');
+        const fullscreenToggle = document.getElementById('fullscreenToggle');
+        const refreshPdf = document.getElementById('refreshPdf');
+        const downloadPdf = document.getElementById('downloadPdf');
+        const fallbackDownload = document.getElementById('fallbackDownload');
+        
+        let currentKwitansiId = null;
+        let isFullscreen = false;
+        
+        if (previewModal) {
+            // When modal is about to be shown
+            previewModal.addEventListener('show.bs.modal', (event) => {
+                const button = event.relatedTarget;
+                currentKwitansiId = button.getAttribute('data-id');
+                const previewUrl = `${this.getBaseUrl()}/kwitansi/${currentKwitansiId}/preview-pdf`;
+                const downloadUrl = `${this.getBaseUrl()}/kwitansi/${currentKwitansiId}/pdf`;
+                
+                console.log('Opening preview modal for ID:', currentKwitansiId);
+                console.log('Preview URL:', previewUrl);
+                console.log('Download URL:', downloadUrl);
+                
+                // Reset fullscreen state
+                this.exitFullscreen();
+                isFullscreen = false;
+                
+                // Update modal title
+                document.getElementById('previewModalLabel').innerHTML = 
+                    `<i class="bi bi-file-earmark-pdf me-2"></i>Preview Kwitansi #${currentKwitansiId}`;
+                
+                // Set download URLs
+                if (downloadPdf) downloadPdf.href = downloadUrl;
+                if (fallbackDownload) fallbackDownload.href = downloadUrl;
+                
+                // Update info text
+                document.getElementById('pdfInfo').textContent = 'Memuat dokumen PDF...';
+                
+                // Reset dan set iframe source
+                this.setIframeSource(previewUrl, currentKwitansiId);
+
+                // Force resize setelah modal terbuka
+                setTimeout(() => {
+                    this.adjustIframeSize();
+                }, 500);
+            });
+
+             // Handle modal shown event untuk adjust size
+            previewModal.addEventListener('shown.bs.modal', () => {
+                this.adjustIframeSize();
+                
+                // Tambahkan event listener untuk window resize
+                window.addEventListener('resize', this.adjustIframeSize.bind(this));
+            });
+
+            // Reset modal when closed
+            previewModal.addEventListener('hidden.bs.modal', () => {
+                console.log('Modal closed, clearing iframe...');
+                
+                // Exit fullscreen jika aktif
+                this.exitFullscreen();
+                isFullscreen = false;
+                
+                // Clear iframe source saat modal ditutup
+                const pdfIframe = document.getElementById('pdfIframe');
+                if (pdfIframe) {
+                    pdfIframe.src = 'about:blank';
+                }
+                
+                // Reset UI states
+                this.resetModalStates();
+
+                // Remove resize event listener
+                window.removeEventListener('resize', this.adjustIframeSize.bind(this));
+                
+                // Reset current ID
+                currentKwitansiId = null;
+            });
+        }
+
+        // Fullscreen toggle
+        if (fullscreenToggle) {
+            fullscreenToggle.addEventListener('click', () => {
+                if (!isFullscreen) {
+                    this.enterFullscreen();
+                    isFullscreen = true;
+                } else {
+                    this.exitFullscreen();
+                    isFullscreen = false;
+                }
+            });
+        }
+        
+        // Refresh PDF
+        if (refreshPdf) {
+            refreshPdf.addEventListener('click', () => {
+                if (currentKwitansiId) {
+                    const previewUrl = `${this.getBaseUrl()}/kwitansi/${currentKwitansiId}/preview-pdf`;
+                    this.setIframeSource(previewUrl, currentKwitansiId);
+                    this.showToast('Memuat ulang PDF...', 'info');
+                }
+            });
+        }
+        
+        // Handle escape key untuk keluar fullscreen
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isFullscreen) {
+                this.exitFullscreen();
+                isFullscreen = false;
+            }
+        });
+    }
+
+    enterFullscreen() {
+        const modal = document.getElementById('previewModal');
+        const modalDialog = modal.querySelector('.modal-dialog');
+        const modalContent = modal.querySelector('.modal-content');
+        const fullscreenToggle = document.getElementById('fullscreenToggle');
+        const modalHeader = modal.querySelector('.modal-header');
+        
+        if (!modalDialog) return;
+        
+        // Add fullscreen classes
+        modalDialog.classList.add('modal-fullscreen');
+        modalContent.classList.add('modal-fullscreen');
+        document.body.classList.add('modal-fullscreen-active');
+        
+        // Update toggle button
+        fullscreenToggle.innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
+        fullscreenToggle.setAttribute('title', 'Keluar Fullscreen');
+        fullscreenToggle.classList.remove('btn-light');
+        fullscreenToggle.classList.add('btn-warning');
+        
+        // Darker header in fullscreen for better contrast
+        modalHeader.classList.remove('bg-primary');
+        modalHeader.classList.add('bg-dark');
+        
+        // Hide other page elements
+        this.hidePageElements();
+        
+        this.showToast('Masuk ke mode fullscreen - tekan ESC untuk keluar', 'success');
+        
+        // Trigger resize untuk iframe
+        this.triggerIframeResize();
+    }
+
+    exitFullscreen() {
+        const modal = document.getElementById('previewModal');
+        const modalDialog = modal.querySelector('.modal-dialog');
+        const modalContent = modal.querySelector('.modal-content');
+        const fullscreenToggle = document.getElementById('fullscreenToggle');
+        const modalHeader = modal.querySelector('.modal-header');
+        
+        if (!modalDialog) return;
+        
+        // Remove fullscreen classes
+        modalDialog.classList.remove('modal-fullscreen');
+        modalContent.classList.remove('modal-fullscreen');
+        document.body.classList.remove('modal-fullscreen-active');
+        
+        // Update toggle button
+        fullscreenToggle.innerHTML = '<i class="bi bi-arrows-fullscreen"></i>';
+        fullscreenToggle.setAttribute('title', 'Fullscreen');
+        fullscreenToggle.classList.remove('btn-warning');
+        fullscreenToggle.classList.add('btn-light');
+        
+        // Restore header color
+        modalHeader.classList.remove('bg-dark');
+        modalHeader.classList.add('bg-primary');
+        
+        // Show other page elements
+        this.showPageElements();
+        
+        this.showToast('Keluar dari mode fullscreen', 'info');
+    }
+
+    hidePageElements() {
+        // Sembunyikan elemen halaman lainnya
+        const elementsToHide = [
+            '.navbar',
+            '.sidebar',
+            '.container-main',
+            '.card-shadow'
+        ];
+        
+        elementsToHide.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                el.style.display = 'none';
+            });
+        });
+    }
+
+    showPageElements() {
+        // Tampilkan kembali elemen halaman
+        const elementsToShow = [
+            '.navbar',
+            '.sidebar',
+            '.container-main',
+            '.card-shadow'
+        ];
+        
+        elementsToShow.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                el.style.display = '';
+            });
+        });
+    }
+
+    triggerIframeResize() {
+        const pdfIframe = document.getElementById('pdfIframe');
+        if (pdfIframe && pdfIframe.style.display !== 'none') {
+            // Force iframe resize
+            setTimeout(() => {
+                const iframeDoc = pdfIframe.contentDocument || pdfIframe.contentWindow.document;
+                if (iframeDoc) {
+                    pdfIframe.style.width = '100%';
+                    pdfIframe.style.height = '100%';
+                }
+            }, 100);
+        }
+    }
+
+    // Tambahkan method untuk adjust iframe size
+    adjustIframeSize() {
+        const pdfIframe = document.getElementById('pdfIframe');
+        const modalBody = document.querySelector('.modal-body');
+        const modalPdfContainer = document.querySelector('.modal-pdf-container');
+        
+        if (pdfIframe && modalBody && modalPdfContainer) {
+            // Hitung height yang optimal
+            const headerHeight = document.querySelector('.modal-header').offsetHeight || 60;
+            const footerHeight = document.querySelector('.modal-footer').offsetHeight || 60;
+            const bodyPadding = 16; // 1rem padding
+            const availableHeight = window.innerHeight - headerHeight - footerHeight - bodyPadding - 20;
+            
+            // Set height container dan iframe
+            const optimalHeight = Math.max(500, availableHeight);
+            modalPdfContainer.style.height = optimalHeight + 'px';
+            pdfIframe.style.height = '100%';
+            
+            console.log('Adjusted iframe height to:', optimalHeight);
+        }
+    }
+
+    setIframeSource(previewUrl, kwitansiId) {
+        const pdfIframe = document.getElementById('pdfIframe');
+        const pdfLoading = document.getElementById('pdfLoading');
+        const pdfFallback = document.getElementById('pdfFallback');
+        
+        // Reset states
+        this.resetModalStates();
+        
+        if (pdfLoading) {
+            pdfLoading.style.display = 'flex';
+            pdfLoading.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+                    <p class="mt-3 text-muted">Memuat dokumen PDF...</p>
+                    <small class="text-muted">ID: ${kwitansiId}</small>
+                </div>
+            `;
+        }
+        
+        if (pdfIframe) {
+            pdfIframe.style.display = 'none';
+            pdfIframe.src = 'about:blank'; // Clear previous content
+
+            // Set optimal size sebelum load
+            this.adjustIframeSize();
+            
+            console.log('Setting iframe source to:', previewUrl);
+            
+            // Set new source after a brief delay
+            setTimeout(() => {
+                pdfIframe.src = previewUrl;
+                document.getElementById('pdfInfo').textContent = 'PDF sedang dimuat...';
+            }, 300);
+        }
+        
+        // Fallback timeout
+        setTimeout(() => {
+            const pdfIframe = document.getElementById('pdfIframe');
+            if (pdfIframe && pdfIframe.style.display === 'none') {
+                if (pdfLoading) pdfLoading.style.display = 'none';
+                if (pdfFallback) {
+                    pdfFallback.style.display = 'flex';
+                }
+                document.getElementById('pdfInfo').textContent = 'Gagal memuat PDF';
+                console.error('PDF loading timeout for URL:', previewUrl);
+            }
+        }, 10000);
+    }
+
+    resetModalStates() {
+        const pdfLoading = document.getElementById('pdfLoading');
+        const pdfFallback = document.getElementById('pdfFallback');
+        const pdfIframe = document.getElementById('pdfIframe');
+        
+        if (pdfLoading) {
+            pdfLoading.style.display = 'none';
+        }
+        if (pdfFallback) {
+            pdfFallback.style.display = 'none';
+        }
+        if (pdfIframe) {
+            pdfIframe.style.display = 'none';
+        }
+    }
+
+    showToast(message, type = 'info') {
+        // Remove existing toasts
+        const existingToasts = document.querySelectorAll('.custom-toast');
+        existingToasts.forEach(toast => toast.remove());
+        
+        const toast = document.createElement('div');
+        toast.className = `custom-toast position-fixed top-0 end-0 p-3`;
+        toast.style.zIndex = '99999';
+        toast.innerHTML = `
+            <div class="toast align-items-center text-white bg-${type} border-0 show" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 3000);
     }
 
     initializePaginationListeners() {
@@ -245,10 +590,6 @@ class KwitansiManager {
     }
 
     getTableRowHTML(item, number, pagination) {
-        // Pastikan URL preview dan PDF menggunakan base URL yang benar
-        const previewUrl = `${this.getBaseUrl()}/kwitansi/${item.id}/preview`;
-        const pdfUrl = `${this.getBaseUrl()}/kwitansi/${item.id}/pdf`;
-        
         return `
             <tr id="kwitansi-row-${item.id}" class="animate__animated animate__fadeIn">
                 <td class="fw-medium text-dark">${number}</td>
@@ -269,12 +610,14 @@ class KwitansiManager {
                 </td>
                 <td class="text-center">
                     <div class="d-flex justify-content-center gap-2">
-                        <a href="${previewUrl}" 
-                            class="btn btn-action btn-outline-primary" 
-                            title="Lihat Preview" data-bs-toggle="tooltip" target="_blank">
+                        <button class="btn btn-action btn-outline-primary preview-kwitansi" 
+                                title="Lihat Preview" 
+                                data-id="${item.id}"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#previewModal">
                             <i class="bi bi-eye"></i>
-                        </a>
-                        <a href="${pdfUrl}" 
+                        </button>
+                        <a href="${this.getBaseUrl()}/kwitansi/${item.id}/pdf" 
                             class="btn btn-action btn-outline-success" 
                             title="Download PDF" data-bs-toggle="tooltip" target="_blank">
                             <i class="bi bi-printer"></i>
