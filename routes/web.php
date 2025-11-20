@@ -80,6 +80,7 @@ Route::middleware(['auth'])->prefix('sekolah')->group(function () {
     Route::get('/', [SekolahController::class, 'index'])->name('sekolah.index');
     Route::post('/', [SekolahController::class, 'store'])->name('sekolah.store');
     Route::put('/{sekolah}', [SekolahController::class, 'update'])->name('sekolah.update');
+    Route::delete('/{sekolah}', [SekolahController::class, 'destroy'])->name('sekolah.destroy');
 });
 
 Route::middleware(['auth'])->prefix('kop-sekolah')->group(function () {
@@ -246,7 +247,7 @@ Route::middleware(['auth'])->prefix('referensi')->group(function () {
     Route::get('/rekening-belanja', [RekeningBelanjaController::class, 'index'])->name('referensi.rekening-belanja.index');
     Route::post('/rekening-belanja', [RekeningBelanjaController::class, 'store'])->name('referensi.rekening-belanja.store');
     Route::put('/rekening-belanja/{rekeningBelanja}', [RekeningBelanjaController::class, 'update'])->name('referensi.rekening-belanja.update');
-    
+
     Route::delete('/rekening-belanja/{id}', [RekeningBelanjaController::class, 'destroy'])->name('referensi.rekening-belanja.destroy');
 
     // import uraian program

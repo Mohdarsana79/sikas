@@ -19,11 +19,17 @@ class SekolahController extends Controller
     {
         // Cek apakah sudah ada data sekolah
         if (Sekolah::count() > 0) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya boleh ada satu data sekolah'
+                ], 422);
+            }
             return redirect()->route('sekolah.index')
                 ->with('error', 'Hanya boleh ada satu data sekolah');
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'nama_sekolah' => 'required|string|max:255',
             'npsn' => 'required|string|max:20',
             'status_sekolah' => 'required|in:Negeri,Swasta',
@@ -35,7 +41,14 @@ class SekolahController extends Controller
             'alamat' => 'required|string',
         ]);
 
-        Sekolah::create($request->all());
+        Sekolah::create($validated);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Data sekolah berhasil disimpan'
+            ], 201);
+        }
 
         return redirect()->route('sekolah.index')
             ->with('success', 'Data sekolah berhasil disimpan');
@@ -43,7 +56,7 @@ class SekolahController extends Controller
 
     public function update(Request $request, Sekolah $sekolah)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama_sekolah' => 'required|string|max:255',
             'npsn' => 'required|string|max:20',
             'status_sekolah' => 'required|in:Negeri,Swasta',
@@ -55,9 +68,32 @@ class SekolahController extends Controller
             'alamat' => 'required|string',
         ]);
 
-        $sekolah->update($request->all());
+        $sekolah->update($validated);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Data sekolah berhasil diperbarui',
+                'data' => $sekolah
+            ], 200);
+        }
 
         return redirect()->route('sekolah.index')
             ->with('success', 'Data sekolah berhasil diperbarui');
+    }
+
+    public function destroy(Sekolah $sekolah)
+    {
+        $sekolah->delete();
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Data sekolah berhasil dihapus'
+            ], 200);
+        }
+
+        return redirect()->route('sekolah.index')
+            ->with('success', 'Data sekolah berhasil dihapus');
     }
 }
