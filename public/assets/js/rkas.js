@@ -1668,6 +1668,56 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ========== SALIN DATA FUNCTIONS ==========
     /**
+     * Fungsi untuk menyembunyikan tombol salin data
+     */
+    function hideSalinDataButton() {
+        const btnSalinData = document.getElementById('btnSalinData');
+        if (btnSalinData) {
+            btnSalinData.style.display = 'none';
+            console.log('✅ [SALIN DATA] Tombol salin data disembunyikan');
+        }
+    }
+
+    /**
+     * Fungsi untuk menonaktifkan tombol salin data
+     */
+    function disableSalinDataButton() {
+        const btnSalinData = document.getElementById('btnSalinData');
+        if (btnSalinData) {
+            btnSalinData.disabled = true;
+            btnSalinData.innerHTML = '<i class="bi bi-copy me-2"></i>Salin Data';
+            btnSalinData.title = 'Data sudah disalin';
+            btnSalinData.setAttribute('data-bs-toggle', 'tooltip');
+            new bootstrap.Tooltip(btnSalinData);
+            console.log('✅ [SALIN DATA] Tombol salin data dinonaktifkan');
+        }
+    }
+
+    /**
+     * Simpan status salin data ke localStorage
+     */
+    function setSalinDataDone() {
+        const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
+        if (tahun) {
+            localStorage.setItem(`salin_data_done_${tahun}`, 'true');
+            console.log('✅ [SALIN DATA] Status disimpan ke localStorage untuk tahun:', tahun);
+        }
+    }
+
+    /**
+     * Cek status salin data dari localStorage
+     */
+    function checkSalinDataStatus() {
+        const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
+        if (tahun) {
+            const isDone = localStorage.getItem(`salin_data_done_${tahun}`) === 'true';
+            console.log('🔍 [SALIN DATA] Status dari localStorage:', isDone ? 'SUDAH DISALIN' : 'BELUM DISALIN');
+            return isDone;
+        }
+        return false;
+    }
+
+    /**
      * Fungsi untuk memeriksa dan mengelola tombol salin data
      */
     function initializeSalinDataButton() {
@@ -1675,10 +1725,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
 
         console.log('🔍 [SALIN DATA] Initializing button for year:', tahun);
-        console.log('🔍 [SALIN DATA] Button element:', btnSalinData);
         
         if (!btnSalinData) {
             console.error('❌ [SALIN DATA] Button element not found');
+            return;
+        }
+
+        // Cek status dari localStorage terlebih dahulu
+        if (checkSalinDataStatus()) {
+            hideSalinDataButton();
             return;
         }
 
@@ -1709,10 +1764,8 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => {
             console.log('🔍 [SALIN DATA] Response status:', response.status);
-            console.log('🔍 [SALIN DATA] Response headers:', response.headers);
             
             if (!response.ok) {
-                // Jika response tidak ok, coba parse error message
                 return response.text().then(text => {
                     console.error('❌ [SALIN DATA] Response text:', text);
                     let errorData;
@@ -1749,15 +1802,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('✅ [SALIN DATA] Button enabled - data available from year:', data.previous_year);
                 } else {
                     // Nonaktifkan tombol jika tidak ada data
-                    btnSalinData.disabled = true;
-                    btnSalinData.innerHTML = '<i class="bi bi-copy me-2"></i>Salin Data';
-                    
-                    btnSalinData.title = data.message || 'Tidak ada data RKAS Perubahan tahun sebelumnya';
-                    btnSalinData.setAttribute('data-bs-toggle', 'tooltip');
-                    
-                    // Initialize tooltip
-                    new bootstrap.Tooltip(btnSalinData);
-                    
+                    disableSalinDataButton();
                     console.log('ℹ️ [SALIN DATA] Button disabled - no data:', data.message);
                 }
             } else {
@@ -1767,26 +1812,8 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('❌ [SALIN DATA] Error checking previous year perubahan:', error);
-            
-            btnSalinData.disabled = true;
-            btnSalinData.innerHTML = '<i class="bi bi-copy me-2"></i>Salin Data';
-            
-            let errorMessage = 'Gagal memeriksa data';
-            if (error.message.includes('404')) {
-                errorMessage = 'Endpoint tidak ditemukan. Periksa routes.';
-            } else if (error.message.includes('500')) {
-                errorMessage = 'Terjadi kesalahan server. Silakan cek log.';
-            } else if (error.message.includes('405')) {
-                errorMessage = 'Method tidak diizinkan. Periksa HTTP method.';
-            } else {
-                errorMessage = error.message;
-            }
-            
-            btnSalinData.title = errorMessage;
-            btnSalinData.setAttribute('data-bs-toggle', 'tooltip');
-            new bootstrap.Tooltip(btnSalinData);
-            
-            console.error('❌ [SALIN DATA] Button disabled due to error:', errorMessage);
+            disableSalinDataButton();
+            console.error('❌ [SALIN DATA] Button disabled due to error:', error.message);
         });
     }
 
@@ -1802,11 +1829,11 @@ document.addEventListener('DOMContentLoaded', function() {
             html: `
                 <div class="text-center">
                     <i class="bi bi-question-circle text-info" style="font-size: 4rem;"></i>
-                    <p class="mt-3">Apakah Anda ingin menyalin data RKAS Perubahan tahun sebelumnya?</p>
+                    <p class="mt-3">Apakah Anda ingin menyalin data RKAS tahun sebelumnya?</p>
                     <div class="alert alert-info mt-3">
                         <small>
                             <i class="bi bi-info-circle me-1"></i>
-                            Data dari RKAS Perubahan tahun <strong>${previousYear}</strong> akan disalin ke tahun <strong>${tahun}</strong>
+                            Data dari RKAS tahun <strong>${previousYear}</strong> akan disalin ke tahun <strong>${tahun}</strong>
                         </small>
                     </div>
                 </div>
@@ -1826,6 +1853,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }).then((result) => {
             if (result.isConfirmed && result.value && result.value.success) {
+                // Sembunyikan tombol salin data
+                hideSalinDataButton();
+                
+                // Simpan status ke localStorage
+                setSalinDataDone();
+                
                 // Tampilkan success message
                 Swal.fire({
                     title: 'Berhasil!',
@@ -1842,7 +1875,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     `,
                     icon: 'success',
-                    confirmButtonText: '<i class="bi bi-arrow-clockwise me-2"></i>Refresh Halaman',
+                    confirmButtonText: '<i class="bi bi-arrow-clockwise me-2"></i>OK',
                     confirmButtonColor: '#198754',
                     allowOutsideClick: false
                 }).then(() => {
@@ -1890,7 +1923,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
-            // Tampilkan error message yang lebih spesifik
             let errorMessage = 'Terjadi kesalahan saat menyalin data';
             
             if (error.message.includes('404')) {

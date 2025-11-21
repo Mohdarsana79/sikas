@@ -2777,6 +2777,9 @@ class RkasController extends Controller
 
             DB::commit();
 
+            // Simpan status di session
+            session()->put('salin_data_done_' . $currentYear, true);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Berhasil menyalin ' . $copiedCount . ' data dari RKAS Perubahan tahun ' . $previousYear,
