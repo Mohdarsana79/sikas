@@ -1249,7 +1249,7 @@ class KwitansiManager {
         }
     }
 
-    // ==================== GENERATE FUNCTIONALITY ====================
+    // ==================== GENERATE FUNCTIONALITY - MODIFIKASI BARU ====================
 
     async generateAllKwitansi() {
         const result = await Swal.fire({
@@ -1259,7 +1259,7 @@ class KwitansiManager {
                     <p>Proses ini akan membuat kwitansi untuk semua transaksi yang belum memiliki kwitansi.</p>
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
-                        Pastikan tidak menutup halaman selama proses berlangsung.
+                        Proses mungkin membutuhkan waktu beberapa menit. Harap tidak menutup halaman.
                     </div>
                 </div>
             `,
@@ -1273,72 +1273,36 @@ class KwitansiManager {
         });
 
         if (result.isConfirmed) {
-            this.startGenerationWithProgress();
+            this.startSimpleGeneration();
         }
     }
 
-    async startGenerationWithProgress() {
-        let totalSuccess = 0;
-        let totalFailed = 0;
-        let totalRecords = 0;
-        let timeoutId = null;
-
-        // Show initial loading
+    async startSimpleGeneration() {
+        // Show simple loading
         Swal.fire({
-            title: 'Memulai Generate...',
+            title: 'Sedang Memproses...',
             html: `
                 <div class="text-center">
-                    <div class="spinner-border text-primary mb-3" style="width: 2rem; height: 2rem;"></div>
-                    <p>Sedang mempersiapkan data...</p>
+                    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+                    <p class="mb-2"><strong>Generate Kwitansi Sedang Berjalan</strong></p>
+                    <p class="small text-muted mb-0">
+                        Sistem sedang membuat kwitansi untuk semua data yang tersedia.<br>
+                        Proses ini mungkin membutuhkan waktu beberapa menit.
+                    </p>
+                    <div class="progress mt-3" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                    </div>
                 </div>
             `,
             showConfirmButton: false,
-            allowOutsideClick: false
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false
         });
 
         try {
-            // Check available data first
-            const availableData = await this.checkAvailableData(true);
-            totalRecords = availableData.available_count || 0;
-
-            if (totalRecords === 0) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Tidak ada data',
-                    text: 'Tidak ada data yang perlu digenerate.'
-                });
-                return;
-            }
-
-            // Set timeout for safety
-            timeoutId = setTimeout(() => {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Proses Dihentikan',
-                    text: 'Proses generate dihentikan karena terlalu lama.',
-                    confirmButtonText: 'Mengerti'
-                });
-            }, 10 * 60 * 1000);
-
-            // Start batch processing
-            await this.processBatch(0, totalSuccess, totalFailed, totalRecords, timeoutId);
-
-        } catch (error) {
-            console.error('Generation error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error!',
-                text: 'Gagal memulai proses generate'
-            });
-        }
-    }
-
-    async processBatch(offset, totalSuccess, totalFailed, totalRecords, timeoutId, attempt = 1) {
-        try {
             const formData = new FormData();
             formData.append('_token', this.getCsrfToken());
-            formData.append('offset', offset);
-            formData.append('include_progress', true); // Request progress data
 
             const response = await fetch(`${this.getBaseUrl()}/kwitansi/generate-batch`, {
                 method: 'POST',
@@ -1347,195 +1311,21 @@ class KwitansiManager {
 
             const data = await response.json();
 
+            Swal.close();
+
             if (data.success) {
-                const batchData = data.data;
-                const newSuccess = totalSuccess + batchData.success;
-                const newFailed = totalFailed + batchData.failed;
-                const newOffset = batchData.offset;
-
-                // Update progress dengan data detail
-                this.updateDetailedProgress(
-                    batchData.progress, 
-                    newSuccess, 
-                    newFailed, 
-                    batchData.remaining, 
-                    batchData.total,
-                    batchData.current_step,
-                    batchData.progress_details,
-                    batchData.progress_data,
-                    batchData.item_results
-                );
-                
-                this.updateElementText('pending-count', batchData.remaining);
-                this.updateElementText('failed-count', newFailed);
-
-                // Continue or complete
-                if (batchData.has_more && batchData.progress < 100) {
-                    setTimeout(() => {
-                        this.processBatch(newOffset, newSuccess, newFailed, batchData.total, timeoutId, attempt + 1);
-                    }, 300);
-                } else {
-                    clearTimeout(timeoutId);
-                    setTimeout(() => {
-                        this.showDetailedCompletionMessage(newSuccess, newFailed, batchData.total, batchData.item_results);
-                    }, 1000);
-                }
+                this.showSimpleCompletionMessage(data.data);
             } else {
-                clearTimeout(timeoutId);
-                this.showError('Generate Error', data.message || 'Terjadi kesalahan saat proses generate');
+                this.showError('Generate Gagal', data.message || 'Terjadi kesalahan saat proses generate');
             }
         } catch (error) {
-            clearTimeout(timeoutId);
-            console.error('Batch process error:', error);
-            this.showError('Network Error', 'Terjadi kesalahan koneksi saat proses generate');
+            Swal.close();
+            console.error('Generation error:', error);
+            this.showError('Koneksi Error', 'Terjadi kesalahan koneksi saat proses generate');
         }
     }
 
-    //method updateDetailedProgress
-    updateDetailedProgress(percent, success, failed, remaining, total, currentStep, progressDetails, progressData, itemResults) {
-        const safePercent = Math.min(100, Math.max(0, percent));
-
-        // Hitung progress dalam batch saat ini
-        let currentBatchProgress = 0;
-        if (progressData && progressData.length > 0) {
-            const completedInBatch = progressData.filter(item => 
-                item.status === 'success' || item.status === 'failed' || item.status === 'skipped'
-            ).length;
-            currentBatchProgress = (completedInBatch / progressData.length) * 100;
-        }
-
-        let progressDetailsHtml = '';
-        
-        if (progressData && progressData.length > 0) {
-            progressDetailsHtml = `
-                <div class="mt-3">
-                    <h6 class="small fw-bold mb-2">
-                        Progress dalam Batch: ${Math.round(currentBatchProgress)}%
-                        <small class="text-muted">(${progressData.filter(item => item.status !== 'pending').length}/${progressData.length} item)</small>
-                    </h6>
-                    <div class="progress mb-2" style="height: 8px;">
-                        <div class="progress-bar bg-info" style="width: ${currentBatchProgress}%"></div>
-                    </div>
-                    <div class="progress-details" style="max-height: 120px; overflow-y: auto; font-size: 0.7rem;">
-            `;
-            
-            progressData.forEach((item, index) => {
-                const statusClass = item.status === 'success' ? 'text-success' : 
-                                item.status === 'failed' ? 'text-danger' : 
-                                item.status === 'skipped' ? 'text-warning' : 'text-muted';
-                
-                const statusIcon = item.status === 'success' ? 'check-circle' : 
-                                item.status === 'failed' ? 'x-circle' : 
-                                item.status === 'skipped' ? 'arrow-right' : 'clock';
-                
-                progressDetailsHtml += `
-                    <div class="d-flex justify-content-between align-items-center mb-1 p-1 border-bottom">
-                        <div class="d-flex align-items-center">
-                            <span class="badge bg-light text-dark me-2" style="font-size: 0.6rem;">${item.step}</span>
-                            <span class="${statusClass}">
-                                <i class="bi bi-${statusIcon} me-1"></i>
-                                ${item.kode_rekening}
-                            </span>
-                        </div>
-                        <div class="text-end">
-                            <small class="text-muted d-block" style="font-size: 0.6rem;">${item.timestamp}</small>
-                            <small class="${statusClass}" style="font-size: 0.6rem;">${item.message}</small>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            progressDetailsHtml += `</div></div>`;
-        }
-
-        const progressHtml = `
-            <div class="text-center">
-                <!-- Progress Bar Utama -->
-                <div class="mb-3">
-                    <div class="progress" style="height: 20px; border-radius: 10px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
-                            style="width: ${safePercent}%; font-size: 12px; font-weight: bold;">
-                            ${safePercent}% (Overall)
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Current Step -->
-                <div class="mb-3">
-                    <h6 class="text-primary mb-1">${currentStep}</h6>
-                    <p class="small text-muted mb-2">${progressDetails}</p>
-                </div>
-
-                <!-- Statistics -->
-                <div class="row text-center small mb-3">
-                    <div class="col-3">
-                        <div class="text-success font-weight-bold">${success}</div>
-                        <small>Berhasil</small>
-                    </div>
-                    <div class="col-3">
-                        <div class="text-danger font-weight-bold">${failed}</div>
-                        <small>Gagal</small>
-                    </div>
-                    <div class="col-3">
-                        <div class="text-warning font-weight-bold">${remaining}</div>
-                        <small>Sisa</small>
-                    </div>
-                    <div class="col-3">
-                        <div class="text-info font-weight-bold">${total}</div>
-                        <small>Total</small>
-                    </div>
-                </div>
-
-                ${progressDetailsHtml}
-
-                ${safePercent < 100 ? `
-                <div class="mt-3">
-                    <div class="spinner-border text-primary" style="width: 1.5rem; height: 1.5rem;"></div>
-                    <small class="text-muted ml-2">Memproses data...</small>
-                </div>
-                ` : ''}
-            </div>
-        `;
-
-        Swal.update({
-            title: `Generate Kwitansi ${safePercent}%`,
-            html: progressHtml,
-            showConfirmButton: false,
-            showCancelButton: false
-        });
-    }
-
-    // Method baru untuk menampilkan completion message yang detail
-    showDetailedCompletionMessage(successCount, failedCount, totalCount, itemResults) {
-        // Build result summary
-        let resultSummary = '';
-        
-        if (itemResults && itemResults.length > 0) {
-            const successItems = itemResults.filter(item => item.status === 'success').length;
-            const failedItems = itemResults.filter(item => item.status === 'failed').length;
-            const skippedItems = itemResults.filter(item => item.status === 'skipped').length;
-            
-            resultSummary = `
-                <div class="alert alert-info mt-3">
-                    <h6 class="alert-heading">Ringkasan Proses:</h6>
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <div class="text-success fw-bold">${successItems}</div>
-                            <small>Berhasil</small>
-                        </div>
-                        <div class="col-4">
-                            <div class="text-danger fw-bold">${failedItems}</div>
-                            <small>Gagal</small>
-                        </div>
-                        <div class="col-4">
-                            <div class="text-warning fw-bold">${skippedItems}</div>
-                            <small>Skip</small>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
+    showSimpleCompletionMessage(resultData) {
         const resultHtml = `
             <div class="text-center">
                 <div class="mb-3">
@@ -1544,89 +1334,26 @@ class KwitansiManager {
                 </div>
                 
                 <div class="alert alert-success">
-                    <p><strong>Proses generate telah selesai. Silahkan cek data Anda.</strong></p>
-                    <p class="mb-0">
-                        Berhasil: <strong>${successCount}</strong> | 
-                        Gagal: <strong>${failedCount}</strong> | 
-                        Total: <strong>${totalCount}</strong>
-                    </p>
-                </div>
-                
-                ${resultSummary}
-            </div>
-        `;
-
-        Swal.fire({
-            title: 'Proses Selesai',
-            html: resultHtml,
-            icon: 'success',
-            confirmButtonText: '<i class="fas fa-check mr-1"></i> Oke',
-            allowOutsideClick: false
-        }).then((result) => {
-            location.reload();
-        });
-    }
-
-    updateSimpleProgress(percent, success, failed, remaining, total) {
-        const safePercent = Math.min(100, Math.max(0, percent));
-
-        Swal.update({
-            title: `Generate Kwitansi ${safePercent}%`,
-            html: `
-                <div class="text-center">
-                    <div class="mb-3">
-                        <div class="progress" style="height: 20px; border-radius: 10px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
-                                style="width: ${safePercent}%; font-size: 12px; font-weight: bold;">
-                                ${safePercent}%
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row text-center small">
+                    <p><strong>${resultData.message}</strong></p>
+                    <div class="row text-center mt-3">
                         <div class="col-4">
-                            <div class="text-success font-weight-bold">${success}</div>
+                            <div class="text-success fw-bold fs-4">${resultData.success}</div>
                             <small>Berhasil</small>
                         </div>
                         <div class="col-4">
-                            <div class="text-danger font-weight-bold">${failed}</div>
+                            <div class="text-danger fw-bold fs-4">${resultData.failed}</div>
                             <small>Gagal</small>
                         </div>
                         <div class="col-4">
-                            <div class="text-info font-weight-bold">${remaining}</div>
-                            <small>Sisa</small>
+                            <div class="text-info fw-bold fs-4">${resultData.total}</div>
+                            <small>Total</small>
                         </div>
                     </div>
-
-                    ${safePercent < 100 ? `
-                    <div class="mt-3">
-                        <div class="spinner-border text-primary" style="width: 1.5rem; height: 1.5rem;"></div>
-                        <small class="text-muted ml-2">Memproses data...</small>
-                    </div>
-                    ` : ''}
-                </div>
-            `,
-            showConfirmButton: false,
-            showCancelButton: false
-        });
-    }
-
-    showSimpleCompletionMessage(successCount, failedCount, totalCount) {
-        const resultHtml = `
-            <div class="text-center">
-                <div class="mb-3">
-                    <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
-                    <h5 class="text-success">Proses Generate Selesai!</h5>
                 </div>
                 
-                <div class="alert alert-success">
-                    <p><strong>Proses generate telah selesai. Silahkan cek data Anda.</strong></p>
-                    <p class="mb-0">
-                        Berhasil: <strong>${successCount}</strong> | 
-                        Gagal: <strong>${failedCount}</strong> | 
-                        Total: <strong>${totalCount}</strong>
-                    </p>
-                </div>
+                <p class="text-muted small mt-3">
+                    Halaman akan direfresh secara otomatis untuk menampilkan data terbaru.
+                </p>
             </div>
         `;
 
@@ -1635,7 +1362,9 @@ class KwitansiManager {
             html: resultHtml,
             icon: 'success',
             confirmButtonText: '<i class="fas fa-check mr-1"></i> Oke',
-            allowOutsideClick: false
+            allowOutsideClick: false,
+            timer: 5000,
+            timerProgressBar: true
         }).then((result) => {
             location.reload();
         });

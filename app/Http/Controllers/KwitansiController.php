@@ -788,104 +788,36 @@ class KwitansiController extends Controller
     }
 
     /**
-     * Hitung progress detail untuk generate batch
+     * Generate Batch tanpa progress tracking - MODIFIKASI BARU
      */
-    private function calculateDetailedProgress($offset, $totalRecords, $currentProcessed, $currentSuccess, $currentFailed)
-    {
-        if ($totalRecords === 0) {
-            return [
-                'percent' => 100,
-                'current_step' => 'Selesai',
-                'details' => 'Tidak ada data yang perlu diproses'
-            ];
-        }
-
-        $totalProcessedSoFar = $offset + $currentProcessed;
-        $percent = min(100, (int) round(($totalProcessedSoFar / $totalRecords) * 100));
-
-        // Detail progress berdasarkan stage
-        $stages = [
-            ['threshold' => 10, 'step' => 'Mempersiapkan data...', 'detail' => 'Mengambil data dari database'],
-            ['threshold' => 30, 'step' => 'Memproses transaksi...', 'detail' => 'Memvalidasi data transaksi'],
-            ['threshold' => 60, 'step' => 'Membuat kwitansi...', 'detail' => 'Generate dokumen kwitansi'],
-            ['threshold' => 90, 'step' => 'Menyimpan data...', 'detail' => 'Menyimpan ke database'],
-            ['threshold' => 100, 'step' => 'Menyelesaikan proses...', 'detail' => 'Finalisasi data']
-        ];
-
-        $currentStep = 'Memulai proses...';
-        $currentDetail = 'Inisialisasi sistem';
-
-        foreach ($stages as $stage) {
-            if ($percent <= $stage['threshold']) {
-                $currentStep = $stage['step'];
-                $currentDetail = $stage['detail'];
-                break;
-            }
-        }
-
-        return [
-            'percent' => $percent,
-            'current_step' => $currentStep,
-            'details' => $currentDetail,
-            'processed_so_far' => $totalProcessedSoFar,
-            'total_records' => $totalRecords,
-            'current_success' => $currentSuccess,
-            'current_failed' => $currentFailed
-        ];
-    }
-
-    /**
-     * Generate progress data dengan detail per item
-     */
-    private function generateProgressData($bukuKasUmums, $offset, $totalRecords, $success, $failed)
-    {
-        $progressData = [];
-        $currentIndex = $offset;
-
-        foreach ($bukuKasUmums as $index => $bukuKasUmum) {
-            $currentIndex++;
-            $itemProgress = (int) round(($currentIndex / $totalRecords) * 100);
-
-            $progressData[] = [
-                'step' => $index + 1,
-                'total_steps' => $bukuKasUmums->count(),
-                'percent' => min(100, $itemProgress),
-                'kode_rekening' => $bukuKasUmum->rekeningBelanja->kode_rekening ?? '-',
-                'buku_kas_umum_id' => $bukuKasUmum->id,
-                'uraian' => $bukuKasUmum->uraian_opsional ?? $bukuKasUmum->uraian,
-                'status' => 'Diproses',
-                'timestamp' => now()->format('H:i:s')
-            ];
-        }
-
-        return $progressData;
-    }
-
     public function generateBatch(Request $request)
     {
         try {
-            $offset = $request->input('offset', 0);
-            $includeProgressData = $request->input('include_progress', false);
+            // Tampilkan loading sederhana
+            Log::info("Starting batch generation without progress tracking");
 
             // Hitung total dari BukuKasUmum yang belum memiliki kwitansi
             $totalWithoutKwitansi = BukuKasUmum::whereDoesntHave('kwitansi')
                 ->where('is_bunga_record', false)
                 ->count();
 
-            Log::info("Generate Batch - Total BukuKasUmum without kwitansi: {$totalWithoutKwitansi}, Offset: {$offset}");
+            Log::info("Total BukuKasUmum without kwitansi: {$totalWithoutKwitansi}");
 
             // Jika tidak ada data, return completion
             if ($totalWithoutKwitansi === 0) {
                 return response()->json([
                     'success' => true,
-                    'data' => $this->getCompletionData(0, 0, 0, 0, 0, [])
+                    'message' => 'Tidak ada data yang perlu digenerate.',
+                    'data' => [
+                        'processed' => 0,
+                        'success' => 0,
+                        'failed' => 0,
+                        'total' => 0
+                    ]
                 ]);
             }
 
-            // TETAP gunakan batch size yang reasonable untuk progress yang smooth
-            $batchSize = 10; // Kembalikan ke 10 atau sesuaikan
-            $processedInThisBatch = 0;
-
+            // HAPUS LIMIT DAN OFFSET - ambil semua data sekaligus
             $bukuKasUmums = BukuKasUmum::with([
                 'penganggaran.sekolah',
                 'kodeKegiatan',
@@ -895,108 +827,50 @@ class KwitansiController extends Controller
                 ->whereDoesntHave('kwitansi')
                 ->where('is_bunga_record', false)
                 ->orderBy('id')
-                ->skip($offset)
-                ->take($batchSize)
-                ->get();
+                ->get(); // HAPUS ->take() dan ->skip()
 
             Log::info("Found {$bukuKasUmums->count()} BukuKasUmum to process");
 
-            $processed = 0;
             $success = 0;
             $failed = 0;
-            $progressData = [];
-            $itemResults = [];
-
-            if ($bukuKasUmums->isEmpty()) {
-                return response()->json([
-                    'success' => true,
-                    'data' => $this->getCompletionData($totalWithoutKwitansi, $offset, 0, 0, 0, [])
-                ]);
-            }
-
-            // Generate progress data SEBELUM proses (untuk menunjukkan rencana)
-            if ($includeProgressData) {
-                $progressData = $this->generateProgressData($bukuKasUmums, $offset, $totalWithoutKwitansi, 0, 0);
-            }
 
             DB::beginTransaction();
 
             try {
-                foreach ($bukuKasUmums as $index => $bukuKasUmum) {
-                    $itemResult = $this->processSingleItem($bukuKasUmum);
-                    $itemResults[] = $itemResult;
+                foreach ($bukuKasUmums as $bukuKasUmum) {
+                    $result = $this->processSingleItem($bukuKasUmum);
 
-                    if ($itemResult['status'] === 'success') {
+                    if ($result['status'] === 'success') {
                         $success++;
-                    } elseif ($itemResult['status'] === 'failed' || $itemResult['status'] === 'error') {
+                    } else {
                         $failed++;
                     }
-
-                    $processed++;
-                    $processedInThisBatch++;
-
-                    // Update progress data untuk item ini
-                    if ($includeProgressData && isset($progressData[$index])) {
-                        $progressData[$index]['status'] = $itemResult['status'];
-                        $progressData[$index]['message'] = $itemResult['message'];
-                        $progressData[$index]['timestamp'] = now()->format('H:i:s');
-
-                        // Hitung progress per item dalam batch ini
-                        $currentProgressInBatch = (($index + 1) / $bukuKasUmums->count()) * 100;
-                        $progressData[$index]['batch_progress'] = min(100, $currentProgressInBatch);
-                    }
-
-                    // Untuk simulasi progress yang smooth, tambahkan delay kecil
-                    usleep(100000); // 100ms delay per item
                 }
 
                 DB::commit();
+
+                Log::info("Batch generation completed - Success: {$success}, Failed: {$failed}");
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Proses generate selesai. Berhasil: {$success}, Gagal: {$failed}",
+                    'data' => [
+                        'processed' => $bukuKasUmums->count(),
+                        'success' => $success,
+                        'failed' => $failed,
+                        'total' => $totalWithoutKwitansi,
+                    ],
+                ]);
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('Transaction failed in generateBatch: ' . $e->getMessage());
                 throw $e;
             }
-
-            // Hitung progress yang benar
-            $totalProcessedSoFar = $offset + $processed;
-            $progress = $this->calculateRealProgress($totalProcessedSoFar, $totalWithoutKwitansi);
-
-            $progressDetail = $this->calculateDetailedProgress($offset, $totalWithoutKwitansi, $processed, $success, $failed);
-
-            $remainingAfterProcess = BukuKasUmum::whereDoesntHave('kwitansi')
-                ->where('is_bunga_record', false)
-                ->count();
-
-            $hasMore = $remainingAfterProcess > 0 && $progress < 100;
-
-            Log::info("Generate Batch Result - Offset: {$offset}, Processed: {$processed}, Success: {$success}, Failed: {$failed}, Progress: {$progress}%");
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'processed' => $processed,
-                    'success' => $success,
-                    'failed' => $failed,
-                    'remaining' => $remainingAfterProcess,
-                    'progress' => $progress,
-                    'has_more' => $hasMore,
-                    'total' => $totalWithoutKwitansi,
-                    'total_processed' => $totalProcessedSoFar,
-                    'offset' => $offset + $processed,
-                    'progress_data' => $progressData,
-                    'current_step' => $progressDetail['current_step'],
-                    'progress_details' => $progressDetail['details'],
-                    'item_results' => $itemResults,
-                    'batch_size' => $batchSize,
-                    'processed_in_batch' => $processedInThisBatch,
-                    'message' => "Batch {$this->getBatchNumber($offset,$batchSize)}: Diproses {$processed} item"
-                ],
-            ]);
         } catch (\Exception $e) {
             Log::error('Error in generateBatch: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Terjadi kesalahan saat proses generate: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -1064,43 +938,6 @@ class KwitansiController extends Controller
         }
 
         return $itemResult;
-    }
-
-    /**
-     * Hitung progress yang real
-     */
-    private function calculateRealProgress($processedSoFar, $totalRecords)
-    {
-        if ($totalRecords === 0) return 100;
-        return min(100, (int) round(($processedSoFar / $totalRecords) * 100));
-    }
-
-    /**
-     * Data untuk completion
-     */
-    private function getCompletionData($total, $offset, $processed, $success, $failed, $progressData)
-    {
-        return [
-            'processed' => $processed,
-            'success' => $success,
-            'failed' => $failed,
-            'remaining' => 0,
-            'progress' => 100,
-            'has_more' => false,
-            'total' => $total,
-            'total_processed' => $offset,
-            'progress_data' => $progressData,
-            'current_step' => 'Selesai',
-            'progress_details' => 'Proses generate selesai'
-        ];
-    }
-
-    /**
-     * Dapatkan nomor batch
-     */
-    private function getBatchNumber($offset, $batchSize)
-    {
-        return (int)($offset / $batchSize) + 1;
     }
 
     public function deleteAll(Request $request)
