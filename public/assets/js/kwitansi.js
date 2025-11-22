@@ -1,6 +1,6 @@
 /**
  * Kwitansi Management System
- * Complete JavaScript for Kwitansi Page
+ * Complete JavaScript for Kwitansi Page - FIXED VERSION
  * Features: Search, Filter, Generate, Delete, Pagination, Animations
  */
 
@@ -37,6 +37,20 @@ class KwitansiManager {
         console.log('All pagination-like containers:', allPaginationContainers);
     }
 
+    // Di dalam class KwitansiManager, tambahkan method debug
+    debugTahunFilter() {
+        console.log('🔍 Debugging tahun filter:');
+        
+        const tahunFilter = document.getElementById('tahunFilter');
+        console.log('Tahun Filter element:', tahunFilter);
+        
+        if (tahunFilter) {
+            console.log('Tahun Filter options:', tahunFilter.options);
+            console.log('Selected value:', tahunFilter.value);
+            console.log('Current filters tahun:', this.currentFilters.tahun);
+        }
+    }
+
     init() {
         console.log('🚀 Initializing Kwitansi Manager...');
         
@@ -50,6 +64,7 @@ class KwitansiManager {
         this.updateLastUpdated();
         this.initializeModalHandlers();
         this.initializeDateFilters();
+        this.initializeTahunFilter();
         
         // Start periodic updates
         this.startPeriodicUpdates();
@@ -80,28 +95,8 @@ class KwitansiManager {
             });
         }
 
-        if (tahunFilter) {
-            tahunFilter.addEventListener('change', () => {
-                this.currentFilters.tahun = tahunFilter.value;
-                this.performSearchWithFilters();
-            });
-        }
-
-        if (startDateInput) {
-            startDateInput.addEventListener('change', (e) => {
-                this.currentFilters.startDate = e.target.value;
-                this.validateDateRange();
-                this.debouncedSearch();
-            });
-        }
-
-        if (endDateInput) {
-            endDateInput.addEventListener('change', (e) => {
-                this.currentFilters.endDate = e.target.value;
-                this.validateDateRange();
-                this.debouncedSearch();
-            });
-        }
+        // Filter tanggal sudah di handle di initializeDateFilters()
+        // Filter tahun sudah di handle di initializeTahunFilter()
 
         // Action buttons
         this.initializeActionButtons();
@@ -113,6 +108,42 @@ class KwitansiManager {
                 this.clearAllFilters();
             }
         });
+    }
+
+    initializeTahunFilter() {
+        const tahunFilter = document.getElementById('tahunFilter');
+        if (tahunFilter) {
+            console.log('🔄 Initializing tahun filter...');
+            
+            // Debug initial state
+            this.debugTahunFilter();
+            
+            // Set nilai default dari selected attribute atau dari current filters
+            const selectedOption = tahunFilter.querySelector('option[selected]');
+            if (selectedOption) {
+                tahunFilter.value = selectedOption.value;
+                this.currentFilters.tahun = selectedOption.value;
+                console.log('✅ Set tahun from selected option:', selectedOption.value);
+            } else if (this.currentFilters.tahun) {
+                tahunFilter.value = this.currentFilters.tahun;
+                console.log('✅ Set tahun from current filters:', this.currentFilters.tahun);
+            }
+            
+            tahunFilter.addEventListener('change', (e) => {
+                this.currentFilters.tahun = e.target.value;
+                console.log('🎯 Tahun filter changed to:', e.target.value);
+                this.performSearchWithFilters();
+            });
+            
+            // Trigger initial search jika ada tahun yang dipilih
+            if (this.currentFilters.tahun) {
+                setTimeout(() => {
+                    this.performSearchWithFilters();
+                }, 500);
+            }
+        } else {
+            console.error('❌ Tahun filter element not found!');
+        }
     }
 
     performSearchWithFilters() {
@@ -127,11 +158,6 @@ class KwitansiManager {
     // ==================== FILTER TANGGAL ====================
 
     initializeDateFilters() {
-        // Set default dates (30 days ago to today)
-        const today = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
-        
         const startDateInput = document.getElementById('startDate');
         const endDateInput = document.getElementById('endDate');
         const resetFilterBtn = document.getElementById('resetFilter');
@@ -676,8 +702,16 @@ class KwitansiManager {
 
     // ==================== SEARCH & FILTER ====================
 
+    // Perbaiki method performSearch untuk debug response
     async performSearch(searchTerm = '', tahun = '', startDate = '', endDate = '') {
         try {
+            console.log('🔍 Performing search with filters:', {
+                search: searchTerm,
+                tahun: tahun,
+                startDate: startDate,
+                endDate: endDate
+            });
+            
             this.showLoadingState('search');
             this.showFilterLoading();
             
@@ -697,12 +731,28 @@ class KwitansiManager {
                 url += `&end_date=${encodeURIComponent(endDate)}`;
             }
 
-            console.log('Search URL dengan filter:', url);
+            // Tambahkan cache busting
+            url += `&_=${Date.now()}`;
+
+            console.log('📡 Search URL:', url);
 
             const response = await fetch(url);
-            const data = await response.json();
+            console.log('📦 Response status:', response.status);
+            
+            const responseText = await response.text();
+            console.log('📄 Raw response:', responseText);
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log('✅ JSON parsed successfully:', data);
+            } catch (parseError) {
+                console.error('❌ JSON parse error:', parseError);
+                throw new Error('Invalid JSON response');
+            }
 
             if (data.success) {
+                console.log('✅ Search successful, updating results...');
                 this.updateSearchResults(data.data, data.pagination);
                 this.updateCounters(data.total);
                 this.updateTableCount(data.total);
@@ -713,11 +763,12 @@ class KwitansiManager {
                     this.showResultCount(data.total);
                 }
             } else {
+                console.error('❌ Search failed:', data.message);
                 this.showError('Search failed', data.message);
             }
         } catch (error) {
-            console.error('Search error:', error);
-            this.showError('Search Error', 'Terjadi kesalahan saat mencari data');
+            console.error('💥 Search error:', error);
+            this.showError('Search Error', 'Terjadi kesalahan saat mencari data: ' + error.message);
         } finally {
             this.hideLoadingState('search');
             this.hideFilterLoading();
@@ -812,23 +863,39 @@ class KwitansiManager {
 
     // ==================== SEARCH & FILTER ====================
 
+    // Method untuk update search results - DIPERBAIKI DENGAN DEBUG
     updateSearchResults(data, pagination) {
+        console.log('🔄 Updating search results...');
+        console.log('📊 Data received:', data);
+        console.log('📄 Pagination:', pagination);
+        
         const tbody = document.getElementById('kwitansi-tbody');
-        if (!tbody) return;
+        if (!tbody) {
+            console.error('❌ tbody element not found!');
+            return;
+        }
+
+        console.log('✅ tbody element found');
 
         if (data.length === 0) {
+            console.log('📭 No data found, showing empty state');
             tbody.innerHTML = this.getEmptySearchHTML();
-            // Sembunyikan pagination jika tidak ada data
             this.hidePagination();
             return;
         }
 
+        console.log(`🎯 Rendering ${data.length} items`);
+
         let html = '';
         data.forEach((item, index) => {
             const number = (pagination.current_page - 1) * pagination.per_page + index + 1;
-            html += this.getTableRowHTML(item, number, pagination);
+            const rowHtml = this.getTableRowHTML(item, number, pagination);
+            console.log(`📝 Row ${index}:`, rowHtml);
+            html += rowHtml;
         });
 
+        console.log('📋 Final HTML:', html);
+        
         tbody.innerHTML = html;
         
         // PERBAIKAN: Update pagination dengan fallback
@@ -838,6 +905,8 @@ class KwitansiManager {
         
         // Update filter info setelah hasil search
         this.updateFilterInfo();
+        
+        console.log('✅ Search results updated successfully');
     }
 
     hidePagination() {
@@ -855,46 +924,55 @@ class KwitansiManager {
         });
     }
 
+    // Method untuk get table row HTML - DIPERBAIKI
     getTableRowHTML(item, number, pagination) {
-        // PERBAIKAN: Gunakan data dari item yang sudah diformat
-        return `
-            <tr id="kwitansi-row-${item.id}" class="animate__animated animate__fadeIn">
+        console.log('📝 Creating row HTML for item:', item);
+        
+        // PERBAIKAN: Pastikan semua property ada
+        const kodeRekening = item.kode_rekening || '-';
+        const uraian = item.uraian || 'Tidak ada uraian';
+        const tanggal = item.tanggal || '-';
+        const jumlah = item.jumlah || 'Rp 0';
+        const itemId = item.id || 'unknown';
+        
+        const rowHtml = `
+            <tr id="kwitansi-row-${itemId}" class="animate__animated animate__fadeIn">
                 <td class="fw-medium text-dark">${number}</td>
                 <td>
-                    <span class="badge badge-code">${item.kode_rekening}</span>
+                    <span class="badge badge-code">${kodeRekening}</span>
                 </td>
                 <td class="text-dark">
                     <div class="d-flex align-items-center">
                         <i class="bi bi-file-text me-2 text-muted"></i>
-                        <span class="text-truncate" style="max-width: 300px;">${item.uraian}</span>
+                        <span class="text-truncate" style="max-width: 300px;">${uraian}</span>
                     </div>
                 </td>
                 <td class="text-muted">
-                    <i class="bi bi-calendar me-2"></i>${item.tanggal}
+                    <i class="bi bi-calendar me-2"></i>${tanggal}
                 </td>
                 <td class="fw-bold text-success">
-                    <i class="bi bi-currency-dollar me-2"></i>${item.jumlah}
+                    <i class="bi bi-currency-dollar me-2"></i>${jumlah}
                 </td>
                 <td class="text-center">
                     <div class="d-flex justify-content-center gap-2">
                         <!-- Preview Button - Modal Trigger -->
                         <button class="btn btn-action btn-outline-primary preview-kwitansi" 
                                 title="Lihat Preview" 
-                                data-id="${item.id}"
+                                data-id="${itemId}"
                                 data-bs-toggle="modal" 
                                 data-bs-target="#previewModal">
                             <i class="bi bi-eye"></i>
                         </button>
                         <!-- Download PDF -->
-                        <a href="${this.getBaseUrl()}/kwitansi/${item.id}/pdf" 
+                        <a href="${this.getBaseUrl()}/kwitansi/${itemId}/pdf" 
                             class="btn btn-action btn-outline-success" 
                             title="Download PDF" data-bs-toggle="tooltip" target="_blank">
                             <i class="bi bi-download"></i>
                         </a>
                         <!-- Hapus -->
                         <button class="btn btn-action btn-outline-danger delete-kwitansi" 
-                            data-id="${item.id}"
-                            data-uraian="${item.uraian}"
+                            data-id="${itemId}"
+                            data-uraian="${uraian}"
                             title="Hapus Kwitansi" data-bs-toggle="tooltip">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -902,6 +980,9 @@ class KwitansiManager {
                 </td>
             </tr>
         `;
+        
+        console.log('✅ Row HTML created for item ID:', itemId);
+        return rowHtml;
     }
 
     getEmptySearchHTML() {
@@ -1249,35 +1330,149 @@ class KwitansiManager {
         }
     }
 
-    // ==================== GENERATE FUNCTIONALITY - MODIFIKASI BARU ====================
-
-    async generateAllKwitansi() {
-        const result = await Swal.fire({
-            title: 'Generate Kwitansi Otomatis?',
-            html: `
-                <div class="text-center">
-                    <p>Proses ini akan membuat kwitansi untuk semua transaksi yang belum memiliki kwitansi.</p>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        Proses mungkin membutuhkan waktu beberapa menit. Harap tidak menutup halaman.
-                    </div>
-                </div>
-            `,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class="fas fa-play mr-1"></i> Mulai Generate',
-            cancelButtonText: '<i class="fas fa-times mr-1"></i> Batal',
-            reverseButtons: true
-        });
-
-        if (result.isConfirmed) {
-            this.startSimpleGeneration();
+    // Method untuk mendapatkan options tahun anggaran - DIPERBAIKI
+    async getTahunAnggaranOptions() {
+        try {
+            console.log('📡 Fetching tahun anggaran options...');
+            
+            const response = await fetch(`${this.getBaseUrl()}/kwitansi/tahun-anggaran`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('📦 Tahun anggaran response:', data);
+            
+            if (data.success) {
+                console.log('✅ Tahun options fetched:', data.data);
+                
+                // PERBAIKAN: Gunakan property yang benar dari response
+                const options = data.data.map(item => ({
+                    id: item.id,
+                    tahun_anggaran: item.tahun || item.tahun_anggaran // Handle kedua kemungkinan
+                }));
+                
+                console.log('🔄 Formatted options:', options);
+                return options;
+            } else {
+                console.error('❌ Error in tahun anggaran response:', data.message);
+                this.showError('Error', 'Gagal mengambil data tahun anggaran: ' + data.message);
+                return [];
+            }
+        } catch (error) {
+            console.error('💥 Error fetching tahun options:', error);
+            this.showError('Error', 'Gagal mengambil data tahun anggaran: ' + error.message);
+            return [];
         }
     }
 
-    async startSimpleGeneration() {
+    // ==================== GENERATE FUNCTIONALITY DENGAN PILIHAN TAHUN ====================
+
+    async generateAllKwitansi() {
+        console.log('🎯 Generate All Kwitansi clicked');
+        
+        try {
+            // Ambil data tahun anggaran tersedia
+            const tahunOptions = await this.getTahunAnggaranOptions();
+            console.log('📋 Tahun options:', tahunOptions);
+            
+            if (!tahunOptions || tahunOptions.length === 0) {
+                this.showError('Tidak Ada Data', 'Tidak ada tahun anggaran yang tersedia');
+                return;
+            }
+
+            // Buat HTML options untuk pilihan tahun - DIPERBAIKI
+            const tahunOptionsHtml = tahunOptions.map(tahun => {
+                const tahunText = tahun.tahun_anggaran || tahun.tahun || 'Tidak diketahui';
+                return `<option value="${tahun.id}">${tahunText}</option>`;
+            }).join('');
+
+            console.log('📝 Tahun options HTML created');
+
+            const result = await Swal.fire({
+                title: 'Generate Kwitansi Otomatis',
+                html: `
+                    <div class="text-start">
+                        <p class="mb-3">Pilih tahun anggaran untuk generate kwitansi:</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Tahun Anggaran</label>
+                            <select class="form-select form-select-sm" id="generateTahunSelect">
+                                <option value="">-- Pilih Tahun --</option>
+                                ${tahunOptionsHtml}
+                            </select>
+                        </div>
+                        <div class="alert alert-info mt-3 small">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Proses akan membuat kwitansi untuk semua transaksi pada tahun yang dipilih yang belum memiliki kwitansi.
+                        </div>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-play me-1"></i> Mulai Generate',
+                cancelButtonText: '<i class="fas fa-times me-1"></i> Batal',
+                reverseButtons: true,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    console.log('✅ Generate modal opened');
+                    // Focus ke select box
+                    const select = document.getElementById('generateTahunSelect');
+                    if (select) {
+                        select.focus();
+                        console.log('🎯 Select element focused');
+                        
+                        // Debug: log options yang tersedia
+                        console.log('🔍 Available options in select:');
+                        Array.from(select.options).forEach((option, index) => {
+                            console.log(`  ${index}: ${option.value} - ${option.text}`);
+                        });
+                    }
+                },
+                preConfirm: () => {
+                    const selectedTahun = document.getElementById('generateTahunSelect').value;
+                    const selectedText = document.getElementById('generateTahunSelect').options[document.getElementById('generateTahunSelect').selectedIndex].text;
+                    
+                    console.log('🔍 Pre-confirm tahun:', {
+                        value: selectedTahun,
+                        text: selectedText
+                    });
+                    
+                    if (!selectedTahun) {
+                        Swal.showValidationMessage('Harap pilih tahun anggaran');
+                        return false;
+                    }
+                    return selectedTahun;
+                }
+            });
+
+            console.log('🔮 SweetAlert result:', result);
+
+            if (result.isConfirmed && result.value) {
+                console.log('🚀 Starting generation for tahun:', result.value);
+                this.startSimpleGeneration(result.value);
+            } else {
+                console.log('❌ Generation cancelled');
+            }
+
+        } catch (error) {
+            console.error('💥 Error in generateAllKwitansi:', error);
+            this.showError('Error', 'Terjadi kesalahan saat mempersiapkan generate');
+        }
+    }
+
+    // Modifikasi startSimpleGeneration untuk menerima parameter tahun - DIPERBAIKI
+    async startSimpleGeneration(selectedTahun = '') {
+        console.log('🚀 Starting simple generation for tahun:', selectedTahun);
+        
+        if (!selectedTahun) {
+            console.error('❌ No tahun selected for generation');
+            this.showError('Error', 'Tahun tidak dipilih');
+            return;
+        }
+
         // Show simple loading
         Swal.fire({
             title: 'Sedang Memproses...',
@@ -1286,7 +1481,7 @@ class KwitansiManager {
                     <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
                     <p class="mb-2"><strong>Generate Kwitansi Sedang Berjalan</strong></p>
                     <p class="small text-muted mb-0">
-                        Sistem sedang membuat kwitansi untuk semua data yang tersedia.<br>
+                        Sistem sedang membuat kwitansi untuk data tahun ${selectedTahun}.<br>
                         Proses ini mungkin membutuhkan waktu beberapa menit.
                     </p>
                     <div class="progress mt-3" style="height: 6px;">
@@ -1303,29 +1498,159 @@ class KwitansiManager {
         try {
             const formData = new FormData();
             formData.append('_token', this.getCsrfToken());
+            formData.append('tahun', selectedTahun); // Tambahkan parameter tahun
+
+            console.log('📤 Sending generate request with tahun:', selectedTahun);
 
             const response = await fetch(`${this.getBaseUrl()}/kwitansi/generate-batch`, {
                 method: 'POST',
                 body: formData
             });
 
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
+            console.log('📦 Generate response:', data);
 
             Swal.close();
 
             if (data.success) {
+                console.log('✅ Generation successful');
                 this.showSimpleCompletionMessage(data.data);
             } else {
+                console.error('❌ Generation failed:', data.message);
                 this.showError('Generate Gagal', data.message || 'Terjadi kesalahan saat proses generate');
             }
         } catch (error) {
             Swal.close();
-            console.error('Generation error:', error);
-            this.showError('Koneksi Error', 'Terjadi kesalahan koneksi saat proses generate');
+            console.error('💥 Generation error:', error);
+            this.showError('Koneksi Error', 'Terjadi kesalahan koneksi saat proses generate: ' + error.message);
         }
     }
 
+    // Method untuk refresh data setelah generate - DIPERBAIKI
+    async refreshDataAfterGenerate() {
+        try {
+            console.log('🔄 Refreshing data after generate...');
+            console.log('🔍 Current filters before refresh:', this.currentFilters);
+            
+            this.showLoadingState('search');
+            
+            // GUNAKAN ROUTE SEARCH DENGAN PARAMETER YANG SAMA
+            let url = `${this.getBaseUrl()}/kwitansi/search?`;
+            
+            const params = new URLSearchParams();
+            
+            // Gunakan current filters yang aktif
+            if (this.currentFilters.search) {
+                params.append('search', this.currentFilters.search);
+            }
+            if (this.currentFilters.tahun) {
+                params.append('tahun', this.currentFilters.tahun);
+            }
+            if (this.currentFilters.startDate) {
+                params.append('start_date', this.currentFilters.startDate);
+            }
+            if (this.currentFilters.endDate) {
+                params.append('end_date', this.currentFilters.endDate);
+            }
+            
+            // Tambahkan cache busting parameter
+            params.append('_', Date.now());
+            
+            url += params.toString();
+            
+            console.log('📡 Refresh URL with filters:', url);
+
+            const response = await fetch(url, {
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('📦 Refresh response data:', data);
+
+            if (data.success) {
+                console.log('✅ Data updated successfully, total:', data.total);
+                this.updateSearchResults(data.data, data.pagination);
+                this.updateCounters(data.total);
+                this.updateTableCount(data.total);
+                this.updateFilterInfo();
+                
+                this.showToast(`Data berhasil diperbarui. Ditemukan ${data.total} data`, 'success');
+                
+                // Debug tambahan
+                this.debugRefreshResults(data);
+            } else {
+                this.showError('Refresh Failed', data.message);
+            }
+        } catch (error) {
+            console.error('💥 Refresh error:', error);
+            this.showError('Refresh Error', 'Terjadi kesalahan saat memperbarui data: ' + error.message);
+            
+            // Fallback: reload halaman
+            setTimeout(() => {
+                this.showToast('Memuat ulang halaman...', 'info');
+                location.reload();
+            }, 2000);
+        } finally {
+            this.hideLoadingState('search');
+        }
+    }
+
+    // Method untuk debug hasil refresh
+    debugRefreshResults(data) {
+        console.log('🔍 Debug refresh results:');
+        console.log('📊 Total data:', data.total);
+        console.log('📋 Data items:', data.data);
+        console.log('🎯 Current tahun filter:', this.currentFilters.tahun);
+        
+        // Cek apakah data sesuai dengan filter tahun
+        if (this.currentFilters.tahun && data.data.length > 0) {
+            const hasMatchingTahun = data.data.some(item => {
+                // Asumsikan item memiliki informasi tahun
+                return true; // Kita akan cek di controller
+            });
+            console.log('✅ Data contains items for current tahun filter:', hasMatchingTahun);
+        }
+    }
+
+    // Method untuk debug - DIPERBAIKI
+    async debugGeneratedData() {
+        try {
+            console.log('🔍 Debugging generated data...');
+            
+            // Gunakan route search dengan parameter kosong untuk mendapatkan semua data
+            const response = await fetch(`${this.getBaseUrl()}/kwitansi/search`);
+            const data = await response.json();
+            
+            console.log('📊 Latest data count:', data.total);
+            console.log('📋 Latest data:', data.data);
+            
+        } catch (error) {
+            console.error('💥 Debug error:', error);
+        }
+    }
+
+    // Perbaiki method showSimpleCompletionMessage
     showSimpleCompletionMessage(resultData) {
+        const successCount = resultData.success || 0;
+        const failedCount = resultData.failed || 0;
+        const totalCount = resultData.total || 0;
+        const processedCount = resultData.processed || 0;
+        const tahunText = resultData.tahun_text || resultData.tahun || 'yang dipilih';
+        
+        // DAPATKAN TAHUN YANG DIGENERATE
+        const generatedTahun = resultData.tahun;
+        
         const resultHtml = `
             <div class="text-center">
                 <div class="mb-3">
@@ -1334,25 +1659,31 @@ class KwitansiManager {
                 </div>
                 
                 <div class="alert alert-success">
-                    <p><strong>${resultData.message}</strong></p>
+                    <p><strong>${resultData.message || 'Proses generate selesai'}</strong></p>
                     <div class="row text-center mt-3">
                         <div class="col-4">
-                            <div class="text-success fw-bold fs-4">${resultData.success}</div>
+                            <div class="text-success fw-bold fs-4">${successCount}</div>
                             <small>Berhasil</small>
                         </div>
                         <div class="col-4">
-                            <div class="text-danger fw-bold fs-4">${resultData.failed}</div>
+                            <div class="text-danger fw-bold fs-4">${failedCount}</div>
                             <small>Gagal</small>
                         </div>
                         <div class="col-4">
-                            <div class="text-info fw-bold fs-4">${resultData.total}</div>
-                            <small>Total</small>
+                            <div class="text-info fw-bold fs-4">${processedCount}</div>
+                            <small>Diproses</small>
                         </div>
                     </div>
+                    ${totalCount ? `<div class="row text-center mt-2">
+                        <div class="col-12">
+                            <div class="text-dark fw-bold fs-5">${totalCount}</div>
+                            <small>Total Data Tersedia</small>
+                        </div>
+                    </div>` : ''}
                 </div>
                 
                 <p class="text-muted small mt-3">
-                    Halaman akan direfresh secara otomatis untuk menampilkan data terbaru.
+                    Data untuk tahun <strong>${tahunText}</strong> telah digenerate.
                 </p>
             </div>
         `;
@@ -1361,13 +1692,45 @@ class KwitansiManager {
             title: 'Proses Selesai',
             html: resultHtml,
             icon: 'success',
-            confirmButtonText: '<i class="fas fa-check mr-1"></i> Oke',
-            allowOutsideClick: false,
-            timer: 5000,
-            timerProgressBar: true
+            confirmButtonText: '<i class="fas fa-check me-1"></i> Tampilkan Data',
+            cancelButtonText: '<i class="fas fa-times me-1"></i> Tutup',
+            showCancelButton: true,
+            allowOutsideClick: false
         }).then((result) => {
-            location.reload();
+            if (result.isConfirmed) {
+                console.log('🎯 User wants to show generated data for tahun:', generatedTahun);
+                
+                // OTOMATIS SET FILTER KE TAHUN YANG BARU DIGENERATE
+                if (generatedTahun) {
+                    this.autoSetTahunFilter(generatedTahun);
+                } else {
+                    // Refresh dengan filter yang ada
+                    this.refreshDataAfterGenerate();
+                }
+            }
         });
+    }
+
+    // Method untuk otomatis set filter tahun setelah generate
+    autoSetTahunFilter(tahunId) {
+        console.log('🎯 Auto-setting tahun filter to:', tahunId);
+        
+        const tahunFilter = document.getElementById('tahunFilter');
+        if (tahunFilter) {
+            // Set nilai filter
+            tahunFilter.value = tahunId;
+            this.currentFilters.tahun = tahunId;
+            
+            console.log('✅ Tahun filter set to:', tahunId);
+            
+            // Refresh data dengan filter baru
+            setTimeout(() => {
+                this.refreshDataAfterGenerate();
+            }, 500);
+        } else {
+            // Fallback ke refresh biasa
+            this.refreshDataAfterGenerate();
+        }
     }
 
     // ==================== DELETE FUNCTIONALITY ====================

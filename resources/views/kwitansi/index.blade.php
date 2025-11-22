@@ -372,8 +372,13 @@
     }
 
     @keyframes spin {
-        0% { transform: translateY(-50%) rotate(0deg); }
-        100% { transform: translateY(-50%) rotate(360deg); }
+        0% {
+            transform: translateY(-50%) rotate(0deg);
+        }
+
+        100% {
+            transform: translateY(-50%) rotate(360deg);
+        }
     }
 
     /* Hover effects untuk filter */
@@ -397,15 +402,15 @@
         .search-container .row.g-2 {
             flex-wrap: wrap;
         }
-        
+
         .search-container .col-12 {
             margin-bottom: 0.5rem;
         }
-        
+
         .d-flex.gap-2 {
             flex-direction: column;
         }
-        
+
         .d-flex.gap-2 .input-group {
             width: 100% !important;
         }
@@ -415,11 +420,11 @@
         .search-container {
             padding: 0.75rem;
         }
-        
+
         .d-flex.gap-2 {
             flex-direction: column;
         }
-        
+
         .d-flex.gap-2 .input-group {
             width: 100% !important;
         }
@@ -438,17 +443,17 @@
             flex-direction: column;
             align-items: flex-start !important;
         }
-        
+
         .d-flex.align-items-center.gap-1 .form-label {
             min-width: auto !important;
             font-size: 0.7rem;
             margin-bottom: 0.25rem;
         }
-        
+
         .d-flex.align-items-center.gap-1 .input-group {
             width: 100% !important;
         }
-        
+
         /* Tampilkan label di mobile juga */
         .d-flex.align-items-center.gap-1 .form-label.d-none.d-md-block {
             display: block !important;
@@ -589,66 +594,68 @@
     }
 
     /* PERBAIKAN: Pagination Styles */
-#pagination-container {
-    margin: 0;
-    padding: 0;
-    display: flex;
-    list-style: none;
-    gap: 4px;
-    flex-wrap: wrap;
-}
-
-#pagination-container .page-item .page-link {
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    color: #64748b;
-    font-weight: 600;
-    font-size: 0.875rem;
-    padding: 0.5rem 0.75rem;
-    transition: all 0.3s ease;
-    background-color: white;
-    text-decoration: none;
-    display: block;
-    min-width: 44px;
-    text-align: center;
-}
-
-#pagination-container .page-item.active .page-link {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: #667eea;
-    color: white;
-}
-
-#pagination-container .page-item:not(.disabled):not(.active) .page-link:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: #667eea;
-    color: white;
-    text-decoration: none;
-    transform: translateY(-1px);
-}
-
-#pagination-container .page-item.disabled .page-link {
-    background-color: #f8f9fa;
-    border-color: #e2e8f0;
-    color: #9ca3af;
-    cursor: not-allowed;
-}
-
-/* Responsive pagination */
-@media (max-width: 768px) {
     #pagination-container {
-        justify-content: center;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        list-style: none;
+        gap: 4px;
+        flex-wrap: wrap;
     }
-    
+
     #pagination-container .page-item .page-link {
-        padding: 0.375rem 0.5rem;
-        font-size: 0.8rem;
-        min-width: 38px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+        transition: all 0.3s ease;
+        background-color: white;
+        text-decoration: none;
+        display: block;
+        min-width: 44px;
+        text-align: center;
+    }
+
+    #pagination-container .page-item.active .page-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+        color: white;
+    }
+
+    #pagination-container .page-item:not(.disabled):not(.active) .page-link:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+        color: white;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+
+    #pagination-container .page-item.disabled .page-link {
+        background-color: #f8f9fa;
+        border-color: #e2e8f0;
+        color: #9ca3af;
+        cursor: not-allowed;
+    }
+
+    /* Responsive pagination */
+    @media (max-width: 768px) {
+        #pagination-container {
+            justify-content: center;
+        }
+
+        #pagination-container .page-item .page-link {
+            padding: 0.375rem 0.5rem;
+            font-size: 0.8rem;
+            min-width: 38px;
+        }
     }
 
     /* Modal Styles untuk Landscape PDF - FIXED FULLSCREEN */
     .modal-pdf-container {
-        height: 85vh; /* DIPERBESAR dari 70vh */
+        height: 85vh;
+        /* DIPERBESAR dari 70vh */
         width: 100%;
         background: #f8f9fa;
         border-radius: 0.5rem;
@@ -672,8 +679,10 @@
 
     /* Modal XL untuk PDF - DIPERBESAR */
     .modal-xl {
-        max-width: 98%; /* DIPERBESAR dari 95% */
-        height: 95vh; /* DIPERBESAR dari 80vh */
+        max-width: 98%;
+        /* DIPERBESAR dari 95% */
+        height: 95vh;
+        /* DIPERBESAR dari 80vh */
         margin: 2.5vh auto;
     }
 
@@ -711,7 +720,7 @@
         background: white;
         border-bottom: 1px solid #e9ecef;
         padding: 1rem 1.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
     .modal-fullscreen .modal-body {
@@ -719,9 +728,10 @@
         flex: 1;
         overflow: hidden;
         background: #f8f9fa;
-        height: calc(100vh - 120px); /* Header + Footer height */
+        height: calc(100vh - 120px);
+        /* Header + Footer height */
     }
-    
+
     .modal-fullscreen .modal-pdf-container {
         height: 100%;
         border-radius: 0;
@@ -733,8 +743,8 @@
     }
 
     /* Pastikan modal backdrop juga fullscreen */
-    .modal-fullscreen ~ .modal-backdrop {
-        background-color: rgba(0,0,0,0.8) !important;
+    .modal-fullscreen~.modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.8) !important;
     }
 
     /* Untuk landscape PDF */
@@ -751,7 +761,7 @@
             height: 70vh;
             margin: 2.5vh auto;
         }
-        
+
         .modal-pdf-container {
             height: 60vh;
         }
@@ -763,13 +773,14 @@
             height: 65vh;
             margin: 2.5vh auto;
         }
-        
+
         .modal-pdf-container {
             height: 55vh;
         }
-        
+
         .modal-fullscreen .modal-body {
-            height: calc(100vh - 140px); /* Adjust for mobile */
+            height: calc(100vh - 140px);
+            /* Adjust for mobile */
         }
     }
 
@@ -853,12 +864,10 @@
         background: #f8f9fa;
     }
 
-
-
     /* Fullscreen toggle button */
     #fullscreenToggle {
-        background: rgba(255,255,255,0.2);
-        border: 1px solid rgba(255,255,255,0.3);
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         color: white;
         border-radius: 0.375rem;
         padding: 0.375rem 0.75rem;
@@ -866,8 +875,8 @@
     }
 
     #fullscreenToggle:hover {
-        background: rgba(255,255,255,0.3);
-        border-color: rgba(255,255,255,0.5);
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
         transform: translateY(-1px);
     }
 
@@ -905,26 +914,25 @@
     .modal-fullscreen-active .sidebar {
         display: none !important;
     }
-}
 
-/* Custom scrollbar untuk progress details */
-.progress-details::-webkit-scrollbar {
-    width: 6px;
-}
+    /* Custom scrollbar untuk progress details */
+    .progress-details::-webkit-scrollbar {
+        width: 6px;
+    }
 
-.progress-details::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
+    .progress-details::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
 
-.progress-details::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-}
+    .progress-details::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
 
-.progress-details::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
+    .progress-details::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
 </style>
 
 <div class="main-container">
@@ -944,20 +952,19 @@
 
         <div class="d-flex flex-wrap gap-3">
             <!-- Generate Otomatis -->
-            <button class="btn btn-success btn-modern btn-sm fw-semibold d-flex align-items-center" id="generate-all-btn">
+            <button class="btn btn-success btn-modern btn-sm fw-semibold d-flex align-items-center"
+                id="generate-all-btn">
                 <i class="bi bi-magic me-2"></i>
                 Generate Otomatis
             </button>
             <!-- Download All -->
             <a href="{{ route('kwitansi.download-all') }}"
-                class="btn btn-info btn-modern btn-sm fw-semibold d-flex align-items-center" id="download-all-btn" {{
-                $kwitansis->count() === 0 ? 'disabled' : '' }}>
+                class="btn btn-info btn-modern btn-sm fw-semibold d-flex align-items-center" id="download-all-btn">
                 <i class="bi bi-download me-2"></i>
                 Download All
             </a>
             <!-- Hapus Semua -->
-            <button class="btn btn-danger btn-modern btn-sm fw-semibold d-flex align-items-center" id="delete-all-btn" {{
-                $kwitansis->count() === 0 ? 'disabled' : '' }}>
+            <button class="btn btn-danger btn-modern btn-sm fw-semibold d-flex align-items-center" id="delete-all-btn">
                 <i class="bi bi-trash me-2"></i>
                 Hapus Semua
             </button>
@@ -1051,7 +1058,7 @@
                         id="startDate" placeholder="Mulai" aria-label="Tanggal mulai">
                 </div>
             </div>
-    
+
             <!-- Filter Tanggal Akhir -->
             <div class="col-12 col-md-3 col-lg-2">
                 <label class="form-label fw-semibold text-dark mb-1 small">
@@ -1061,16 +1068,20 @@
                     <span class="input-group-text bg-light border-end-0">
                         <i class="bi bi-calendar-range text-muted"></i>
                     </span>
-                    <input type="date" class="form-control form-control-modern form-control-sm border-start-0" id="endDate"
-                        placeholder="Akhir" aria-label="Tanggal akhir">
+                    <input type="date" class="form-control form-control-modern form-control-sm border-start-0"
+                        id="endDate" placeholder="Akhir" aria-label="Tanggal akhir">
                 </div>
             </div>
-    
+
             <!-- Filter Tahun -->
             <div class="col-12 col-md-3 col-lg-2">
                 <label class="form-label fw-semibold text-dark mb-1 small">
                     <i class="bi bi-funnel me-1"></i>Tahun
                 </label>
+                @php
+                $selectedTahun = request()->input('tahun', $tahunAnggarans->first()->id ?? '');
+                @endphp
+
                 <select class="form-select form-select-modern form-select-sm" id="tahunFilter">
                     <option value="">Semua Tahun</option>
                     @foreach($tahunAnggarans as $tahun)
@@ -1080,7 +1091,7 @@
                     @endforeach
                 </select>
             </div>
-    
+
             <!-- Search Input -->
             <div class="col-12 col-md-6 col-lg-6">
                 <label class="form-label fw-semibold text-dark mb-1 small">
@@ -1093,7 +1104,8 @@
                     <input type="text"
                         class="form-control form-control-modern form-control-sm border-start-0 rounded-end-pill"
                         placeholder="Cari uraian, kode rekening, tanggal..." id="searchInput">
-                    <button class="btn btn-outline-secondary btn-sm rounded-pill ms-2 px-3" type="button" id="resetFilter">
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill ms-2 px-3" type="button"
+                        id="resetFilter">
                         <i class="bi bi-arrow-clockwise me-1"></i>Reset
                     </button>
                     <button class="btn btn-primary btn-sm rounded-pill ms-2 px-3" type="button" id="clearFilter">
@@ -1102,7 +1114,7 @@
                 </div>
             </div>
         </div>
-    
+
         <!-- Info Filter Aktif -->
         <div id="filterInfo" class="mt-3 small" style="display: none;">
             <span class="badge bg-info text-dark me-2">
@@ -1123,7 +1135,7 @@
         </div>
 
         <div class="card-body p-4">
-            @if($kwitansis->count() > 0)
+            <!-- TABEL UTAMA DENGAN ID YANG SESUAI DENGAN JAVASCRIPT -->
             <div class="table-responsive">
                 <table class="table table-modern table-hover align-middle mb-0">
                     <thead>
@@ -1136,7 +1148,9 @@
                             <th scope="col" class="text-center text-dark fw-medium">Aksi</th>
                         </tr>
                     </thead>
+                    <!-- TBODY DENGAN ID YANG SESUAI DENGAN JAVASCRIPT -->
                     <tbody id="kwitansi-tbody">
+                        @if($kwitansis->count() > 0)
                         @foreach($kwitansis as $index => $kwitansi)
                         <tr id="kwitansi-row-{{ $kwitansi->id }}" class="animate__animated animate__fadeIn">
                             <td class="fw-medium text-dark">
@@ -1167,17 +1181,20 @@
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
                                     <!-- Preview Button - Modal Trigger -->
-                                    <button class="btn btn-action btn-outline-primary preview-kwitansi" title="Lihat Preview"
-                                        data-id="{{ $kwitansi->id }}" data-bs-toggle="modal" data-bs-target="#previewModal">
+                                    <button class="btn btn-action btn-outline-primary preview-kwitansi"
+                                        title="Lihat Preview" data-id="{{ $kwitansi->id }}" data-bs-toggle="modal"
+                                        data-bs-target="#previewModal">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                     <!-- Download PDF -->
-                                    <a href="{{ route('kwitansi.pdf', $kwitansi->id) }}" class="btn btn-action btn-outline-success" title="Download PDF"
+                                    <a href="{{ route('kwitansi.pdf', $kwitansi->id ) }}"
+                                        class="btn btn-action btn-outline-success" title="Download PDF"
                                         data-bs-toggle="tooltip" target="_blank">
                                         <i class="bi bi-download"></i>
                                     </a>
                                     <!-- Hapus -->
-                                    <button class="btn btn-action btn-outline-danger delete-kwitansi" data-id="{{ $kwitansi->id }}"
+                                    <button class="btn btn-action btn-outline-danger delete-kwitansi"
+                                        data-id="{{ $kwitansi->id }}"
                                         data-uraian="{{ $kwitansi->bukuKasUmum->uraian_opsional ?? $kwitansi->bukuKasUmum->uraian }}"
                                         title="Hapus Kwitansi" data-bs-toggle="tooltip">
                                         <i class="bi bi-trash"></i>
@@ -1186,113 +1203,42 @@
                             </td>
                         </tr>
                         @endforeach
+                        @else
+                        <!-- EMPTY STATE DALAM TBODY -->
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="empty-state" style="padding: 2rem; background: transparent; border: none;">
+                                    <i class="bi bi-file-earmark-x empty-state-icon" style="font-size: 3rem;"></i>
+                                    <h4 class="text-dark mb-3">Belum ada data kwitansi</h4>
+                                    <p class="text-muted mb-4">Mulai dengan membuat kwitansi baru atau generate otomatis
+                                        dari data yang tersedia.</p>
+                                    <button class="btn btn-primary btn-modern" id="generate-empty-btn">
+                                        <i class="bi bi-magic me-2"></i>Generate Kwitansi Otomatis
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @endif
                     </tbody>
                 </table>
             </div>
 
-            <!-- PAGINATION - MENGGUNAKAN CUSTOM VIEW -->
-            @if($kwitansis->hasPages())
+            <!-- PAGINATION CONTAINER -->
             <div
                 class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 pt-3 border-top border-light">
-                <!-- Pagination Info -->
-                <div class="text-muted small mb-3 mb-md-0">
-                    Menampilkan <strong>{{ $kwitansis->firstItem() ?? 0 }}</strong>
-                    sampai <strong>{{ $kwitansis->lastItem() ?? 0 }}</strong>
-                    dari <strong>{{ $kwitansis->total() }}</strong> data
+                <div class="text-muted small mb-3 mb-md-0" id="pagination-info">
+                    Menampilkan data
                 </div>
-            
-                <!-- Pagination Links - CONTAINER YANG DIPERBAIKI -->
                 <nav aria-label="Page navigation">
                     <ul class="pagination pagination-simple mb-0" id="pagination-container">
-                        <!-- Previous Button -->
-                        @if($kwitansis->onFirstPage())
-                        <li class="page-item disabled">
-                            <span class="page-link">&laquo;</span>
-                        </li>
-                        @else
-                        <li class="page-item">
-                            <a class="page-link" href="{{ $kwitansis->previousPageUrl() }}" rel="prev">&laquo;</a>
-                        </li>
-                        @endif
-            
-                        <!-- Page Numbers -->
-                        @foreach($kwitansis->getUrlRange(1, $kwitansis->lastPage()) as $page => $url)
-                        @if($page == $kwitansis->currentPage())
-                        <li class="page-item active">
-                            <span class="page-link">{{ $page }}</span>
-                        </li>
-                        @else
-                        <li class="page-item">
-                            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
-                        </li>
-                        @endif
-                        @endforeach
-            
-                        <!-- Next Button -->
-                        @if($kwitansis->hasMorePages())
-                        <li class="page-item">
-                            <a class="page-link" href="{{ $kwitansis->nextPageUrl() }}" rel="next">&raquo;</a>
-                        </li>
-                        @else
-                        <li class="page-item disabled">
-                            <span class="page-link">&raquo;</span>
-                        </li>
+                        <!-- Pagination akan di-generate oleh JavaScript -->
+                        @if($kwitansis->count() > 0)
+                        {{ $kwitansis->links() }}
                         @endif
                     </ul>
                 </nav>
             </div>
-            @else
-            <!-- Tampilkan info jika hanya satu halaman -->
-            <div
-                class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 pt-3 border-top border-light">
-                <div class="text-muted small">
-                    Menampilkan semua <strong>{{ $kwitansis->total() }}</strong> data
-                </div>
-                <!-- Container pagination kosong untuk AJAX -->
-                <nav aria-label="Page navigation">
-                    <ul class="pagination pagination-simple mb-0" id="pagination-container" style="display: none;"></ul>
-                </nav>
-            </div>
-            @endif
-
-            @else
-            <!-- EMPTY STATE -->
-            <div class="empty-state">
-                <i class="bi bi-file-earmark-x empty-state-icon"></i>
-                <h4 class="text-dark mb-3">Belum ada data kwitansi</h4>
-                <p class="text-muted mb-4">Mulai dengan membuat kwitansi baru atau generate otomatis dari data yang
-                    tersedia.</p>
-                <button class="btn btn-primary btn-modern" id="generate-empty-btn">
-                    <i class="bi bi-magic me-2"></i>Generate Kwitansi Otomatis
-                </button>
-            </div>
-            @endif
         </div>
-
-        @if($kwitansis->count() > 0)
-        <div class="card-footer bg-transparent border-top border-light py-3">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-info-circle text-primary me-2"></i>
-                        <small class="text-muted">
-                            Total: <strong id="footer-total" class="text-primary">{{ $kwitansis->total() }}</strong>
-                            kwitansi ditemukan
-                        </small>
-                    </div>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <div class="d-flex align-items-center justify-content-end">
-                        <i class="bi bi-clock text-muted me-2"></i>
-                        <small class="text-muted">
-                            Terakhir diperbarui: <span id="last-updated" class="fw-semibold">{{ now()->format('d/m/Y
-                                H:i') }}</span>
-                        </small>
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
     </div>
 </div>
 
