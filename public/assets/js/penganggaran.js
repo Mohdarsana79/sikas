@@ -129,17 +129,22 @@ class PenganggaranManager {
     }
 
     deleteData(url, tahun, type) {
+        // Ambil CSRF token dari meta tag
+        const csrfToken = $('meta[name="csrf-token"]').attr('content');
+        
         $.ajax({
             url: url,
             type: 'POST',
             data: {
-                _token: '{{ csrf_token() }}',
+                _token: csrfToken,
                 _method: 'DELETE'
             },
             success: (response) => {
+                Swal.close();
                 this.showAlert('success', 'Berhasil!', `Data ${type} tahun ${tahun} berhasil dihapus`, true);
             },
             error: (xhr) => {
+                Swal.close();
                 let errorMessage = `Gagal menghapus data ${type}`;
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
