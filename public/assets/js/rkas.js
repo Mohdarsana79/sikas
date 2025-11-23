@@ -1731,30 +1731,47 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Cek status dari localStorage terlebih dahulu
-        if (checkSalinDataStatus()) {
-            hideSalinDataButton();
-            return;
-        }
-
-        if (!tahun) {
-            console.error('❌ [SALIN DATA] Tahun tidak ditemukan');
-            btnSalinData.disabled = true;
-            btnSalinData.title = 'Tahun anggaran tidak ditemukan';
-            btnSalinData.setAttribute('data-bs-toggle', 'tooltip');
-            new bootstrap.Tooltip(btnSalinData);
-            return;
-        }
-
         // Nonaktifkan tombol sementara
         btnSalinData.disabled = true;
         btnSalinData.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Memeriksa...';
 
-        const url = `/rkas/check-previous-perubahan?tahun=${tahun}`;
-        console.log('🔍 [SALIN DATA] Fetching URL:', url);
+        // CEK STATUS DATA RKAS SEKARANG TERLEBIH DAHULU
+        checkCurrentRkasData(tahun)
+            .then(hasCurrentData => {
+                if (hasCurrentData) {
+                    // Jika sudah ada data RKAS, sembunyikan tombol salin data
+                    hideSalinDataButton();
+                    console.log('✅ [SALIN DATA] Tombol disembunyikan - sudah ada data RKAS');
+                    return;
+                }
 
-        // Cek apakah ada data RKAS Perubahan tahun sebelumnya
-        fetch(url, {
+                // Jika tidak ada data RKAS, lanjutkan pengecekan data perubahan tahun sebelumnya
+                return checkPreviousYearPerubahan(tahun);
+            })
+            .then(hasPreviousPerubahan => {
+                if (hasPreviousPerubahan === undefined) return; // Sudah dihandle di step sebelumnya
+
+                if (hasPreviousPerubahan) {
+                    // Aktifkan tombol jika ada data perubahan tahun sebelumnya
+                    enableSalinDataButton();
+                    console.log('✅ [SALIN DATA] Button enabled - data available from previous year');
+                } else {
+                    // Nonaktifkan tombol jika tidak ada data
+                    disableSalinDataButton();
+                    console.log('ℹ️ [SALIN DATA] Button disabled - no data from previous year');
+                }
+            })
+            .catch(error => {
+                console.error('❌ [SALIN DATA] Error during initialization:', error);
+                disableSalinDataButton();
+            });
+    }
+
+    /**
+     * Cek apakah ada data RKAS untuk tahun berjalan
+     */
+    function checkCurrentRkasData(tahun) {
+        return fetch(`/rkas/check-rkas-data?tahun=${tahun}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -1763,58 +1780,75 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .then(response => {
-            console.log('🔍 [SALIN DATA] Response status:', response.status);
-            
             if (!response.ok) {
-                return response.text().then(text => {
-                    console.error('❌ [SALIN DATA] Response text:', text);
-                    let errorData;
-                    try {
-                        errorData = JSON.parse(text);
-                    } catch (e) {
-                        errorData = { message: `HTTP error! status: ${response.status}` };
-                    }
-                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-                });
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log('🔍 [SALIN DATA] API Response:', data);
-            
             if (data.success) {
-                if (data.has_previous_perubahan) {
-                    // Aktifkan tombol jika ada data
-                    btnSalinData.disabled = false;
-                    btnSalinData.innerHTML = '<i class="bi bi-copy me-2"></i>Salin Data';
-                    btnSalinData.removeAttribute('title');
-                    btnSalinData.removeAttribute('data-bs-toggle');
-                    
-                    // Hapus tooltip jika ada
-                    const tooltip = bootstrap.Tooltip.getInstance(btnSalinData);
-                    if (tooltip) {
-                        tooltip.dispose();
-                    }
-                    
-                    // Setup event listener
-                    btnSalinData.addEventListener('click', showSalinDataConfirmation);
-                    
-                    console.log('✅ [SALIN DATA] Button enabled - data available from year:', data.previous_year);
-                } else {
-                    // Nonaktifkan tombol jika tidak ada data
-                    disableSalinDataButton();
-                    console.log('ℹ️ [SALIN DATA] Button disabled - no data:', data.message);
-                }
+                console.log('🔍 [SALIN DATA] Current RKAS data status:', data.has_rkas_data ? 'ADA' : 'KOSONG');
+                return data.has_rkas_data;
             } else {
-                // Handle server error
                 throw new Error(data.message || 'Server returned error');
             }
         })
         .catch(error => {
-            console.error('❌ [SALIN DATA] Error checking previous year perubahan:', error);
-            disableSalinDataButton();
-            console.error('❌ [SALIN DATA] Button disabled due to error:', error.message);
+            console.error('❌ [SALIN DATA] Error checking current RKAS data:', error);
+            return false; // Default to false jika error
         });
+    }
+
+    /**
+     * Cek data perubahan tahun sebelumnya
+     */
+    function checkPreviousYearPerubahan(tahun) {
+        return fetch(`/rkas/check-previous-perubahan?tahun=${tahun}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                console.log('🔍 [SALIN DATA] Previous year perubahan status:', data.has_previous_perubahan ? 'ADA' : 'KOSONG');
+                return data.has_previous_perubahan;
+            } else {
+                throw new Error(data.message || 'Server returned error');
+            }
+        });
+    }
+
+    /**
+     * Aktifkan tombol salin data
+     */
+    function enableSalinDataButton() {
+        const btnSalinData = document.getElementById('btnSalinData');
+        if (btnSalinData) {
+            btnSalinData.disabled = false;
+            btnSalinData.innerHTML = '<i class="bi bi-copy me-2"></i>Salin Data';
+            btnSalinData.removeAttribute('title');
+            btnSalinData.removeAttribute('data-bs-toggle');
+            
+            // Hapus tooltip jika ada
+            const tooltip = bootstrap.Tooltip.getInstance(btnSalinData);
+            if (tooltip) {
+                tooltip.dispose();
+            }
+            
+            // Setup event listener
+            btnSalinData.addEventListener('click', showSalinDataConfirmation);
+            
+            console.log('✅ [SALIN DATA] Tombol salin data diaktifkan');
+        }
     }
 
     /**

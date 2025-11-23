@@ -2797,4 +2797,51 @@ class RkasController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Check if current year RKAS data exists
+     */
+    public function checkRkasData(Request $request)
+    {
+        try {
+            $tahun = $request->input('tahun');
+
+            if (!$tahun) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parameter tahun diperlukan'
+                ], 400);
+            }
+
+            // Cek apakah ada data penganggaran untuk tahun ini
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => true, // Tetap success karena ini kondisi normal
+                    'has_rkas_data' => false,
+                    'message' => 'Data penganggaran tahun ' . $tahun . ' tidak ditemukan'
+                ]);
+            }
+
+            // CEK APAKAH ADA DATA RKAS UNTUK TAHUN INI
+            $hasRkasData = Rkas::where('penganggaran_id', $penganggaran->id)->exists();
+
+            return response()->json([
+                'success' => true,
+                'has_rkas_data' => $hasRkasData,
+                'tahun' => $tahun,
+                'message' => $hasRkasData ?
+                    'Data RKAS tahun ' . $tahun . ' tersedia' :
+                    'Tidak ada data RKAS tahun ' . $tahun
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error checking RKAS data: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan server: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

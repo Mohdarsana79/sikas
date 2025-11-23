@@ -114,7 +114,7 @@ Route::middleware(['auth'])->prefix('penganggaran')->group(function () {
 Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
     // RKAS Perubahan
     Route::get('/', [RkasPerubahanController::class, 'index'])->name('rkas-perubahan.index');
-    Route::get('/rkas-perubahan/check-status', [RkasPerubahanController::class, 'checkStatusPerubahan'])
+    Route::get('/check-status', [RkasPerubahanController::class, 'checkStatusPerubahan'])
         ->name('rkas-perubahan.check-status');
 
     // ROUTE BARU UNTUK PROSES PENYALINAN DATA
@@ -186,10 +186,12 @@ Route::middleware(['auth'])->prefix('rkas')->group(function () {
     Route::post('/', [RkasController::class, 'store'])->name('rkas.store');
 
     // Routes untuk salin data - HARUS SEBELUM {id}
+    Route::get('/check-rkas-data', [RkasController::class, 'checkRkasData'])
+    ->name('rkas.check-rkas-data')->middleware('noCache');
     Route::get('/check-previous-perubahan', [RkasController::class, 'checkPreviousYearPerubahan'])
-        ->name('rkas.check-previous-perubahan');
+        ->name('rkas.check-previous-perubahan')->middleware('noCache');
     Route::post('/copy-previous-perubahan', [RkasController::class, 'copyPreviousYearPerubahan'])
-        ->name('rkas.copy-previous-perubahan');
+        ->name('rkas.copy-previous-perubahan')->middleware('noCache');
 
     // Routes untuk total tahap - HARUS SEBELUM {id}
     Route::get('/total-tahap1', [RkasController::class, 'getTotalTahap1'])->name('rkas.total-tahap1');
