@@ -15,6 +15,9 @@
                 </a>
             </div>
 
+            <!-- Hidden input untuk status perubahan -->
+            {{-- <input type="hidden" id="perubahan-status" value="{{ $hasPerubahan ? 'done' : 'pending' }}"> --}}
+
             <!-- Title and Status -->
             <div class="d-flex justify-content-between align-items-start mb-4">
                 <div>
@@ -1167,350 +1170,65 @@
     width: 1rem;
     height: 1rem;
 }
+
+/* Pastikan hanya satu tab yang aktif */
+#monthTabsContent .tab-pane {
+    display: none;
+}
+
+#monthTabsContent .tab-pane.show.active {
+    display: block;
+}
+
+/* Force hide inactive tabs */
+#monthTabsContent .tab-pane:not(.show):not(.active) {
+    display: none !important;
+}
 </style>
 <!-- JavaScript -->
 @push('scripts')
+<script src="{{ asset('assets/js/RkasManager.js') }}"></script>
+<script src="{{ asset('assets/js/ButtonRkasPerubahan.js') }}"></script>
 <script src="{{ asset('assets/js/rkas.js') }}"></script>
-@endpush
-
-@push('scripts')
 <script>
-    // Fungsi untuk menonaktifkan tabel dan tombol setelah perubahan
-            function disableRkasAfterPerubahan() {
-            // Nonaktifkan semua tabel
-            const tableContainers = document.querySelectorAll('.rkas-table-container');
-            tableContainers.forEach(container => {
-            container.classList.add('table-disabled');
-            });
-            
-            // Sembunyikan tombol tambah
-            const btnTambah = document.getElementById('btnTambah');
-            if (btnTambah) {
-            btnTambah.style.display = 'none';
+    // Inisialisasi ButtonRkasPerubahan Manager
+    document.addEventListener('DOMContentLoaded', function() {
+        // Buat instance ButtonRkasPerubahan
+        window.buttonRkasPerubahan = new ButtonRkasPerubahan();
+        
+        // Inisialisasi semua komponen
+        window.buttonRkasPerubahan.initialize();
+        
+        // Export fungsi global untuk kompatibilitas
+        window.syncPerubahanStatus = function() {
+            if (window.buttonRkasPerubahan) {
+                window.buttonRkasPerubahan.syncStatus();
             }
-            
-            // Nonaktifkan semua dropdown aksi
-            const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
-            dropdownToggles.forEach(toggle => {
-            toggle.disabled = true;
-            toggle.style.pointerEvents = 'none';
-            toggle.style.opacity = '0.6';
-            });
-            }
-            
-            // Fungsi untuk mengecek status perubahan saat halaman dimuat
-            function checkPerubahanStatusOnLoad() {
-            const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
-            
-            if (!tahun) return;
-            
-            fetch(`/rkas-perubahan/check-status?tahun=${tahun}`, {
-            method: 'GET',
-            headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'X-Requested-With': 'XMLHttpRequest'
-            }
-            })
-            .then(response => response.json())
-            .then(data => {
-            if (data.success && data.has_perubahan) {
-            disableRkasAfterPerubahan();
-            }
-            })
-            .catch(error => {
-            console.error('Error checking perubahan status:', error);
-            });
-            }
-            
-            // Panggil fungsi saat halaman dimuat
-            document.addEventListener('DOMContentLoaded', function() {
-            checkPerubahanStatusOnLoad();
-            
-            // Jika sudah ada status perubahan dari server, nonaktifkan langsung
-            @if($hasPerubahan)
-            disableRkasAfterPerubahan();
-            @endif
-            });
-        // Fungsi untuk menonaktifkan tombol perubahan
-        function disablePerubahanButton() {
-        const btnPerubahan = document.getElementById('btnPerubahan');
-        if (btnPerubahan && !btnPerubahan.disabled) {
-        btnPerubahan.disabled = true;
-        btnPerubahan.classList.add('disabled');
-        btnPerubahan.title = 'RKAS Perubahan sudah dilakukan';
-        
-        // Tambahkan tooltip
-        btnPerubahan.setAttribute('data-bs-toggle', 'tooltip');
-        btnPerubahan.setAttribute('data-bs-placement', 'top');
-        btnPerubahan.setAttribute('data-bs-title', 'Mohon Maaf Anda Telah Melakukan Perubahan, RKAS Perubahan hanya dapat dilakukan sekali, Terima Kasih Atas Antusias Anda');
-        
-        // Inisialisasi tooltip Bootstrap
-        const existingTooltip = bootstrap.Tooltip.getInstance(btnPerubahan);
-        if (existingTooltip) {
-        existingTooltip.dispose();
-        }
-        new bootstrap.Tooltip(btnPerubahan);
-        
-        // Simpan status di localStorage
-        const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
-        if (tahun) {
-        localStorage.setItem('rkas_perubahan_done_' + tahun, 'true');
-        }
-        
-        console.log('Tombol perubahan dinonaktifkan');
-        }
-        }
-        
-        // Fungsi untuk mengaktifkan tombol perubahan
-        function enablePerubahanButton() {
-            const btnPerubahan = document.getElementById('btnPerubahan');
-            if (btnPerubahan && btnPerubahan.disabled) {
-                btnPerubahan.disabled = false;
-                btnPerubahan.classList.remove('disabled');
-                btnPerubahan.removeAttribute('title');
-                btnPerubahan.removeAttribute('data-bs-toggle');
-                btnPerubahan.removeAttribute('data-bs-placement');
-                btnPerubahan.removeAttribute('data-bs-title');
-                
-                // Hapus tooltip jika ada
-                const tooltip = bootstrap.Tooltip.getInstance(btnPerubahan);
-                if (tooltip) {
-                    tooltip.dispose();
-                }
-                
-                // Hapus status dari localStorage
-                const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
-                if (tahun) {
-                    localStorage.removeItem('rkas_perubahan_done_' + tahun);
-                }
-            }
-        }
-        
-        // Fungsi untuk sync status dengan server
-        function syncPerubahanStatus() {
-            const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
-            
-            if (!tahun) return;
-        
-            // Cek status dari server untuk memastikan sync
-            fetch(`/rkas-perubahan/check-status?tahun=${tahun}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (data.has_perubahan) {
-                        // Jika server mengatakan sudah ada perubahan, disable tombol
-                        disablePerubahanButton();
-                    } else {
-                        // Jika server mengatakan belum ada perubahan, enable tombol
-                        enablePerubahanButton();
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error syncing perubahan status:', error);
-                // Fallback: gunakan localStorage status
-                const isDoneInLocalStorage = localStorage.getItem('rkas_perubahan_done_' + tahun) === 'true';
-                if (isDoneInLocalStorage) {
-                    disablePerubahanButton();
-                } else {
-                    enablePerubahanButton();
-                }
-            });
-        }
+        };
+    });
 
-       // Fungsi untuk handle form submission dengan AJAX
-    function handlePerubahanSubmission(event) {
-    event.preventDefault();
-    
-    const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
-    
-    if (!tahun) {
-    Swal.fire({
-    icon: 'error',
-    title: 'Error',
-    text: 'Tahun anggaran tidak ditemukan',
-    confirmButtonText: 'OK'
-    });
-    return;
-    }
-    
-    console.log('Memeriksa status perubahan untuk tahun:', tahun);
-    
-    // Cek status perubahan terlebih dahulu sebelum menampilkan konfirmasi
-    fetch(`{{ route('rkas-perubahan.check-status') }}?tahun=${tahun}`, {
-    method: 'GET',
-    headers: {
-    'Content-Type': 'application/json',
-    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-    'X-Requested-With': 'XMLHttpRequest'
-    }
-    })
-    .then(response => {
-    console.log('Response status:', response.status);
-    
-    if (!response.ok) {
-    // Jika response tidak ok, coba parse error message
-    return response.json().then(errorData => {
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-    }).catch(() => {
-    throw new Error(`HTTP error! status: ${response.status}`);
-    });
-    }
-    return response.json();
-    })
-    .then(data => {
-    console.log('Response data:', data);
-    
-    if (!data.success) {
-    throw new Error(data.message || 'Gagal memeriksa status perubahan');
-    }
-    
-    if (data.has_perubahan) {
-    // Jika sudah ada perubahan, tampilkan warning langsung
-    Swal.fire({
-    icon: 'warning',
-    title: 'Perubahan Sudah Dilakukan',
-    text: 'Mohon Maaf Anda Telah Melakukan Perubahan, RKAS Perubahan hanya dapat dilakukan sekali, Terima Kasih Atas Antusias Anda',
-    confirmButtonText: 'Mengerti'
-    });
-    
-    } else {
-    // Jika belum ada perubahan, tampilkan konfirmasi
-    showPerubahanConfirmation();
-    }
-    })
-    .catch(error => {
-    console.error('Error checking perubahan status:', error);
-    Swal.fire({
-    icon: 'error',
-    title: 'Error',
-    text: 'Terjadi kesalahan saat memeriksa status perubahan: ' + error.message,
-    confirmButtonText: 'OK'
-    });
-    });
-    }
-        
-        // Fungsi untuk menampilkan konfirmasi perubahan
-        function showPerubahanConfirmation() {
-        const tahun = document.querySelector('input[name="tahun_anggaran"]')?.value;
-        
+    // Handle SweetAlert untuk flash messages
+    @if(session('warning'))
+    document.addEventListener('DOMContentLoaded', function() {
         Swal.fire({
-        title: 'Konfirmasi Perubahan',
-        text: 'Apakah Anda yakin ingin membuat RKAS Perubahan? Data RKAS saat ini akan disalin.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Ya, Buat Perubahan',
-        cancelButtonText: 'Batal',
-        showLoaderOnConfirm: true,
-        preConfirm: async () => {
-        try {
-        // Submit form menggunakan AJAX
-        const formData = new FormData(document.getElementById('perubahanForm'));
-        
-        const response = await fetch('{{ route('rkas-perubahan.salin') }}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-        'X-Requested-With': 'XMLHttpRequest'
-        }
+            icon: 'warning',
+            title: 'Perubahan Sudah Dilakukan',
+            text: '{{ session('warning') }}',
+            confirmButtonText: 'Mengerti'
         });
-        
-        // Handle response properly
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-        const data = await response.json();
-        
-        if (data.success) {
-        return data;
-        } else {
-        // Tampilkan error message dari server
-        throw new Error(data.message || 'Gagal membuat perubahan');
-        }
-        } else {
-        // Handle non-JSON response
-        const text = await response.text();
-        throw new Error(`Unexpected response: ${text}`);
-        }
-        } catch (error) {
-        Swal.showValidationMessage(
-        `Error: ${error.message}`
-        );
-        return false;
-        }
-        },
-        allowOutsideClick: () => !Swal.isLoading()
-        }).then((result) => {
-        if (result.isConfirmed) {
-        if (result.value && result.value.success) {
-            // Nonaktifkan tombol dan tabel setelah berhasil
-            disableRkasAfterPerubahan();
-        
-        Swal.fire({
-        icon: 'success',
-        title: 'Berhasil',
-        text: result.value.message || 'Data RKAS berhasil disalin ke RKAS Perubahan.',
-        confirmButtonText: 'OK'
-        }).then(() => {
-        // Redirect ke halaman RKAS Perubahan
-        if (result.value.redirect) {
-        window.location.href = result.value.redirect;
-        }
-        });
-        }
-        }
-        });
-        }
+    });
+    @endif
 
-        
-        
-        // Event listener untuk halaman RKAS
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cek apakah kita berada di halaman RKAS
-            const isRkasPage = window.location.pathname.includes('/rkas') && 
-                              !window.location.pathname.includes('/rkas-perubahan');
-            
-            if (isRkasPage) {
-                // Setup event listener untuk form perubahan
-                const perubahanForm = document.getElementById('perubahanForm');
-                if (perubahanForm) {
-                    perubahanForm.addEventListener('submit', handlePerubahanSubmission);
-                }
-                
-                // Sync status dengan server saat halaman dimuat
-                syncPerubahanStatus();
-                
-                // Tangani pesan flash dari server
-                @if(session('warning'))
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Perubahan Sudah Dilakukan',
-                        text: '{{ session('warning') }}',
-                        confirmButtonText: 'Mengerti'
-                    });
-                @endif
-        
-                @if(session('success'))
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: '{{ session('success') }}',
-                        confirmButtonText: 'OK'
-                    });
-                @endif
-                
-            }
+    @if(session('success'))
+    document.addEventListener('DOMContentLoaded', function() {
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: '{{ session('success') }}',
+            confirmButtonText: 'OK'
         });
-        
-        window.syncPerubahanStatus = syncPerubahanStatus;
+    });
+    @endif
 </script>
 @endpush
 @endsection

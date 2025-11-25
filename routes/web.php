@@ -113,7 +113,7 @@ Route::middleware(['auth'])->prefix('rkas-perubahan')->group(function () {
         ->name('rkas-perubahan.check-status');
 
     // ROUTE BARU UNTUK PROSES PENYALINAN DATA
-    Route::post('/rkas-perubahan/salin', [RkasPerubahanController::class, 'salinDariRkas'])
+    Route::post('/salin', [RkasPerubahanController::class, 'salinDariRkas'])
         ->name('rkas-perubahan.salin');
 
     Route::get('/search', [RkasPerubahanController::class, 'search'])->name('rkas-perubahan.search');

@@ -22,7 +22,7 @@
     
 </head>
 
-<body>
+<body data-has-perubahan="{{ isset($hasPerubahan) && $hasPerubahan ? 'true' : 'false' }}">
     <!-- Sidebar -->
     @yield('sidebar')
 

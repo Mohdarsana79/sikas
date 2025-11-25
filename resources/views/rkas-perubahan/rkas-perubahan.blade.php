@@ -967,6 +967,6 @@
 </style>
 <!-- JavaScript -->
 @push('scripts')
-<script src="{{ asset('assets/js/rkas-perubahan.js') }}"></script>
+<script src="{{ asset('assets/js/RkasPerubahanManager.js') }}"></script>
 @endpush
 @endsection
