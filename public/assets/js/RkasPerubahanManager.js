@@ -4,6 +4,8 @@ class RkasPerubahanManager {
         this.currentRkasId = null;
         this.months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
         this.isSearching = false;
+
+        this.tambahFirstSatuanValue = '';
         
         this.init();
     }
@@ -22,6 +24,7 @@ class RkasPerubahanManager {
         this.updateTahapCards();
         this.initializeTabs();
         this.initializeRkasPerubahanSearch();
+        this.initializeTambahModal();
     }
 
     setupEventListeners() {
@@ -30,6 +33,7 @@ class RkasPerubahanManager {
         this.setupTabEvents();
         this.setupDeleteButton();
         this.setupHargaSatuanEvents();
+        this.setupTambahFormSubmission();
     }
 
     // ========== UTILITY FUNCTIONS ==========
@@ -449,6 +453,588 @@ class RkasPerubahanManager {
         
         return isNaN(numericValue) ? 0 : numericValue;
     }
+
+    // ========== TAMBAH RKAS FUNCTIONS ==========
+
+    // Method untuk handle form submit tambah data
+    setupTambahFormSubmission() {
+        const tambahForm = document.getElementById('tambahRkasForm');
+        if (!tambahForm) return;
+
+        tambahForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleTambahSubmit(e);
+        });
+    }
+
+    // Handle submit form tambah
+    handleTambahSubmit(e) {
+        e.preventDefault();
+        
+        console.log('🔧 [TAMBAH DEBUG] Starting tambah form submission...');
+        
+        if (!this.validateTambahForm()) {
+            console.error('❌ [TAMBAH DEBUG] Form validation failed');
+            return false;
+        }
+        
+        const submitBtn = document.querySelector('#tambahRkasForm button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<span class="loading-spinner me-2"></span>Menyimpan...';
+            submitBtn.disabled = true;
+        }
+        
+        // Prepare form data
+        const formData = new FormData(document.getElementById('tambahRkasForm'));
+        
+        // Update hidden harga_satuan_actual dengan nilai numeric
+        const hargaSatuanValue = this.getTambahHargaSatuanValue();
+        formData.set('harga_satuan', hargaSatuanValue.toString());
+        
+        console.log('🔧 [TAMBAH DEBUG] FormData content:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`  ${key}:`, value);
+        }
+        
+        // Send AJAX request
+        this.ajaxStoreRkasPerubahan(formData)
+            .then(data => {
+                console.log('🔧 [TAMBAH DEBUG] Success:', data);
+                
+                // Tutup modal
+                const tambahModal = bootstrap.Modal.getInstance(document.getElementById('tambahRkasModal'));
+                if (tambahModal) {
+                    tambahModal.hide();
+                }
+                
+                // Refresh data
+                this.superFastRefreshActiveTab();
+                
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: data.message,
+                    confirmButtonText: 'OK',
+                    timer: 1500,
+                    timerProgressBar: true
+                });
+                
+            })
+            .catch(error => {
+                console.error('❌ [TAMBAH DEBUG] Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Simpan Gagal',
+                    text: error.message,
+                    confirmButtonText: 'Mengerti'
+                });
+            })
+            .finally(() => {
+                // Reset submit button
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Data';
+                    submitBtn.disabled = false;
+                }
+            });
+    }
+
+    // AJAX store function
+    ajaxStoreRkasPerubahan(formData) {
+        console.log('🔧 [TAMBAH DEBUG] Starting AJAX store...');
+        
+        return new Promise((resolve, reject) => {
+            fetch('/rkas-perubahan', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(async response => {
+                console.log('🔧 [TAMBAH DEBUG] Response status:', response.status);
+                const responseText = await response.text();
+                console.log('🔧 [TAMBAH DEBUG] Response text:', responseText);
+                
+                try {
+                    return JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error(`Invalid JSON response: ${responseText}`);
+                }
+            })
+            .then(data => {
+                console.log('🔧 [TAMBAH DEBUG] Store response:', data);
+                if (data.success) {
+                    resolve(data);
+                } else {
+                    let errorMessage = data.message || 'Gagal menyimpan data';
+                    if (data.errors) {
+                        errorMessage += '\n\n' + Object.values(data.errors).flat().join('\n');
+                    }
+                    reject(new Error(errorMessage));
+                }
+            })
+            .catch(error => {
+                console.error('❌ [TAMBAH DEBUG] Error storing data:', error);
+                reject(error);
+            });
+        });
+    }
+
+    // Validasi form tambah
+    validateTambahForm() {
+        let isValid = true;
+        const errorMessages = [];
+
+        // Reset semua error terlebih dahulu
+        document.querySelectorAll('#tambahRkasForm .is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+        });
+
+        // Validasi field required dasar
+        const requiredFields = [
+            { element: document.getElementById('kegiatan'), name: 'Kegiatan' },
+            { element: document.getElementById('rekening_belanja'), name: 'Rekening Belanja' },
+            { element: document.getElementById('uraian'), name: 'Uraian' },
+            { element: document.getElementById('harga_satuan'), name: 'Harga Satuan' }
+        ];
+
+        requiredFields.forEach(field => {
+            if (!field.element || !field.element.value.trim()) {
+                isValid = false;
+                field.element?.classList.add('is-invalid');
+                errorMessages.push(`${field.name} harus diisi`);
+            }
+        });
+
+        // Validasi harga satuan harus lebih dari 0
+        const hargaSatuanValue = this.getTambahHargaSatuanValue();
+        if (hargaSatuanValue <= 0) {
+            isValid = false;
+            document.getElementById('harga_satuan').classList.add('is-invalid');
+            errorMessages.push('Harga satuan harus lebih dari 0');
+        }
+
+        // Validasi minimal satu bulan terisi
+        const bulanCards = document.querySelectorAll('#tambahRkasForm .anggaran-bulan-card');
+        if (bulanCards.length === 0) {
+            isValid = false;
+            errorMessages.push('Minimal harus ada satu bulan yang diisi');
+        }
+
+        // Validate month uniqueness dan validasi bulan
+        const selectedMonths = [];
+        const monthSelects = document.querySelectorAll('#tambahRkasForm .bulan-input');
+
+        monthSelects.forEach(function(select) {
+            select.classList.remove('is-invalid');
+            const month = select.value;
+            
+            if (!month) {
+                isValid = false;
+                select.classList.add('is-invalid');
+                errorMessages.push('Semua bulan harus dipilih');
+            } else {
+                if (selectedMonths.includes(month)) {
+                    isValid = false;
+                    select.classList.add('is-invalid');
+                    errorMessages.push('Tidak boleh ada bulan yang sama dalam satu kegiatan');
+                }
+                selectedMonths.push(month);
+            }
+        });
+
+        // Validasi jumlah harus lebih dari 0 untuk setiap bulan
+        const jumlahInputs = document.querySelectorAll('#tambahRkasForm .jumlah-input');
+        jumlahInputs.forEach(function(input) {
+            input.classList.remove('is-invalid');
+            const value = parseInt(input.value);
+            if (isNaN(value) || value <= 0) {
+                isValid = false;
+                input.classList.add('is-invalid');
+                errorMessages.push('Jumlah harus lebih dari 0 untuk semua bulan');
+            }
+        });
+
+        // Validasi satuan harus diisi
+        const satuanInputs = document.querySelectorAll('#tambahRkasForm .satuan-input');
+        satuanInputs.forEach(function(input) {
+            input.classList.remove('is-invalid');
+            if (!input.value.trim()) {
+                isValid = false;
+                input.classList.add('is-invalid');
+                errorMessages.push('Satuan harus diisi untuk semua bulan');
+            }
+        });
+
+        if (!isValid) {
+            const uniqueMessages = [...new Set(errorMessages)];
+            Swal.fire({
+                icon: 'error',
+                title: 'Validasi Gagal',
+                html: uniqueMessages.join('<br>'),
+                confirmButtonText: 'Mengerti'
+            });
+        }
+
+        return isValid;
+    }
+
+    // Get harga satuan value untuk form tambah
+    getTambahHargaSatuanValue() {
+        const hargaSatuanInput = document.getElementById('harga_satuan');
+        if (!hargaSatuanInput || !hargaSatuanInput.value) return 0;
+        
+        return this.parseRupiahToNumber(hargaSatuanInput.value);
+    }
+
+    // Parse rupiah format to number
+    parseRupiahToNumber(rupiah) {
+        if (!rupiah) return 0;
+        const numericString = rupiah.toString().replace(/[^\d]/g, '');
+        return parseInt(numericString) || 0;
+    }
+
+    // ========== MODAL TAMBAH FUNCTIONS ==========
+
+    // Inisialisasi modal tambah
+    initializeTambahModal() {
+        const tambahModal = document.getElementById('tambahRkasModal');
+        if (!tambahModal) return;
+
+        // Event ketika modal dibuka
+        tambahModal.addEventListener('show.bs.modal', () => {
+            this.initializeTambahAnggaranList();
+            this.initializeTambahSelect2();
+            this.setupTambahHargaSatuanEvents();
+        });
+
+        // Event ketika modal ditutup
+        tambahModal.addEventListener('hidden.bs.modal', () => {
+            this.resetTambahForm();
+        });
+    }
+
+    // Setup events untuk harga satuan di form tambah
+    setupTambahHargaSatuanEvents() {
+        const hargaSatuanInput = document.getElementById('harga_satuan');
+        if (!hargaSatuanInput) return;
+
+        let isFormatting = false;
+
+        hargaSatuanInput.addEventListener('input', (e) => {
+            if (isFormatting) return;
+            
+            isFormatting = true;
+            
+            const input = e.target;
+            let value = input.value.replace(/[^\d]/g, '');
+            
+            if (value) {
+                const formattedValue = this.formatRupiah(value);
+                input.value = formattedValue;
+            } else {
+                input.value = '';
+            }
+            
+            isFormatting = false;
+            setTimeout(() => this.updateTambahTotalAnggaran(), 50);
+        });
+
+        hargaSatuanInput.addEventListener('blur', (e) => {
+            const input = e.target;
+            let value = input.value.replace(/[^\d]/g, '');
+            
+            if (value) {
+                const formattedValue = this.formatRupiah(value);
+                input.value = formattedValue;
+            }
+            
+            this.updateTambahTotalAnggaran();
+        });
+
+        // Validasi input - hanya angka yang diperbolehkan
+        hargaSatuanInput.addEventListener('keydown', (e) => {
+            // Izinkan: backspace, delete, tab, escape, enter, arrow keys
+            if ([46, 8, 9, 27, 13, 110, 190].includes(e.keyCode) ||
+                // Izinkan: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && e.ctrlKey === true) || 
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true) ||
+                // Izinkan: home, end, left, right
+                (e.keyCode >= 35 && e.keyCode <= 39)) {
+                return;
+            }
+            
+            // Pastikan hanya angka yang dimasukkan
+            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    // Inisialisasi select2 untuk form tambah
+    initializeTambahSelect2() {
+        $('.select2-kegiatan').select2({
+            placeholder: '-- Pilih Kegiatan --',
+            allowClear: true,
+            dropdownParent: $('#tambahRkasModal'),
+            templateResult: this.formatKegiatanOption.bind(this),
+            templateSelection: this.formatKegiatanSelection.bind(this),
+            escapeMarkup: function(markup) {
+                return markup;
+            }
+        });
+
+        $('.select2-rekening').select2({
+            placeholder: '-- Pilih Rekening Belanja --',
+            allowClear: true,
+            dropdownParent: $('#tambahRkasModal'),
+            templateResult: this.formatRekeningOption.bind(this),
+            templateSelection: this.formatRekeningSelection.bind(this),
+            escapeMarkup: function(markup) {
+                return markup;
+            }
+        });
+    }
+
+    // Reset form tambah
+    resetTambahForm() {
+        const form = document.getElementById('tambahRkasForm');
+        if (form) {
+            form.reset();
+        }
+        
+        const container = document.getElementById('bulanContainer');
+        if (container) {
+            container.innerHTML = '';
+        }
+        
+        const totalAnggaran = document.getElementById('total-anggaran');
+        if (totalAnggaran) {
+            totalAnggaran.textContent = 'Rp 0';
+        }
+        
+        this.tambahFirstSatuanValue = '';
+        
+        // Reset Select2
+        $('.select2-kegiatan').val(null).trigger('change');
+        $('.select2-rekening').val(null).trigger('change');
+    }
+
+    // Inisialisasi list anggaran untuk tambah
+    initializeTambahAnggaranList() {
+        const container = document.getElementById('bulanContainer');
+        if (!container) return;
+
+        container.innerHTML = '';
+        this.tambahFirstSatuanValue = '';
+        
+        const initialCard = this.createTambahAnggaranCard();
+        const tambahBtnCard = this.createTambahButtonCard();
+        container.appendChild(initialCard);
+        container.appendChild(tambahBtnCard);
+        
+        this.checkTambahButtonVisibility();
+        this.updateTambahTotalAnggaran();
+    }
+
+    // Create card untuk form tambah
+    createTambahAnggaranCard() {
+        const card = document.createElement('div');
+        card.className = 'anggaran-bulan-card';
+        card.innerHTML = `
+            <button type="button" class="delete-btn" title="Hapus bulan">
+                <i class="bi bi-x"></i>
+            </button>
+            <div class="bulan-input-group">
+                <select class="form-control bulan-input" name="bulan[]" required>
+                    <option value="">Pilih Bulan</option>
+                    ${this.months.map(b => `<option value="${b}">${b}</option>`).join('')}
+                </select>
+                <span class="month-total">Rp 0</span>
+            </div>
+            <div class="jumlah-satuan-group">
+                <div class="input-icon-left">
+                    <i class="bi bi-hash"></i>
+                    <input type="number" class="form-control jumlah-input" name="jumlah[]" placeholder="Jumlah" min="1" required>
+                </div>
+                <input type="text" class="form-control satuan-input" name="satuan[]" placeholder="Satuan" required>
+            </div>
+        `;
+        
+        const deleteBtn = card.querySelector('.delete-btn');
+        deleteBtn.addEventListener('click', () => {
+            const cards = document.querySelectorAll('#tambahRkasForm .anggaran-bulan-card');
+            if (cards.length > 1) {
+                card.remove();
+                this.checkTambahButtonVisibility();
+                this.updateTambahTotalAnggaran();
+                
+                // Jika card pertama dihapus, reset sync satuan
+                const firstCard = document.querySelector('#tambahRkasForm .anggaran-bulan-card');
+                if (firstCard) {
+                    const firstSatuanInput = firstCard.querySelector('.satuan-input');
+                    this.tambahFirstSatuanValue = firstSatuanInput.value;
+                    this.updateTambahSatuanOtomatis(this.tambahFirstSatuanValue);
+                }
+            } else {
+                Swal.fire('Peringatan', 'Minimal harus ada satu bulan', 'warning');
+            }
+        });
+
+        const jumlahInput = card.querySelector('.jumlah-input');
+        const bulanSelect = card.querySelector('.bulan-input');
+        const satuanInput = card.querySelector('.satuan-input');
+        
+        jumlahInput.addEventListener('input', () => {
+            this.validateTambahJumlahInput(jumlahInput);
+            setTimeout(() => this.updateTambahTotalAnggaran(), 10);
+        });
+        
+        bulanSelect.addEventListener('change', () => {
+            setTimeout(() => this.updateTambahTotalAnggaran(), 10);
+        });
+        
+        satuanInput.addEventListener('input', (e) => {
+            const isFirstCard = card === document.querySelector('#tambahRkasForm .anggaran-bulan-card');
+            if (isFirstCard) {
+                this.tambahFirstSatuanValue = e.target.value;
+                this.updateTambahSatuanOtomatis(this.tambahFirstSatuanValue);
+            }
+        });
+
+        satuanInput.addEventListener('change', (e) => {
+            const isFirstCard = card === document.querySelector('#tambahRkasForm .anggaran-bulan-card');
+            if (isFirstCard) {
+                this.tambahFirstSatuanValue = e.target.value;
+                this.updateTambahSatuanOtomatis(this.tambahFirstSatuanValue);
+            }
+        });
+
+        card.addEventListener('click', (e) => {
+            if (!e.target.closest('.delete-btn')) {
+                const allCards = document.querySelectorAll('#tambahRkasForm .anggaran-bulan-card');
+                allCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+            }
+        });
+
+        if (this.tambahFirstSatuanValue) {
+            satuanInput.value = this.tambahFirstSatuanValue;
+            satuanInput.readOnly = true;
+        }
+
+        return card;
+    }
+
+    // Create button tambah bulan
+    createTambahButtonCard() {
+        const btnCard = document.createElement('div');
+        btnCard.className = 'btn-tambah-card';
+        btnCard.innerHTML = `
+            <button class="btn-tambah" id="btn-tambah-bulan">
+                <i class="bi bi-plus-circle me-2"></i>Tambah Bulan
+            </button>
+        `;
+        
+        const tambahBtn = btnCard.querySelector('#btn-tambah-bulan');
+        tambahBtn.addEventListener('click', () => this.handleTambahBulanClick());
+        
+        return btnCard;
+    }
+
+    // Handle klik tombol tambah bulan
+    handleTambahBulanClick() {
+        const cards = document.querySelectorAll('#tambahRkasForm .anggaran-bulan-card');
+        if (cards.length >= 12) {
+            Swal.fire('Peringatan', 'Maksimal 12 bulan dalam setahun', 'warning');
+            return;
+        }
+
+        const container = document.getElementById('bulanContainer');
+        const newCard = this.createTambahAnggaranCard();
+        const tambahBtnCard = document.querySelector('#tambahRkasForm .btn-tambah-card');
+        container.insertBefore(newCard, tambahBtnCard);
+        
+        this.checkTambahButtonVisibility();
+        setTimeout(() => this.updateTambahTotalAnggaran(), 50);
+    }
+
+    // Validasi input jumlah
+    validateTambahJumlahInput(input) {
+        const value = parseInt(input.value);
+        if (isNaN(value) || value < 1) {
+            input.classList.add('is-invalid');
+            input.value = '';
+        } else {
+            input.classList.remove('is-invalid');
+            input.value = value;
+        }
+    }
+
+    // Update satuan otomatis
+    updateTambahSatuanOtomatis(satuanValue) {
+        if (!satuanValue) return;
+        
+        const allCards = document.querySelectorAll('#tambahRkasForm .anggaran-bulan-card');
+        allCards.forEach((card, index) => {
+            if (index > 0) {
+                const satuanInput = card.querySelector('.satuan-input');
+                if (satuanInput) {
+                    satuanInput.value = satuanValue;
+                    satuanInput.readOnly = true;
+                }
+            } else {
+                const satuanInput = card.querySelector('.satuan-input');
+                if (satuanInput) {
+                    satuanInput.readOnly = false;
+                }
+            }
+        });
+    }
+
+    // Check visibility tombol tambah
+    checkTambahButtonVisibility() {
+        const cards = document.querySelectorAll('#tambahRkasForm .anggaran-bulan-card');
+        const tambahBtnCard = document.querySelector('#tambahRkasForm .btn-tambah-card');
+        
+        if (tambahBtnCard) {
+            if (cards.length >= 12) {
+                tambahBtnCard.style.display = 'none';
+            } else {
+                tambahBtnCard.style.display = 'flex';
+            }
+        }
+    }
+
+    // Update total anggaran untuk form tambah
+    updateTambahTotalAnggaran() {
+        let total = 0;
+        const hargaSatuan = this.getTambahHargaSatuanValue();
+
+        document.querySelectorAll('#tambahRkasForm .anggaran-bulan-card').forEach((card) => {
+            const jumlahInput = card.querySelector('.jumlah-input');
+            const jumlah = parseInt(jumlahInput?.value) || 0;
+            const monthTotal = hargaSatuan * jumlah;
+
+            const monthTotalEl = card.querySelector('.month-total');
+            if (monthTotalEl) {
+                monthTotalEl.textContent = 'Rp ' + this.formatNumber(monthTotal);
+            }
+            total += monthTotal;
+        });
+
+        const totalDisplay = document.getElementById('total-anggaran');
+        if (totalDisplay) {
+            totalDisplay.textContent = 'Rp ' + this.formatNumber(total);
+        }
+    }
+
+    // Property untuk menyimpan nilai satuan pertama
+    tambahFirstSatuanValue = '';
 
     initializeEditAnggaranList(data = [], lockedMonths = [], allowedMonths = []) {
         const container = document.getElementById('edit_bulanContainer');
@@ -1454,7 +2040,7 @@ class RkasPerubahanManager {
             editForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 
-                console.log('🔧 [UPDATE DEBUG] Starting form submission...');
+                console.log('🔧 [UPDATE DEBUG] Starting AJAX form submission...');
                 
                 if (!this.validateEditForm()) {
                     console.error('❌ [UPDATE DEBUG] Form validation failed');
@@ -1587,72 +2173,253 @@ class RkasPerubahanManager {
                     console.log(`  ${key}:`, value);
                 }
                 
-                fetch(editForm.action, {
-                    method: 'POST',
-                    body: formDataObj,
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(async response => {
-                    console.log('🔧 [UPDATE DEBUG] Response status:', response.status);
-                    const responseText = await response.text();
-                    console.log('🔧 [UPDATE DEBUG] Response text:', responseText);
-                    
-                    try {
-                        return JSON.parse(responseText);
-                    } catch (e) {
-                        throw new Error(`Invalid JSON response: ${responseText}`);
-                    }
-                })
-                .then(data => {
-                    console.log('🔧 [UPDATE DEBUG] Update response:', data);
-                    if (data.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil!',
-                            text: data.message,
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            const editModal = bootstrap.Modal.getInstance(document.getElementById('editRkasModal'));
-                            if (editModal) {
-                                editModal.hide();
-                            }
-                            location.reload();
-                        });
-                    } else {
-                        let errorMessage = data.message || 'Gagal mengupdate data';
-                        if (data.errors) {
-                            errorMessage += '\n\n' + Object.values(data.errors).flat().join('\n');
+                // Di dalam success handler AJAX update - PERBAIKI INI
+                this.ajaxUpdateRkasPerubahan(formDataObj, editForm)
+                    .then(data => {
+                        console.log('🔧 [AJAX UPDATE] Success:', data);
+                        
+                        // Tutup modal edit IMMEDIATELY
+                        const editModal = bootstrap.Modal.getInstance(document.getElementById('editRkasModal'));
+                        if (editModal) {
+                            editModal.hide();
                         }
-                        throw new Error(errorMessage);
-                    }
-                })
-                .catch(error => {
-                    console.error('❌ [UPDATE DEBUG] Error updating data:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Update Gagal',
-                        html: `
-                            <div style="text-align: left;">
-                                <p><strong>Terjadi kesalahan:</strong></p>
-                                <p>${error.message}</p>
-                                <hr>
-                                <small>Periksa data yang dimasukkan dan coba lagi.</small>
-                            </div>
-                        `,
-                        confirmButtonText: 'Mengerti'
+                        
+                        // Refresh data IMMEDIATELY (sebelum show alert)
+                        this.superFastRefreshActiveTab();
+                        
+                        // Tampilkan success message SETELAH refresh (bisa lebih lambat)
+                        setTimeout(() => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: data.message,
+                                confirmButtonText: 'OK',
+                                timer: 1000,
+                                timerProgressBar: true,
+                                didOpen: () => {
+                                    // Data sudah di-refresh sebelum alert muncul
+                                    console.log('🔧 [SUCCESS] Data refreshed before alert shown');
+                                }
+                            });
+                        }, 50); // Delay kecil 50ms untuk alert
+                        
+                    })
+                    .catch(error => {
+                        console.error('❌ [AJAX UPDATE] Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Update Gagal',
+                            html: `
+                                <div style="text-align: left;">
+                                    <p><strong>Terjadi kesalahan:</strong></p>
+                                    <p>${error.message}</p>
+                                    <hr>
+                                    <small>Periksa data yang dimasukkan dan coba lagi.</small>
+                                </div>
+                            `,
+                            confirmButtonText: 'Mengerti'
+                        });
                     });
-                })
-                .finally(() => {
-                    if (submitBtn) {
-                        submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Update Data';
-                        submitBtn.disabled = false;
-                    }
-                });
             });
         }
+    }
+
+    // ========== SUPER FAST REFRESH - ACTIVE TAB ONLY ==========
+    superFastRefreshActiveTab() {
+        console.log('⚡ [SUPER FAST] Refreshing active tab only...');
+        
+        // Dapatkan tab aktif
+        const activeTab = document.querySelector('#monthTabs .nav-link.active');
+        const activeMonth = activeTab ? activeTab.getAttribute('data-month') : 'Januari';
+        const activeMonthLower = activeMonth.toLowerCase();
+        
+        console.log('⚡ [SUPER FAST] Active month:', activeMonth);
+        
+        const tahunAnggaran = document.querySelector('input[name="tahun_anggaran"]').value;
+        const tableBody = document.getElementById(`table-body-${activeMonthLower}`);
+        
+        if (!tableBody) {
+            console.error('❌ [SUPER FAST] Table body not found for:', activeMonth);
+            return;
+        }
+        
+        // Tampilkan loading indicator super cepat
+        this.showSuperFastLoading(activeMonthLower);
+        
+        // Request data - tanpa abort controller untuk menghindari delay
+        fetch(`/rkas-perubahan/bulan/${activeMonth}?tahun=${tahunAnggaran}&_=${Date.now()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            console.log('⚡ [SUPER FAST] Data received for', activeMonth, ':', data);
+            
+            if (data.success) {
+                if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+                    console.log('⚡ [SUPER FAST] Found', data.data.length, 'items');
+                    this.updateTableInstantly(activeMonth, data.data);
+                } else {
+                    console.log('⚡ [SUPER FAST] No data found');
+                    this.showNoDataMessageInstantly(activeMonth);
+                }
+                
+                // Update totals secara terpisah (bisa lebih lambat)
+                this.updateTotalsAsync();
+            }
+        })
+        .catch(error => {
+            console.error('❌ [SUPER FAST] Error:', error);
+            this.showTableErrorInstantly(activeMonth, error.message);
+        });
+    }
+
+    // ========== INSTANT TABLE UPDATE ==========
+    updateTableInstantly(month, items) {
+        const tableBody = document.getElementById(`table-body-${month.toLowerCase()}`);
+        if (!tableBody) return;
+
+        console.log('⚡ [INSTANT UPDATE] Updating table for', month);
+        
+        const lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+        const isLockedMonth = lockedMonths.includes(month);
+        
+        let html = '';
+        let total = 0;
+
+        // Build rows
+        items.forEach((item, index) => {
+            const itemTotal = this.calculateItemTotal(item);
+            total += itemTotal;
+
+            html += `
+            <tr data-id="${item.id}" data-kode-id="${item.kode_id}" data-rekening-id="${item.kode_rekening_id}">
+                <td>${index + 1}</td>
+                <td>${item.program_kegiatan || item.program || '-'}</td>
+                <td>${item.kegiatan || item.sub_program || '-'}</td>
+                <td>${item.rekening_belanja || item.rincian_objek || '-'}</td>
+                <td>${item.uraian || '-'}</td>
+                <td>${item.jumlah || item.dianggaran || '0'}</td>
+                <td>0</td>
+                <td>${item.satuan || '-'}</td>
+                <td>Rp ${this.formatNumber(item.harga_satuan || item.harga_satuan_raw || 0)}</td>
+                <td><strong>Rp ${this.formatNumber(itemTotal)}</strong></td>
+                <td style="font-size: 8pt; position: relative;">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                            id="actionDropdown${item.id}" data-bs-toggle="dropdown" aria-expanded="false"
+                            style="border: 1px solid #dee2e6; background: white; color: #6c757d; font-size: 8pt; padding: 4px 8px; min-width: 40px;">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        ${!isLockedMonth ? `
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="actionDropdown${item.id}">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center" href="#" onclick="showDetailModal(${item.id})"
+                                    style="font-size: 8pt; padding: 8px 12px;">
+                                    <i class="bi bi-eye me-2 text-primary"></i>Detail
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center" href="#" onclick="showEditModal(${item.id})"
+                                    style="font-size: 8pt; padding: 8px 12px;">
+                                    <i class="bi bi-pencil me-2 text-warning"></i>Edit
+                                </a>
+                            </li>
+                        </ul>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+            `;
+        });
+
+        // Add total row
+        html += `
+        <tr class="table-info">
+            <td colspan="9" class="text-end"><strong>Total ${month}:</strong></td>
+            <td><strong>Rp ${this.formatNumber(total)}</strong></td>
+            <td></td>
+        </tr>
+        `;
+
+        // Update DOM secara langsung
+        tableBody.innerHTML = html;
+        console.log('⚡ [INSTANT UPDATE] Table updated instantly for', month);
+    }
+
+    // ========== SUPER FAST LOADING ==========
+    showSuperFastLoading(month) {
+        const tableBody = document.getElementById(`table-body-${month}`);
+        if (tableBody) {
+            // Loading indicator yang sangat minimal
+            const currentRows = tableBody.querySelectorAll('tr').length;
+            if (currentRows > 1) { // Hanya tampilkan loading jika ada data
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="text-center py-1">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+    }
+
+    // ========== INSTANT NO DATA MESSAGE ==========
+    showNoDataMessageInstantly(month) {
+        const tableBody = document.getElementById(`table-body-${month.toLowerCase()}`);
+        const lockedMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
+        const isLockedMonth = lockedMonths.includes(month);
+        
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr class="no-data-row">
+                    <td colspan="11" class="text-center text-muted">
+                        <div class="py-4">
+                            <i class="bi bi-inbox display-4"></i>
+                            <p class="mt-2">Belum ada data untuk bulan ${month}</p>
+                            ${!isLockedMonth ? `
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#tambahRkasModal">
+                                <i class="bi bi-plus me-2"></i>Tambah Data
+                            </button>
+                            ` : `
+                            <span class="badge bg-secondary">Bulan terkunci</span>
+                            `}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // ========== INSTANT ERROR MESSAGE ==========
+    showTableErrorInstantly(month, errorMessage) {
+        const tableBody = document.getElementById(`table-body-${month.toLowerCase()}`);
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="11" class="text-center text-danger py-2">
+                        <small>Error: ${errorMessage}</small>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // ========== ASYNC TOTALS UPDATE ==========
+    updateTotalsAsync() {
+        // Update totals di background (tidak blocking)
+        setTimeout(() => {
+            this.updateTahapCards();
+            this.updateTotalDianggaran();
+        }, 100);
     }
 
     setupModalEvents() {
@@ -1776,6 +2543,132 @@ class RkasPerubahanManager {
                     this.updateEditTotalAnggaran();
                 }
             }.bind(this));
+        }
+    }
+
+    // ========== AJAX UPDATE FUNCTIONS ==========
+    ajaxUpdateRkasPerubahan(formDataObj, editForm) {
+        console.log('🔧 [AJAX UPDATE] Starting AJAX update...');
+        
+        const submitBtn = editForm.querySelector('button[type="submit"]');
+        
+        return new Promise((resolve, reject) => {
+            fetch(editForm.action, {
+                method: 'POST',
+                body: formDataObj,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(async response => {
+                console.log('🔧 [AJAX UPDATE] Response status:', response.status);
+                const responseText = await response.text();
+                console.log('🔧 [AJAX UPDATE] Response text:', responseText);
+                
+                try {
+                    return JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error(`Invalid JSON response: ${responseText}`);
+                }
+            })
+            .then(data => {
+                console.log('🔧 [AJAX UPDATE] Update response:', data);
+                if (data.success) {
+                    resolve(data);
+                } else {
+                    let errorMessage = data.message || 'Gagal mengupdate data';
+                    if (data.errors) {
+                        errorMessage += '\n\n' + Object.values(data.errors).flat().join('\n');
+                    }
+                    reject(new Error(errorMessage));
+                }
+            })
+            .catch(error => {
+                console.error('❌ [AJAX UPDATE] Error updating data:', error);
+                reject(error);
+            })
+            .finally(() => {
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Update Data';
+                    submitBtn.disabled = false;
+                }
+            });
+        });
+    }
+
+    updateTotalDianggaran() {
+        const tahunAnggaran = document.querySelector('input[name="tahun_anggaran"]').value;
+        
+        fetch(`/rkas-perubahan/all-data?tahun=${tahunAnggaran}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.data) {
+                let totalBudget = 0;
+                
+                // Handle both object and array response
+                if (typeof data.data === 'object' && !Array.isArray(data.data)) {
+                    // Data dalam format object {bulan: [items]}
+                    Object.values(data.data).forEach(monthData => {
+                        if (Array.isArray(monthData)) {
+                            monthData.forEach(item => {
+                                const itemTotal = this.calculateItemTotal(item);
+                                totalBudget += itemTotal;
+                            });
+                        }
+                    });
+                } else if (Array.isArray(data.data)) {
+                    // Data dalam format array
+                    data.data.forEach(item => {
+                        const itemTotal = this.calculateItemTotal(item);
+                        totalBudget += itemTotal;
+                    });
+                }
+                
+                const totalDisplay = document.getElementById('totalDianggaran');
+                if (totalDisplay) {
+                    totalDisplay.textContent = 'Rp ' + this.formatNumber(totalBudget);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('❌ [UPDATE TOTAL] Error updating total:', error);
+        });
+    }
+
+    // Helper method untuk menghitung total item
+    calculateItemTotal(item) {
+        if (item.total && typeof item.total === 'string') {
+            return parseFloat(item.total.replace(/[^\d]/g, '')) || 0;
+        } else if (item.jumlah && item.harga_satuan) {
+            return (parseFloat(item.jumlah) || 0) * (parseFloat(item.harga_satuan) || 0);
+        } else if (item.jumlah && item.harga_satuan_raw) {
+            return (parseFloat(item.jumlah) || 0) * (parseFloat(item.harga_satuan_raw) || 0);
+        }
+        return 0;
+    }
+
+    showTableError(month, errorMessage) {
+        const tableBody = document.getElementById(`table-body-${month.toLowerCase()}`);
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="11" class="text-center text-danger">
+                        <div class="py-4">
+                            <i class="bi bi-exclamation-triangle display-4"></i>
+                            <p class="mt-2">Gagal memuat data: ${errorMessage}</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
         }
     }
 
@@ -2290,6 +3183,246 @@ class RkasPerubahanManager {
             .catch(error => console.error('Error updating Tahap 2:', error));
     }
 
+    // ========== DELETE FUNCTIONS ==========
+
+    /**
+     * Delete single RKAS data dengan AJAX
+     */
+    deleteRkasPerubahan(id) {
+        console.log('🔧 [DELETE DEBUG] Starting single delete for ID:', id);
+        
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        if (confirmBtn) {
+            confirmBtn.innerHTML = '<span class="loading-spinner me-2"></span>Menghapus...';
+            confirmBtn.disabled = true;
+        }
+
+        fetch(`/rkas-perubahan/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            console.log('🔧 [DELETE DEBUG] Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('🔧 [DELETE DEBUG] Delete response:', data);
+            if (data.success) {
+                // Tutup modal delete
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteRkasPerubahanModal'));
+                if (deleteModal) {
+                    deleteModal.hide();
+                }
+                
+                // Hapus row dari tabel tanpa reload
+                this.removeRkasPerubahanRow(id);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: data.message,
+                    confirmButtonText: 'OK'
+                });
+                
+                // Refresh data tab aktif
+                this.refreshCurrentTabData();
+                
+            } else {
+                throw new Error(data.message || 'Gagal menghapus data');
+            }
+        })
+        .catch(error => {
+            console.error('❌ [DELETE DEBUG] Error deleting data:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Hapus Gagal',
+                text: 'Terjadi kesalahan saat menghapus data: ' + error.message,
+                confirmButtonText: 'Mengerti'
+            });
+        })
+        .finally(() => {
+            if (confirmBtn) {
+                confirmBtn.innerHTML = '<i class="bi bi-trash me-2"></i>Ya, Hapus Data';
+                confirmBtn.disabled = false;
+            }
+        });
+    }
+
+    /**
+     * Remove RKAS row from table
+     */
+    removeRkasPerubahanRow(id) {
+        // Cari semua tabel di semua tab
+        const tables = document.querySelectorAll('.rkas-table');
+        
+        tables.forEach(table => {
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                // Cari tombol delete di row yang sesuai dengan ID
+                const deleteBtn = row.querySelector(`[onclick*="showDeleteModal(${id})"]`);
+                if (deleteBtn) {
+                    row.remove();
+                    console.log('🔧 [DELETE DEBUG] Removed row for ID:', id);
+                    
+                    // Update nomor urut
+                    this.updateRowNumbers(table);
+                    
+                    // Update total bulan
+                    this.updateMonthTotal(table);
+                }
+            });
+        });
+    }
+
+    /**
+     * Update row numbers after deletion
+     */
+    updateRowNumbers(table) {
+        const rows = table.querySelectorAll('tbody tr:not(.table-info)');
+        rows.forEach((row, index) => {
+            const firstCell = row.querySelector('td:first-child');
+            if (firstCell) {
+                firstCell.textContent = index + 1;
+            }
+        });
+    }
+
+    /**
+     * Update month total after deletion
+     */
+    updateMonthTotal(table) {
+        let total = 0;
+        const rows = table.querySelectorAll('tbody tr:not(.table-info)');
+        
+        rows.forEach(row => {
+            const totalCell = row.querySelector('td:nth-child(10)');
+            if (totalCell) {
+                const totalText = totalCell.textContent.replace(/[^\d]/g, '');
+                total += parseInt(totalText) || 0;
+            }
+        });
+        
+        // Update total row
+        const totalRow = table.querySelector('tr.table-info');
+        if (totalRow) {
+            const totalCell = totalRow.querySelector('td:nth-child(2)');
+            if (totalCell) {
+                totalCell.innerHTML = `<strong>Total ${this.getCurrentMonth()}:</strong>`;
+            }
+            
+            const amountCell = totalRow.querySelector('td:nth-child(1)');
+            if (amountCell) {
+                amountCell.innerHTML = `<strong>Rp ${this.formatNumber(total)}</strong>`;
+            }
+        }
+    }
+
+    /**
+     * Get current active month
+     */
+    getCurrentMonth() {
+        const activeTab = document.querySelector('#monthTabs .nav-link.active');
+        return activeTab ? activeTab.getAttribute('data-month') : 'Januari';
+    }
+
+    /**
+     * Refresh current tab data
+     */
+    refreshCurrentTabData() {
+        const activeTab = document.querySelector('#monthTabs .nav-link.active');
+        if (activeTab) {
+            const month = activeTab.getAttribute('data-month').toLowerCase();
+            this.refreshMonthData(month);
+        }
+    }
+
+    /**
+     * Delete all data dengan AJAX
+     */
+    deleteAllData(mainDataId) {
+        console.log('🔧 [DELETE DEBUG] Starting delete all process for ID:', mainDataId);
+        
+        const deleteBtn = document.getElementById('btnDeleteAllData');
+        const originalHtml = deleteBtn.innerHTML;
+        
+        deleteBtn.innerHTML = '<span class="loading-spinner me-2"></span>Menghapus...';
+        deleteBtn.disabled = true;
+
+        fetch(`/rkas-perubahan/delete-all/${mainDataId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            console.log('🔧 [DELETE DEBUG] Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('🔧 [DELETE DEBUG] Delete all response:', data);
+            if (data.success) {
+                // Tutup modal edit
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editRkasModal'));
+                if (editModal) {
+                    editModal.hide();
+                }
+                
+                // Refresh semua data tanpa reload
+                this.refreshAllTabsData();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: data.message,
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                throw new Error(data.message || 'Gagal menghapus data');
+            }
+        })
+        .catch(error => {
+            console.error('❌ [DELETE DEBUG] Error deleting all data:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Hapus Gagal',
+                text: 'Terjadi kesalahan saat menghapus data: ' + error.message,
+                confirmButtonText: 'Mengerti'
+            });
+        })
+        .finally(() => {
+            deleteBtn.innerHTML = originalHtml;
+            deleteBtn.disabled = false;
+            console.log('🔧 [DELETE DEBUG] Delete process completed');
+        });
+    }
+
+    /**
+     * Refresh all tabs data
+     */
+    refreshAllTabsData() {
+        const months = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 
+                    'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
+        
+        months.forEach(month => {
+            this.refreshMonthData(month);
+        });
+        
+        // Update tahap cards
+        this.updateTahapCards();
+    }
+
     refreshCurrentMonthData() {
         const activeTab = document.querySelector('#monthTabs .nav-link.active');
         if (activeTab) {
@@ -2336,3 +3469,49 @@ window.showEditModal = (id) => rkasManager.showEditModal(id);
 window.showDetailModal = (id) => rkasManager.showDetailModal(id);
 window.showTahapDetail = (tahap) => rkasManager.showTahapDetail(tahap);
 window.editFromDetail = () => rkasManager.editFromDetail();
+window.showDeleteModal = function(id) {
+    if (window.rkasManager) {
+        window.rkasManager.currentRkasId = id;
+
+        fetch(`/rkas-perubahan/${id}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const rkas = data.data;
+
+                    // Populate delete confirmation
+                    document.getElementById('delete-kegiatan-info').textContent = rkas.kegiatan || '-';
+                    document.getElementById('delete-bulan-info').textContent = rkas.bulan || '-';
+                    document.getElementById('delete-total-info').textContent = rkas.total || '-';
+
+                    // Setup event listener untuk tombol confirm
+                    const confirmBtn = document.getElementById('confirmDeleteBtn');
+                    if (confirmBtn) {
+                        // Hapus event listener lama
+                        confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+                        const newConfirmBtn = document.getElementById('confirmDeleteBtn');
+                        
+                        // Tambah event listener baru
+                        newConfirmBtn.addEventListener('click', function() {
+                            window.rkasManager.deleteRkas(id);
+                        });
+                    }
+
+                    // Show modal
+                    new bootstrap.Modal(document.getElementById('deleteRkasModal')).show();
+                } else {
+                    Swal.fire('Error', 'Gagal memuat data untuk hapus', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Terjadi kesalahan saat memuat data untuk hapus', 'error');
+            });
+    }
+};

@@ -359,7 +359,10 @@ class RkasPerubahanController extends Controller
         $bulanArray = $request->bulan;
         foreach ($bulanArray as $bulan) {
             if (in_array($bulan, $lockedMonths)) {
-                return back()->withErrors(['bulan' => "Tidak dapat menambah data untuk bulan {$bulan} karena bulan tersebut terkunci."]);
+                return response()->json([
+                    'success' => false,
+                    'message' => "Tidak dapat menambah data untuk bulan {$bulan} karena bulan tersebut terkunci."
+                ], 422);
             }
         }
 
@@ -382,7 +385,10 @@ class RkasPerubahanController extends Controller
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
 
             if (! $penganggaran) {
-                return back()->with('error', 'Data penganggaran untuk tahun ' . $tahun . ' belum tersedia.');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran untuk tahun ' . $tahun . ' belum tersedia.'
+                ], 422);
             }
 
             DB::beginTransaction();
@@ -393,7 +399,10 @@ class RkasPerubahanController extends Controller
 
             // Check for duplicate months
             if (count($bulanArray) !== count(array_unique($bulanArray))) {
-                return back()->withErrors(['bulan' => 'Tidak boleh ada bulan yang sama dalam satu kegiatan.']);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak boleh ada bulan yang sama dalam satu kegiatan.'
+                ], 422);
             }
 
             $createdRecords = []; // Simpan semua record yang dibuat
@@ -411,7 +420,10 @@ class RkasPerubahanController extends Controller
                 if ($exists) {
                     DB::rollBack();
 
-                    return back()->withErrors(['bulan' => "Data untuk bulan {$bulanArray[$i]} sudah ada dengan kegiatan dan rekening yang sama."]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Data untuk bulan {$bulanArray[$i]} sudah ada dengan kegiatan dan rekening yang sama."
+                    ], 422);
                 }
 
                 $rkasPerubahan = RkasPerubahan::create([
@@ -451,12 +463,19 @@ class RkasPerubahanController extends Controller
 
             DB::commit();
 
-            return redirect()->route('rkas-perubahan.index', ['tahun' => $tahun])->with('success', 'Data RKAS Perubahan berhasil ditambahkan.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Data RKAS Perubahan berhasil ditambahkan.',
+                'data_created' => count($createdRecords)
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error storing RKAS Perubahan: ' . $e->getMessage());
 
-            return back()->withErrors(['error' => 'Terjadi kesalahan saat menyimpan data:' . $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menyimpan data: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -886,7 +905,7 @@ class RkasPerubahanController extends Controller
                     'success' => true,
                     'message' => 'Data RKAS Perubahan berhasil diupdate untuk ' . count($createdRecords) . ' bulan.',
                     'data_created' => count($createdRecords),
-                    'redirect' => route('rkas-perubahan.index', ['tahun' => $request->tahun_anggaran]),
+                    
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -1042,73 +1061,70 @@ class RkasPerubahanController extends Controller
     public function getByMonth($bulan)
     {
         try {
-            // Dapatkan tahun dari request
             $tahun = request('tahun');
+            
+            Log::info('🔧 [API DEBUG] Fetching data for bulan: ' . $bulan . ', tahun: ' . $tahun);
 
-            if (! $tahun) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Parameter tahun diperlukan',
-                ], 400);
-            }
-
-            // Dapatkan penganggaran berdasarkan tahun
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
-
-            if (! $penganggaran) {
+            
+            if (!$penganggaran) {
+                Log::warning('❌ [API DEBUG] Penganggaran not found for tahun: ' . $tahun);
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Data penganggaran tidak ditemukan',
-                ], 404);
-            }
-
-            $rkasData = RkasPerubahan::with([
-                'kodeKegiatan' => function ($query) {
-                    $query->select('id', 'kode', 'program', 'sub_program', 'uraian');
-                },
-                'rekeningBelanja' => function ($query) {
-                    $query->select('id', 'kode_rekening', 'rincian_objek');
-                },
-            ])
-                ->where('penganggaran_id', $penganggaran->id)
-                ->where('bulan', $bulan)
-                ->get();
-
-            if ($rkasData->isEmpty()) {
-                return response()->json([
-                    'success' => true,
-                    'data' => [],
+                    'success' => true, // tetap success karena bukan error
                     'message' => 'Tidak ada data untuk bulan ' . $bulan . ' tahun ' . $tahun,
+                    'data' => []
                 ]);
             }
 
-            $formattedData = $rkasData->map(function ($rkas) {
-                return [
-                    'id' => $rkas->id,
-                    'program_kegiatan' => $rkas->kodeKegiatan ? $rkas->kodeKegiatan->program : '-',
-                    'kegiatan' => $rkas->kodeKegiatan ? $rkas->kodeKegiatan->sub_program : '-',
-                    'rekening_belanja' => $rkas->rekeningBelanja ? $rkas->rekeningBelanja->rincian_objek : '-',
-                    'uraian' => $rkas->uraian,
-                    'dianggaran' => $rkas->jumlah,
-                    'dibelanjakan' => 0,
-                    'satuan' => $rkas->satuan,
-                    'harga_satuan' => 'Rp ' . number_format($rkas->harga_satuan, 0, ',', '.'),
-                    'total' => 'Rp ' . number_format($rkas->jumlah * $rkas->harga_satuan, 0, ',', '.'),
-                    'bulan' => $rkas->bulan,
-                ];
-            });
+            Log::info('🔧 [API DEBUG] Penganggaran ID: ' . $penganggaran->id);
 
-            return response()->json([
-                'success' => true,
-                'data' => $formattedData,
-            ]);
+            $rkasData = RkasPerubahan::with(['kodeKegiatan', 'rekeningBelanja'])
+                ->where('penganggaran_id', $penganggaran->id)
+                ->where('bulan', ucfirst($bulan)) // Pastikan format bulan sesuai
+                ->get();
+
+            Log::info('🔧 [API DEBUG] Raw query result count: ' . $rkasData->count());
+
+            $formattedData = $rkasData->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'kode_id' => $item->kode_id,
+                        'kode_rekening_id' => $item->kode_rekening_id,
+                        'program_kegiatan' => $item->kodeKegiatan->program ?? '-',
+                        'kegiatan' => $item->kodeKegiatan->sub_program ?? '-',
+                        'rekening_belanja' => $item->rekeningBelanja->rincian_objek ?? '-',
+                        'uraian' => $item->uraian,
+                        'jumlah' => $item->jumlah,
+                        'dianggaran' => $item->jumlah,
+                        'satuan' => $item->satuan,
+                        'harga_satuan' => 'Rp ' . number_format($item->harga_satuan, 0, ',', '.'),
+                        'harga_satuan_raw' => $item->harga_satuan,
+                        'total' => 'Rp ' . number_format($item->jumlah * $item->harga_satuan, 0, ',', '.')
+                    ];
+                });
+
+            Log::info('🔧 [API DEBUG] Formatted data count: ' . $formattedData->count());
+
+            if ($formattedData->count() > 0) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $formattedData,
+                    'count' => $formattedData->count()
+                ]);
+            } else {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Tidak ada data untuk bulan ' . $bulan . ' tahun ' . $tahun,
+                    'data' => []
+                ]);
+            }
+            
         } catch (\Exception $e) {
-            Log::error('Error getting RKAS by month: ' . $e->getMessage());
-
+            Log::error('❌ [API DEBUG] Error in getByMonth: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat mengambil data.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                'data' => []
             ], 500);
         }
     }
