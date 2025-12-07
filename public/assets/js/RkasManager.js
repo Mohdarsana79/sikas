@@ -1808,49 +1808,108 @@ class RkasManager {
         console.log('🔧 [UPDATE DEBUG] Handling update success:', data);
         
         // Hapus data lama dari semua tab
-        this.removeOldData(oldMainDataId, formData);
-        
-        // Tambah data baru ke tab yang sesuai
-        this.addNewData(formData);
-        
-        // Refresh data semua tab
-        this.refreshAllTabsData();
-        
-        // Update tahap cards
-        this.updateTahapCards();
-        
-        Swal.fire({
-            icon: 'success',
-            title: 'Berhasil!',
-            text: data.message,
-            confirmButtonText: 'OK'
-        });
+        this.removeOldData(oldMainDataId, formData)
+            .then(() => {
+                // Tambah data baru ke tab yang sesuai
+                this.addNewData(formData);
+                
+                // Refresh data semua tab
+                this.refreshAllTabsData();
+                
+                // Update tahap cards
+                this.updateTahapCards();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: data.message,
+                    confirmButtonText: 'OK'
+                });
+            })
+            .catch(error => {
+                console.error('❌ [UPDATE DEBUG] Error removing old data:', error);
+                
+                // Fallback: Refresh halaman jika ada error
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Memuat ulang halaman...',
+                    text: 'Sedang memuat ulang data terbaru.',
+                    showConfirmButton: false,
+                    allowOutsideClick: false,
+                    timer: 1500
+                });
+            });
     }
 
     /**
-     * Remove old data from all tabs
+     * Remove old data from all tabs - PERBAIKAN: Gunakan metode alternatif
      */
     removeOldData(oldMainDataId, formData) {
         console.log('🔧 [UPDATE DEBUG] Removing old data for ID:', oldMainDataId);
         
-        // Hapus berdasarkan kriteria data lama
+        // PERBAIKAN: Gunakan data dari formData langsung atau cari di UI
+        const oldUraian = formData.old_uraian || this.getOldDataFromUI(oldMainDataId);
+        
+        console.log('🔧 [UPDATE DEBUG] Removing data with criteria:', {
+            uraian: oldUraian,
+            formData: formData
+        });
+        
+        // Hapus berdasarkan kriteria data lama dari UI tanpa fetch API
         const tables = document.querySelectorAll('.rkas-table');
+        let removedCount = 0;
         
         tables.forEach(table => {
             const rows = table.querySelectorAll('tbody tr:not(.table-info)');
             rows.forEach(row => {
                 // Cari row yang sesuai dengan kriteria data lama
                 const uraianCell = row.querySelector('td:nth-child(5)');
-                if (uraianCell && uraianCell.textContent.trim() === formData.uraian) {
+                const jumlahCell = row.querySelector('td:nth-child(6)');
+                
+                // Log untuk debugging
+                console.log('🔧 [UPDATE DEBUG] Checking row:', {
+                    uraian: uraianCell?.textContent.trim(),
+                    jumlah: jumlahCell?.textContent.trim()
+                });
+                
+                if (uraianCell && uraianCell.textContent.trim() === oldUraian) {
                     row.remove();
+                    removedCount++;
                     console.log('🔧 [UPDATE DEBUG] Removed old row');
                 }
             });
             
             // Update nomor urut dan total
-            this.updateRowNumbers(table);
-            this.updateMonthTotal(table);
+            if (removedCount > 0) {
+                this.updateRowNumbers(table);
+                this.updateMonthTotal(table);
+            }
         });
+        
+        console.log('🔧 [UPDATE DEBUG] Total removed rows:', removedCount);
+        
+        // Return promise untuk chain
+        return Promise.resolve(removedCount);
+    }
+
+    /**
+     * Get old data from UI (alternative jika tidak bisa fetch)
+     */
+    getOldDataFromUI(oldMainDataId) {
+        // Cari data di UI berdasarkan ID atau simpan data lama saat modal dibuka
+        const oldUraian = sessionStorage.getItem(`old_uraian_${oldMainDataId}`);
+        console.log('🔧 [UPDATE DEBUG] Old uraian from sessionStorage:', oldUraian);
+        return oldUraian || '';
+    }
+
+    /**
+     * Save old data when opening edit modal
+     */
+    saveOldDataWhenOpeningModal(data) {
+        if (data.id && data.uraian) {
+            sessionStorage.setItem(`old_uraian_${data.id}`, data.uraian);
+            console.log('🔧 [UPDATE DEBUG] Saved old uraian for ID:', data.id, data.uraian);
+        }
     }
 
     /**

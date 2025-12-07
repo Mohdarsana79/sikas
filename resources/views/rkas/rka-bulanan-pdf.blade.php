@@ -316,7 +316,7 @@
                 <p>NIP. {{ $dataSekolah['nip_kepala_sekolah'] }}</p>
             </td>
             <td class="no-border" style="font-size: {{ $printSettings['font_size'] }};">
-                <p>{{ $dataSekolah['kabupaten'] }}, {{ $penganggaran->format_tanggal_cetak }}</p>
+                <p>{{ $dataSekolah['kecamatan'] }}, {{ $penganggaran->format_tanggal_cetak }}</p>
                 <p>Bendahara,</p>
                 <p class="nama">{{ $dataSekolah['bendahara'] }}</p>
                 <p>NIP. {{ $dataSekolah['nip_bendahara'] }}</p>

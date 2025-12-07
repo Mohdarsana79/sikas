@@ -197,7 +197,7 @@
     <!-- Tanda Tangan -->
     <div class="footer" style="font-size: {{ $printSettings['font_size'] }};">
         <div class="signature" style="font-size: {{ $printSettings['font_size'] }};">
-            <p style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->kabupaten_kota }}, {{ $penganggaran->format_tanggal_cetak }}</p>
+            <p style="font-size: {{ $printSettings['font_size'] }};">{{ $sekolah->kecamatan }}, {{ $penganggaran->format_tanggal_cetak }}</p>
             <p style="font-size: {{ $printSettings['font_size'] }};">Mengetahui,</p>
             <p style="font-size: {{ $printSettings['font_size'] }};">Kepala Sekolah</p>
             <br><br><br>

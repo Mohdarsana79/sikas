@@ -345,7 +345,7 @@
         
                     <!-- Kolom Bendahara -->
                     <td style="width: 33%; text-align: center; border: none; font-size: {{ $printSettings['font_size'] }};">
-                        <p>{{ $dataSekolah['kabupaten'] }}, {{ $penganggaran->format_tanggal_cetak }}</p>
+                        <p>{{ $dataSekolah['kecamatan'] }}, {{ $penganggaran->format_tanggal_cetak }}</p>
                         <p>Bendahara,</p>
                         <div style="margin-top: 80px;"></div>
                         <p style="text-decoration: underline; margin: 0; font-weight: bold; font-size: {{ $printSettings['font_size'] }};"><u>{{ $dataSekolah['bendahara'] }}</u></p>

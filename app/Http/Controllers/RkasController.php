@@ -568,18 +568,41 @@ class RkasController extends Controller
                 ], 422);
             }
 
+            // PERBAIKAN: Cek apakah ada perubahan pada kode_id, kode_rekening_id, atau uraian
+            $isSameKode = $mainRkas->kode_id == $request->kode_id;
+            $isSameRekening = $mainRkas->kode_rekening_id == $request->kode_rekening_id;
+            $isSameUraian = $mainRkas->uraian == $request->uraian;
+
+            Log::info('🔧 [UPDATE DEBUG] Comparison with old data:', [
+                'old_kode_id' => $mainRkas->kode_id,
+                'new_kode_id' => $request->kode_id,
+                'is_same_kode' => $isSameKode,
+
+                'old_rekening_id' => $mainRkas->kode_rekening_id,
+                'new_rekening_id' => $request->kode_rekening_id,
+                'is_same_rekening' => $isSameRekening,
+
+                'old_uraian' => $mainRkas->uraian,
+                'new_uraian' => $request->uraian,
+                'is_same_uraian' => $isSameUraian,
+
+                'old_harga_satuan' => $mainRkas->harga_satuan,
+                'new_harga_satuan' => $request->harga_satuan,
+            ]);
+
             DB::beginTransaction();
 
             try {
-                // HAPUS SEMUA DATA LAMA dengan kriteria yang sama
+                // PERBAIKAN: HAPUS SEMUA DATA LAMA dengan kriteria yang TEPAT
+                // Gunakan kriteria yang ada di data lama, bukan yang baru
                 $deletedCount = Rkas::where('penganggaran_id', $mainRkas->penganggaran_id)
-                    ->where('kode_id', $request->kode_id)
-                    ->where('kode_rekening_id', $request->kode_rekening_id)
-                    ->where('uraian', $request->uraian)
-                    ->where('harga_satuan', $mainRkas->harga_satuan) // Harga satuan lama
+                    ->where('kode_id', $mainRkas->kode_id)  // Gunakan kode_id lama
+                    ->where('kode_rekening_id', $mainRkas->kode_rekening_id)  // Gunakan rekening_id lama
+                    ->where('uraian', $mainRkas->uraian)  // Gunakan uraian lama
+                    ->where('harga_satuan', $mainRkas->harga_satuan)  // Gunakan harga_satuan lama
                     ->delete();
 
-                Log::info('🔧 [UPDATE DEBUG] Deleted ' . $deletedCount . ' old records');
+                Log::info('🔧 [UPDATE DEBUG] Deleted ' . $deletedCount . ' old records using OLD criteria');
 
                 // BUAT DATA BARU untuk semua bulan yang dipilih
                 $createdRecords = [];
@@ -589,7 +612,25 @@ class RkasController extends Controller
 
                 Log::info('🔧 [UPDATE DEBUG] Creating new records for months:', $bulanArray);
 
+                // Cek duplikasi dengan data baru sebelum membuat
                 for ($i = 0; $i < count($bulanArray); $i++) {
+                    // Cek apakah kombinasi baru sudah ada di database
+                    $exists = Rkas::where('penganggaran_id', $mainRkas->penganggaran_id)
+                        ->where('kode_id', $request->kode_id)
+                        ->where('kode_rekening_id', $request->kode_rekening_id)
+                        ->where('uraian', $request->uraian)
+                        ->where('bulan', $bulanArray[$i])
+                        ->where('harga_satuan', $request->harga_satuan)
+                        ->exists();
+
+                    if ($exists) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Data untuk bulan {$bulanArray[$i]} sudah ada dengan kegiatan, rekening, uraian, dan harga satuan yang sama.",
+                        ], 422);
+                    }
+
                     $newRkas = Rkas::create([
                         'penganggaran_id' => $mainRkas->penganggaran_id,
                         'kode_id' => $request->kode_id,
@@ -1089,6 +1130,7 @@ class RkasController extends Controller
                 'npsn' => $sekolah->npsn,
                 'nama' => $sekolah->nama_sekolah,
                 'alamat' => $sekolah->alamat,
+                'kecamatan' => $sekolah->kecamatan,
                 'kabupaten' => $sekolah->kabupaten_kota,
                 'provinsi' => $sekolah->provinsi,
                 'tahun_anggaran' => $penganggaran->tahun_anggaran,
@@ -1721,6 +1763,7 @@ class RkasController extends Controller
                 'npsn' => $sekolah->npsn,
                 'nama' => $sekolah->nama_sekolah,
                 'alamat' => $sekolah->alamat,
+                'kecamatan' => $sekolah->kecamatan,
                 'kabupaten' => $sekolah->kabupaten_kota,
                 'provinsi' => $sekolah->provinsi,
                 'tahun_anggaran' => $penganggaran->tahun_anggaran,
@@ -2242,6 +2285,7 @@ class RkasController extends Controller
                 'npsn' => $sekolah->npsn,
                 'nama' => $sekolah->nama_sekolah,
                 'alamat' => $sekolah->alamat,
+                'kecamatan' => $sekolah->kecamatan,
                 'kabupaten' => $sekolah->kabupaten_kota,
                 'provinsi' => $sekolah->provinsi,
                 'tahun_anggaran' => $penganggaran->tahun_anggaran,

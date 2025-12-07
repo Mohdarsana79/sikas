@@ -96,7 +96,7 @@
 
         .signature {
             text-align: center;
-            width: 200px;
+            width: 300px;
         }
 
         .page-break {
@@ -222,7 +222,7 @@
     <div class="footer" style="font-size: {{ $printSettings['font_size'] }};">
         <div></div>
         <div class="signature" style="font-size: {{ $printSettings['font_size'] }};">
-            {{ $dataSekolah['kabupaten'] }}, {{ $penganggaran->format_tanggal_perubahan }}
+            {{ $dataSekolah['kecamatan'] }}, {{ $penganggaran->format_tanggal_perubahan }}
             <br>
             <span>Kepala Sekolah</span>
             <br><br><br><br>

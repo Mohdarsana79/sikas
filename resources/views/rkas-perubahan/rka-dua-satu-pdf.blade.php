@@ -208,7 +208,7 @@
     <!-- Tanda Tangan -->
     <div class="footer">
         <div class="signature" style="font-size: {{ $printSettings['font_size'] }};">
-            <p>{{ $sekolah->kabupaten_kota }}, {{ $penganggaran->format_tanggal_perubahan }}</p>
+            <p>{{ $sekolah->kecamatan }}, {{ $penganggaran->format_tanggal_perubahan }}</p>
             <p>Mengetahui,</p>
             <p>Kepala Sekolah</p>
             <br><br><br>
