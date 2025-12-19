@@ -7,7 +7,7 @@
                 <p class="small mb-0 opacity-75">Isi nominal bunga dan pajak bunga bank yang anda terima bulan ini jika ada.</p>
             </div>
             <div class="modal-body p-4">
-                <form id="formTutupBku">
+                <form id="formTutupBku" data-tahun="{{ $tahun }}" data-bulan="{{ $bulan }}">
                     @csrf
                     <div class="row g-4">
                         <div class="col-md-12">

@@ -5,7 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @hasSection('meta')
+        @yield('meta')
+    @endif
     <title>Aplikasi SIKAS</title>
+
+    @vite('resources/js/app.js')
     <link rel="icon" type="image/x-icon" width="100" href="{{ asset('assets/images/large.png') }}">
 
     <!-- CSS Files -->
@@ -235,6 +240,7 @@
     console.log('✅ Ultimate fix applied to', document.querySelectorAll('.sidebar a[href]').length, 'links');
     console.log('💥 Type forceShowLoading() to test');
     </script>
+    
 
     @extends('layouts.footer')
 </body>

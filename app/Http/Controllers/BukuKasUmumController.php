@@ -1919,9 +1919,9 @@ class BukuKasUmumController extends Controller
                 ->whereYear('tanggal_transaksi', $tahun)
                 ->where('status', 'closed')
                 ->update([
-                    'tanggal_transaksi' => $tanggalAkhirBulan, // TANGGAL AKHIR BULAN
-                    'bunga_bank' => $validated['bunga_bank'],
-                    'pajak_bunga_bank' => $validated['pajak_bunga_bank'],
+                    'tanggal_transaksi' => $tanggalAkhirBulan,
+                    'bunga_bank' => floatval($validated['bunga_bank']), // Konversi ke float
+                    'pajak_bunga_bank' => floatval($validated['pajak_bunga_bank']), // Konversi ke float
                     'updated_at' => now(),
                 ]);
 
@@ -1931,7 +1931,7 @@ class BukuKasUmumController extends Controller
                 'success' => true,
                 'message' => 'Data bunga bank berhasil diperbarui',
                 'updated_count' => $updated,
-                'tanggal_bunga' => $tanggalAkhirBulan->format('d/m/Y'), // Info tanggal bunga
+                'tanggal_bunga' => $tanggalAkhirBulan->format('d/m/Y'),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -3424,5 +3424,248 @@ class BukuKasUmumController extends Controller
         }
 
         return $rowsData;
+    }
+
+    public function getTableData($tahun, $bulan)
+    {
+        try {
+            Log::info('=== GET TABLE DATA CALLED ===', [
+                'tahun' => $tahun,
+                'bulan' => $bulan,
+                'url' => request()->fullUrl(),
+                'method' => request()->method()
+            ]);
+            Log::info('Getting table data for:', ['tahun' => $tahun, 'bulan' => $bulan]);
+
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan',
+                ], 404);
+            }
+
+            $bulanAngka = $this->convertBulanToNumber($bulan);
+
+            // Data Penerimaan Dana
+            $penerimaanDanas = PenerimaanDana::where('penganggaran_id', $penganggaran->id)
+                ->orderBy('tanggal_terima', 'asc')
+                ->get();
+
+            // Data Penarikan Tunai
+            $penarikanTunais = PenarikanTunai::where('penganggaran_id', $penganggaran->id)
+                ->orderBy('tanggal_penarikan', 'asc')
+                ->get();
+
+            // Data Setor Tunai
+            $setorTunais = SetorTunai::where('penganggaran_id', $penganggaran->id)
+                ->orderBy('tanggal_setor', 'asc')
+                ->get();
+
+            // Data BKU
+            $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
+                ->whereMonth('tanggal_transaksi', $bulanAngka)
+                ->whereYear('tanggal_transaksi', $tahun)
+                ->where('is_bunga_record', false)
+                ->with(['kodeKegiatan', 'rekeningBelanja'])
+                ->orderBy('tanggal_transaksi', 'asc')
+                ->orderBy('id', 'asc')
+                ->get();
+
+            // Format data untuk response
+            $tableData = [
+                'penerimaan_danas' => $this->formatPenerimaanData($penerimaanDanas, $bulan),
+                'penarikan_tunais' => $this->formatPenarikanData($penarikanTunais, $bulan),
+                'setor_tunais' => $this->formatSetorData($setorTunais, $bulan),
+                'bku_data' => $this->formatBkuData($bkuData),
+                'summary' => [
+                    'total_dibelanjakan_bulan_ini' => $this->hitungTotalDibelanjakan($penganggaran->id, $bulan),
+                    'total_dibelanjakan_sampai_bulan_ini' => $this->hitungTotalDibelanjakanSampaiBulanIni($penganggaran->id, $bulan),
+                    'saldo' => $this->hitungSaldoTunaiNonTunai($penganggaran->id),
+                    'total_dana_tersedia' => $this->hitungTotalDanaTersedia($penganggaran->id),
+                ]
+            ];
+
+            // Render HTML menggunakan view partial
+            $html = view('bku.partials.table-body', [
+                'tableData' => $tableData,
+                'tahun' => $tahun,
+                'bulan' => $bulan
+            ])->render();
+
+            return response()->json([
+                'success' => true,
+                'data' => $tableData,
+                'html' => $html,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting table data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data tabel: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Helper methods untuk format data
+    private function formatPenerimaanData($penerimaanDanas, $bulan)
+    {
+        $formatted = [];
+
+        foreach ($penerimaanDanas as $penerimaan) {
+            $bulanPenerimaan = \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('F');
+            $bulanPenerimaanIndo = $this->convertEnglishMonthToIndonesian($bulanPenerimaan);
+
+            if ($bulanPenerimaanIndo === $bulan) {
+                $formatted[] = [
+                    'id' => $penerimaan->id,
+                    'tanggal' => \Carbon\Carbon::parse($penerimaan->tanggal_terima)->format('d M Y'),
+                    'uraian' => 'Penerimaan dana ' . $penerimaan->sumber_dana . ' Rp ' . number_format($penerimaan->jumlah_dana, 0, ',', '.'),
+                    'jumlah_dana' => $penerimaan->jumlah_dana,
+                    'sumber_dana' => $penerimaan->sumber_dana,
+                    'type' => 'penerimaan_dana',
+                    'delete_url' => route('penerimaan-dana.destroy', $penerimaan->id),
+                ];
+
+                if ($penerimaan->sumber_dana === 'Bosp Reguler Tahap 1' && $penerimaan->saldo_awal) {
+                    $formatted[] = [
+                        'id' => 'saldo_awal_' . $penerimaan->id,
+                        'tanggal' => \Carbon\Carbon::parse($penerimaan->tanggal_saldo_awal)->format('d M Y'),
+                        'uraian' => 'Saldo Awal ' . $penerimaan->sumber_dana . ' Rp ' . number_format($penerimaan->saldo_awal, 0, ',', '.'),
+                        'jumlah_dana' => $penerimaan->saldo_awal,
+                        'sumber_dana' => $penerimaan->sumber_dana,
+                        'type' => 'saldo_awal',
+                        'delete_url' => route('penerimaan-dana.destroy-saldo-awal', $penerimaan->id),
+                    ];
+                }
+            }
+        }
+
+        return $formatted;
+    }
+
+    private function formatPenarikanData($penarikanTunais, $bulan)
+    {
+        $formatted = [];
+
+        foreach ($penarikanTunais as $penarikan) {
+            $bulanPenarikan = \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('F');
+            $bulanPenarikanIndo = $this->convertEnglishMonthToIndonesian($bulanPenarikan);
+
+            if ($bulanPenarikanIndo === $bulan) {
+                $formatted[] = [
+                    'id' => $penarikan->id,
+                    'tanggal' => \Carbon\Carbon::parse($penarikan->tanggal_penarikan)->format('d M Y'),
+                    'uraian' => 'Penarikan tunai Rp ' . number_format($penarikan->jumlah_penarikan, 0, ',', '.'),
+                    'jumlah_penarikan' => $penarikan->jumlah_penarikan,
+                    'type' => 'penarikan_tunai',
+                    'delete_url' => route('penarikan.destroy', $penarikan->id),
+                ];
+            }
+        }
+
+        return $formatted;
+    }
+
+    private function formatSetorData($setorTunais, $bulan)
+    {
+        $formatted = [];
+
+        foreach ($setorTunais as $setor) {
+            $bulanSetor = \Carbon\Carbon::parse($setor->tanggal_setor)->format('F');
+            $bulanSetorIndo = $this->convertEnglishMonthToIndonesian($bulanSetor);
+
+            if ($bulanSetorIndo === $bulan) {
+                $formatted[] = [
+                    'id' => $setor->id,
+                    'tanggal' => \Carbon\Carbon::parse($setor->tanggal_setor)->format('d M Y'),
+                    'uraian' => 'Setor tunai Rp ' . number_format($setor->jumlah_setor, 0, ',', '.'),
+                    'jumlah_setor' => $setor->jumlah_setor,
+                    'type' => 'setor_tunai',
+                    'delete_url' => route('setor-tunai.destroy', $setor->id),
+                ];
+            }
+        }
+
+        return $formatted;
+    }
+
+    private function formatBkuData($bkuData)
+    {
+        $formatted = [];
+
+        foreach ($bkuData as $bku) {
+            $formatted[] = [
+                'id' => $bku->id,
+                'id_transaksi' => $bku->id_transaksi,
+                'tanggal' => $bku->tanggal_transaksi->format('d/m/Y'),
+                'kegiatan' => $bku->kodeKegiatan->sub_program ?? '-',
+                'rekening_belanja' => $bku->uraian_opsional ?: ($bku->rekeningBelanja->rincian_objek ?? '-'),
+                'jenis_transaksi' => ucfirst($bku->jenis_transaksi),
+                'anggaran' => number_format($bku->anggaran, 0, ',', '.'),
+                'dibelanjakan' => number_format($bku->total_transaksi_kotor, 0, ',', '.'),
+                'total_pajak' => $bku->total_pajak,
+                'ntpn' => $bku->ntpn,
+                'delete_url' => route('bku.destroy', $bku->id),
+            ];
+        }
+
+        return $formatted;
+    }
+
+    private function convertEnglishMonthToIndonesian($englishMonth)
+    {
+        $months = [
+            'January' => 'Januari',
+            'February' => 'Februari',
+            'March' => 'Maret',
+            'April' => 'April',
+            'May' => 'Mei',
+            'June' => 'Juni',
+            'July' => 'Juli',
+            'August' => 'Agustus',
+            'September' => 'September',
+            'October' => 'Oktober',
+            'November' => 'November',
+            'December' => 'Desember'
+        ];
+
+        return $months[$englishMonth] ?? $englishMonth;
+    }
+
+    // Method getSummaryData
+    public function getSummaryData($tahun, $bulan)
+    {
+        try {
+            $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
+
+            if (!$penganggaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data penganggaran tidak ditemukan',
+                ], 404);
+            }
+
+            $data = [
+                'total_dibelanjakan_bulan_ini' => $this->hitungTotalDibelanjakan($penganggaran->id, $bulan),
+                'total_dibelanjakan_sampai_bulan_ini' => $this->hitungTotalDibelanjakanSampaiBulanIni($penganggaran->id, $bulan),
+                'saldo' => $this->hitungSaldoTunaiNonTunai($penganggaran->id),
+                'total_dana_tersedia' => $this->hitungTotalDanaTersedia($penganggaran->id),
+                'anggaran_bulan_ini' => $this->hitungAnggaranBulanIni($penganggaran->id, $bulan),
+                'anggaran_belum_dibelanjakan' => $this->hitungAnggaranBelumDibelanjakan($penganggaran->id, $bulan),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting summary data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data summary: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

@@ -311,12 +311,33 @@ Route::middleware(['auth'])->prefix('bku')->group(function () {
     // setor tunai
     Route::post('/setor-tunai', [SetorTunaiController::class, 'store'])->name('bku.setor-tunai.store');
     Route::delete('/setor-tunai/{id}', [SetorTunaiController::class, 'destroy'])->name('setor-tunai.destroy');
+    // API untuk mendapatkan saldo tunai
+    Route::get('/saldo-tunai/{penganggaran_id}', [SetorTunaiController::class, 'getSaldoTunai'])
+        ->name('bku.saldo-tunai');
+
+    // API untuk riwayat saldo tunai
+    Route::get('/riwayat-saldo-tunai/{penganggaran_id}', [SetorTunaiController::class, 'getRiwayatSaldoTunai'])
+        ->name('bku.riwayat-saldo-tunai');
+
+    Route::get('/riwayat-saldo-tunai/{penganggaran_id}/{tahun}', [SetorTunaiController::class, 'getRiwayatSaldoTunai']);
+
+    // Validasi sebelum hapus
+    Route::get('/validate-delete-setor/{id}', [SetorTunaiController::class, 'validateDelete'])
+        ->name('bku.validate-delete-setor');
 
     Route::get('/kegiatan-rekening/{tahun}/{bulan}', [BukuKasUmumController::class, 'getKegiatanDanRekening'])
         ->name('bku.kegiatan-rekening');
 
     Route::get('/uraian/{tahun}/{bulan}/{rekeningId}', [BukuKasUmumController::class, 'getUraianByRekening'])
         ->name('bku.uraian');
+    
+    // Api partials table ajax sementara
+    Route::get('/table-data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getTableData'])
+        ->name('bku.table-data');
+
+    // Route untuk summary data
+    Route::get('/summary-data/{tahun}/{bulan}', [BukuKasUmumController::class, 'getSummaryData'])
+        ->name('bku.summary-data');
 
     Route::post('/store', [BukuKasUmumController::class, 'store'])->name('bku.store');
 

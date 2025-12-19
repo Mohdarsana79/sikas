@@ -4,13 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Models\SetorTunai;
 use App\Models\Penganggaran;
+use App\Models\PenarikanTunai;
+use App\Models\BukuKasUmum;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class SetorTunaiController extends Controller
 {
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
+        Log::info('=== SETOR TUNAI REQUEST ===', $request->all());
+        
+        // Validasi sederhana
         $request->validate([
             'penganggaran_id' => 'required|exists:penganggarans,id',
             'tanggal_setor' => 'required|date',
@@ -18,10 +27,25 @@ class SetorTunaiController extends Controller
         ]);
 
         try {
-            // Konversi format angka
+            // Konversi jumlah
             $jumlah_setor = (float) str_replace(['Rp', '.', ',', ' '], '', $request->jumlah_setor);
+            
+            // Hitung saldo tunai
+            $saldoTunai = $this->hitungSaldoTunai($request->penganggaran_id);
+            
+            // Validasi saldo
+            if ($jumlah_setor > $saldoTunai) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Jumlah setor melebihi saldo tunai yang tersedia (Rp ' . number_format($saldoTunai, 0, ',', '.') . ')',
+                    'errors' => [
+                        'jumlah_setor' => ['Jumlah melebihi saldo tunai']
+                    ]
+                ], 422);
+            }
 
-            SetorTunai::create([
+            // Simpan data
+            $setorTunai = SetorTunai::create([
                 'penganggaran_id' => $request->penganggaran_id,
                 'tanggal_setor' => $request->tanggal_setor,
                 'jumlah_setor' => $jumlah_setor,
@@ -29,10 +53,14 @@ class SetorTunaiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Setor tunai berhasil disimpan'
+                'message' => 'Setor tunai berhasil disimpan',
+                'data' => $setorTunai
             ]);
+            
         } catch (\Exception $e) {
-            Log::error('Error storing setor tunai: ' . $e->getMessage());
+            Log::error('Error store setor tunai: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menyimpan setor tunai: ' . $e->getMessage()
@@ -40,6 +68,9 @@ class SetorTunaiController extends Controller
         }
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy($id)
     {
         try {
@@ -50,23 +81,88 @@ class SetorTunaiController extends Controller
             if (request()->ajax() || request()->wantsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Setor tunai berhasil dihapus',
+                    'message' => 'Setor berhasil dihapus',
                 ]);
-            }
-            // Redirect untuk request biasa
-            return redirect()->back()->with('success', 'Setor tunai berhasil dihapus');
-        } catch (\Exception $e) {
-            Log::error('Error deleting setor tunai: ' . $e->getMessage());
-            // Cek jika request AJAX
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal menghapus setor tunai: ' . $e->getMessage(),
-                ], 500);
             }
 
             // Redirect untuk request biasa
-            return redirect()->back()->with('error', 'Gagal menghapus setor tunai: ' . $e->getMessage());
+            return redirect()->back()->with('success', 'Setor berhasil dihapus');
+            
+        } catch (\Exception $e) {
+            Log::error('Error delete setor tunai: ' . $e->getMessage());
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus setor: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+    }
+
+    /**
+     * API untuk mendapatkan saldo tunai
+     */
+    public function getSaldoTunai($penganggaran_id)
+    {
+        try {
+            Log::info('Get saldo tunai for penganggaran: ' . $penganggaran_id);
+            
+            $saldoTunai = $this->hitungSaldoTunai($penganggaran_id);
+            
+            return response()->json([
+                'success' => true,
+                'saldo_tunai' => $saldoTunai,
+                'formatted_saldo' => 'Rp ' . number_format($saldoTunai, 0, ',', '.')
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error get saldo tunai: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+                'saldo_tunai' => 0
+            ], 500);
+        }
+    }
+
+    /**
+     * Hitung saldo tunai
+     */
+    private function hitungSaldoTunai($penganggaran_id)
+    {
+        try {
+            // Query langsung tanpa model untuk debugging
+            $totalPenarikan = DB::table('penarikan_tunais')
+                ->where('penganggaran_id', $penganggaran_id)
+                ->sum('jumlah_penarikan');
+            
+            $totalSetor = DB::table('setor_tunais')
+                ->where('penganggaran_id', $penganggaran_id)
+                ->sum('jumlah_setor');
+            
+            $totalBelanjaTunai = DB::table('buku_kas_umums')
+                ->where('penganggaran_id', $penganggaran_id)
+                ->where('jenis_transaksi', 'tunai')
+                ->where('is_bunga_record', false)
+                ->sum('total_transaksi_kotor');
+            
+            $saldoTunai = $totalPenarikan - $totalSetor - $totalBelanjaTunai;
+            
+            Log::info('Perhitungan saldo tunai:', [
+                'penganggaran_id' => $penganggaran_id,
+                'total_penarikan' => $totalPenarikan,
+                'total_setor' => $totalSetor,
+                'total_belanja_tunai' => $totalBelanjaTunai,
+                'saldo_tunai' => $saldoTunai
+            ]);
+            
+            return max(0, $saldoTunai);
+            
+        } catch (\Exception $e) {
+            Log::error('Error hitung saldo tunai: ' . $e->getMessage());
+            return 0;
         }
     }
 }
