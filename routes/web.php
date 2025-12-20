@@ -345,6 +345,10 @@ Route::middleware(['auth'])->prefix('bku')->group(function () {
     Route::get('/bku/anggaran-belum-dibelanjakan/{penganggaran_id}/{bulan}', [BukuKasUmumController::class, 'getAnggaranBelumDibelanjakan'])
         ->name('bku.anggaran-belum-dibelanjakan');
 
+    // Route untuk mengambil detail BKU via AJAX
+    Route::get('/bku/{id}/detail', [BukuKasUmumController::class, 'getDetailModal'])
+        ->name('bku.detail-modal');
+
     Route::post('/store', [BukuKasUmumController::class, 'store'])->name('bku.store');
 
     // Route untuk lapor pajak

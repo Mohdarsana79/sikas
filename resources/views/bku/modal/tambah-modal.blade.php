@@ -199,6 +199,10 @@
     .penarikan-info .bi {
         margin-right: 0.5rem;
     }
+
+    .uraian-item {
+        background-color: #d3d2d2;
+    }
 </style>
 
 @php

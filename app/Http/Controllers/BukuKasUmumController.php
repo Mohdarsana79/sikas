@@ -3436,6 +3436,7 @@ class BukuKasUmumController extends Controller
                 'url' => request()->fullUrl(),
                 'method' => request()->method()
             ]);
+
             Log::info('Getting table data for:', ['tahun' => $tahun, 'bulan' => $bulan]);
 
             $penganggaran = Penganggaran::where('tahun_anggaran', $tahun)->first();
@@ -3464,12 +3465,12 @@ class BukuKasUmumController extends Controller
                 ->orderBy('tanggal_setor', 'asc')
                 ->get();
 
-            // Data BKU
+            // Data BKU dengan relasi lengkap
             $bkuData = BukuKasUmum::where('penganggaran_id', $penganggaran->id)
                 ->whereMonth('tanggal_transaksi', $bulanAngka)
                 ->whereYear('tanggal_transaksi', $tahun)
                 ->where('is_bunga_record', false)
-                ->with(['kodeKegiatan', 'rekeningBelanja'])
+                ->with(['kodeKegiatan', 'rekeningBelanja', 'uraianDetails'])
                 ->orderBy('tanggal_transaksi', 'asc')
                 ->orderBy('id', 'asc')
                 ->get();
@@ -3480,6 +3481,7 @@ class BukuKasUmumController extends Controller
                 'penarikan_tunais' => $this->formatPenarikanData($penarikanTunais, $bulan),
                 'setor_tunais' => $this->formatSetorData($setorTunais, $bulan),
                 'bku_data' => $this->formatBkuData($bkuData),
+                'bku_data_full' => $bkuData, // Data lengkap untuk modal
                 'summary' => [
                     'total_dibelanjakan_bulan_ini' => $this->hitungTotalDibelanjakan($penganggaran->id, $bulan),
                     'total_dibelanjakan_sampai_bulan_ini' => $this->hitungTotalDibelanjakanSampaiBulanIni($penganggaran->id, $bulan),
@@ -3495,10 +3497,17 @@ class BukuKasUmumController extends Controller
                 'bulan' => $bulan
             ])->render();
 
+            // Render modals untuk setiap BKU
+            $modalsHtml = '';
+            foreach ($bkuData as $bku) {
+                $modalsHtml .= view('bku.modal.detail-modal', ['bku' => $bku])->render();
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => $tableData,
                 'html' => $html,
+                'modals_html' => $modalsHtml, // Tambahkan modal HTML
             ]);
         } catch (\Exception $e) {
             Log::error('Error getting table data: ' . $e->getMessage());
@@ -3702,6 +3711,33 @@ class BukuKasUmumController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengambil anggaran belum dibelanjakan: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Ambil HTML modal detail untuk BKU tertentu
+     */
+    public function getDetailModal($id)
+    {
+        try {
+            $bku = BukuKasUmum::with(['kodeKegiatan', 'rekeningBelanja', 'uraianDetails'])
+                ->findOrFail($id);
+
+            // Render view modal detail
+            $html = view('bku.modal.detail-modal', ['bku' => $bku])->render();
+
+            return response()->json([
+                'success' => true,
+                'html' => $html,
+                'bku_id' => $id
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting detail modal: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data detail: ' . $e->getMessage()
             ], 500);
         }
     }

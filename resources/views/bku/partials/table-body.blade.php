@@ -128,7 +128,7 @@ $hasData = !empty($tableData['penerimaan_danas']) || !empty($tableData['penarika
     <td class="px-4 py-3">{{ $bku['kegiatan'] }}</td>
     <td class="px-4 py-3">{{ $bku['rekening_belanja'] }}</td>
     <td class="px-4 py-3">{{ $bku['jenis_transaksi'] }}</td>
-    <td class="px-4 py-3">Rp {{ $bku['anggaran'] }}</td>
+    <td class="px-4 py-3">Rp {{ $bku['dibelanjakan'] }}</td>
     <td class="px-4 py-3">Rp {{ $bku['dibelanjakan'] }}</td>
     <td class="px-4 py-3">
         @if($bku['total_pajak'] > 0)

@@ -1646,7 +1646,7 @@ export default class BkuManager {
     }
     
     /**
-     * Kirim data BKU ke server
+     * Kirim data BKU ke server - VERSI SIMPLE
      */
     submitFormData(formData) {
         const button = $('#saveBtn');
@@ -1666,15 +1666,18 @@ export default class BkuManager {
                 button.prop('disabled', false).html(originalText);
 
                 if (response.success) {
+                    console.log('Save successful, response:', response);
+                    
+                    // Hanya tampilkan pesan sukses sederhana
                     Swal.fire({
                         icon: 'success',
                         title: 'Berhasil!',
                         text: response.message,
                         confirmButtonColor: '#0d6efd',
-                        timer: 2000,
+                        timer: 1500,
                         showConfirmButton: false
                     }).then(() => {
-                        // Tutup modal
+                        // Tutup modal transaksi
                         $('#transactionModal').modal('hide');
                         
                         // Reset form modal
@@ -1706,6 +1709,86 @@ export default class BkuManager {
                     icon: 'error',
                     title: 'Error!',
                     text: errorMessage,
+                    confirmButtonColor: '#0d6efd',
+                });
+            }
+        });
+    }
+
+    /**
+     * Tampilkan modal detail untuk BKU yang baru dibuat
+     */
+    showDetailModalForNewBku(bkuData) {
+        // Jika response memiliki data BKU yang baru dibuat
+        if (bkuData && bkuData.length > 0) {
+            // Ambil ID BKU pertama (biasanya hanya satu kecuali multi-kegiatan)
+            const firstBkuId = bkuData[0].id;
+            
+            // Tunggu sebentar agar tabel diperbarui dulu
+            setTimeout(() => {
+                // Coba tampilkan modal detail
+                this.showDetailModal(firstBkuId);
+            }, 500);
+        }
+    }
+
+    /**
+     * Tampilkan modal detail - VERSI SEDERHANA
+     */
+    showDetailModal(bkuId) {
+        console.log('Showing detail modal for ID:', bkuId);
+        
+        const modal = $(`#detailModal${bkuId}`);
+        
+        if (modal.length > 0) {
+            modal.modal('show');
+            console.log('Modal found and shown');
+        } else {
+            console.log('Modal not found for BKU ID:', bkuId);
+            
+            // Tampilkan pesan error
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Detail transaksi tidak ditemukan. Silakan refresh halaman.',
+                confirmButtonColor: '#0d6efd',
+            });
+        }
+    }
+
+    /**
+     * Ambil data detail dan buat modal secara dinamis
+     */
+    fetchAndCreateDetailModal(bkuId) {
+        $.ajax({
+            url: `/bku/${bkuId}/detail`, // Anda perlu membuat route dan controller untuk ini
+            method: 'GET',
+            success: (response) => {
+                if (response.success && response.html) {
+                    // Tambahkan modal ke body
+                    $('body').append(response.html);
+                    
+                    // Tampilkan modal
+                    $(`#detailModal${bkuId}`).modal('show');
+                    
+                    // Re-attach event listeners
+                    this.attachBkuEventListeners();
+                } else {
+                    console.error('Failed to fetch detail data:', response.message);
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Info',
+                        text: 'Detail transaksi berhasil disimpan. Untuk melihat detail lengkap, silakan refresh halaman.',
+                        confirmButtonColor: '#0d6efd',
+                    });
+                }
+            },
+            error: (xhr) => {
+                console.error('Error fetching detail:', xhr);
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Info',
+                    text: 'Transaksi berhasil disimpan. Untuk melihat detail lengkap, silakan refresh halaman.',
                     confirmButtonColor: '#0d6efd',
                 });
             }
@@ -1830,7 +1913,7 @@ export default class BkuManager {
     }
 
     /**
-     * Update tabel dan data lainnya
+     * Update tabel dan data lainnya - VERSI DIPERBAIKI
      */
     updateTableAndData() {
         console.log('Updating table and data...');
@@ -1858,6 +1941,17 @@ export default class BkuManager {
                     // Update tabel
                     $('#bkuTableBody').html(response.html);
                     
+                    // Tambahkan modal HTML ke body
+                    if (response.modals_html) {
+                        // Hapus modal detail yang lama
+                        $('.modal[id^="detailModal"]').remove();
+                        
+                        // Tambahkan modal baru
+                        $('body').append(response.modals_html);
+                        
+                        console.log('Detail modals added to DOM');
+                    }
+                    
                     // Update summary data jika ada
                     if (response.data && response.data.summary) {
                         this.updateSummaryDisplay(response.data.summary);
@@ -1870,6 +1964,10 @@ export default class BkuManager {
                     this.attachBkuEventListeners();
                     
                     console.log('Table and data updated successfully');
+                    
+                    // HAPUS: Jangan tampilkan modal otomatis
+                    // Biarkan user yang memutuskan untuk membuka modal
+                    
                 } else {
                     console.error('Failed to update table:', response.message);
                     
@@ -3502,11 +3600,11 @@ export default class BkuManager {
     attachBkuEventListeners() {
         console.log('Attaching BKU event listeners...');
         
-        // Detail modal
+        // Detail modal dengan event delegation untuk elemen yang baru dimuat
         $(document).on('click', '.btn-view-detail', (e) => {
             e.preventDefault();
             const bkuId = $(e.currentTarget).data('bku-id');
-            $(`#detailModal${bkuId}`).modal('show');
+            this.showDetailModal(bkuId);
         });
 
         // Lapor pajak modal - gunakan event delegation untuk elemen yang baru dimuat
@@ -5323,6 +5421,45 @@ export default class BkuManager {
         
         // Update saldo
         this.updateSaldoAfterBku(response);
+    }
+
+    /**
+     * Tampilkan modal detail - VERSI SEDERHANA
+     */
+    showDetailModal(bkuId) {
+        console.log('Showing detail modal for ID:', bkuId);
+        
+        const modal = $(`#detailModal${bkuId}`);
+        
+        if (modal.length > 0) {
+            // Modal sudah ada di DOM
+            modal.modal('show');
+            console.log('Modal found and shown');
+        } else {
+            // Modal belum ada, coba lagi setelah beberapa saat
+            console.log('Modal not found, waiting for DOM update...');
+            
+            setTimeout(() => {
+                const retryModal = $(`#detailModal${bkuId}`);
+                if (retryModal.length > 0) {
+                    retryModal.modal('show');
+                    console.log('Modal found on retry');
+                } else {
+                    console.log('Modal still not found after retry');
+                    
+                    // Tampilkan pesan alternatif
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        html: `<div class="text-start">
+                            <p>Transaksi berhasil disimpan.</p>
+                            <p class="text-muted">Untuk melihat detail lengkap, silakan klik tombol "Lihat Detail" pada transaksi yang baru ditambahkan.</p>
+                        </div>`,
+                        confirmButtonColor: '#0d6efd',
+                    });
+                }
+            }, 500);
+        }
     }
 
     /**
