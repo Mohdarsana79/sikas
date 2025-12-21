@@ -1,0 +1,771 @@
+:root {
+    --primary-color: #4361ee;
+    --secondary-color: #3f37c9;
+    --accent-color: #4895ef;
+    --success-color: #06d6a0;
+    --warning-color: #ffbe0b;
+    --danger-color: #ef476f;
+    --info-color: #48cae4;
+    --bg-light: #f8f9fc;
+    --text-dark: #2b2d42;
+    --glass-bg: rgba(255, 255, 255, 0.9);
+    --base-font-size: 12pt;
+}
+
+.sts-body {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    overflow-x: hidden;
+    font-size: var(--base-font-size);
+}
+
+.sts-page-header {
+    background: linear-gradient(
+        135deg,
+        var(--primary-color),
+        var(--accent-color)
+    );
+    padding: 3rem 0 6rem 0;
+    color: white;
+    border-radius: 0 0 50px 50px;
+}
+
+.sts-page-header h1 {
+    font-size: calc(var(--base-font-size) * 2.2);
+}
+
+.sts-page-header p {
+    font-size: calc(var(--base-font-size) * 1.1);
+}
+
+.sts-main-content {
+    margin-top: -4.5rem;
+}
+
+.sts-card-custom {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+}
+
+.sts-table-container {
+    padding: 1.5rem;
+}
+
+#stsTable thead th {
+    background-color: transparent;
+    border-bottom: 2px solid #f0f0f0;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: calc(var(--base-font-size) * 0.85);
+    letter-spacing: 0.5px;
+}
+
+/* --- Single Selection Logic --- */
+#stsTable tbody tr {
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+#stsTable tbody tr:hover {
+    background-color: rgba(67, 97, 238, 0.05);
+}
+
+#stsTable tbody tr.selected-row {
+    background-color: rgba(67, 97, 238, 0.12) !important;
+    opacity: 1;
+    box-shadow: inset 6px 0 0 var(--primary-color);
+}
+
+#stsTable tbody tr.selected-row td {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.col-selection {
+    width: 40px;
+    text-align: center;
+}
+
+/* Style untuk checkbox */
+.form-check-input.row-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin: 0;
+    vertical-align: middle;
+}
+
+.form-check-input.row-checkbox:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Style untuk row yang dipilih */
+#stsTable tbody tr.selected-row {
+    background-color: rgba(67, 97, 238, 0.12) !important;
+    box-shadow: inset 6px 0 0 var(--primary-color);
+}
+
+#stsTable tbody tr.selected-row td {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+#stsTable tbody tr.selected-row .form-check-input.row-checkbox {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Hover effect untuk row */
+#stsTable tbody tr:hover {
+    background-color: rgba(67, 97, 238, 0.05);
+}
+
+#stsTable tbody tr:hover .form-check-input.row-checkbox {
+    border-color: var(--primary-color);
+}
+
+/* Style untuk checkbox saat hover */
+.form-check-input.row-checkbox:hover {
+    border-color: var(--primary-color);
+}
+
+/* Cursor pointer untuk seluruh row */
+#stsTable tbody tr {
+    cursor: pointer;
+}
+
+/* Tetap pointer untuk checkbox */
+.form-check-input.row-checkbox {
+    cursor: pointer;
+}
+
+/* Transisi smooth untuk perubahan state */
+#stsTable tbody tr,
+.form-check-input.row-checkbox {
+    transition: all 0.2s ease;
+}
+
+.badge-status {
+    padding: 0.5em 1em;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: calc(var(--base-font-size) * 0.9);
+}
+
+.badge-paid {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.badge-pending {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.badge-partial {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.sts-btn-header {
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: calc(var(--base-font-size) * 0.95);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sts-btn-back {
+    background-color: white;
+    color: var(--primary-color);
+}
+
+.sts-btn-back:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.sts-btn-add {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.sts-btn-edit {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.sts-btn-edit-pay {
+    background-color: var(--info-color);
+    color: white;
+}
+
+.sts-btn-pay {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.sts-btn-delete {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.sts-btn-header:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    opacity: 0.9;
+}
+
+.sts-modal-content-custom {
+    border: none;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+}
+
+.sts-modal-header-custom {
+    background: linear-gradient(
+        135deg,
+        var(--primary-color),
+        var(--accent-color)
+    );
+    color: white;
+    border: none;
+    padding: 1.5rem 2rem;
+}
+
+.sts-modal-body-custom {
+    padding: 2rem;
+}
+
+.sts-form-label-custom {
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.sts-form-control-custom {
+    border: 2px solid #eef0f7;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s;
+    font-size: var(--base-font-size);
+}
+
+.sts-btn-submit-custom {
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0.8rem;
+    font-weight: 700;
+    width: 100%;
+    margin-top: 1rem;
+    transition: all 0.3s;
+}
+
+.sts-info-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.sts-action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* Styles for disabled select */
+.sts-form-control-custom:disabled {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Loading state for dropdown */
+select[disabled] option:first-child {
+    color: #999;
+}
+
+/* Tooltip for disabled fields */
+[title] {
+    position: relative;
+}
+
+[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+}
+
+/* Button Loading Styles */
+.sts-btn-header.btn-loading,
+.sts-btn-submit-custom.btn-loading {
+    opacity: 0.8;
+    cursor: wait;
+}
+
+.sts-btn-header .spinner-border,
+.sts-btn-submit-custom .spinner-border {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+    vertical-align: -0.125em;
+}
+
+/* Modal button loading */
+.sts-btn-submit-custom:disabled {
+    cursor: not-allowed;
+}
+
+/* Ensure buttons maintain size during loading */
+.sts-btn-header,
+.sts-btn-submit-custom {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+/* Loading text alignment */
+.sts-btn-header.btn-loading,
+.sts-btn-submit-custom.btn-loading {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Styles untuk tombol informasi */
+.sts-btn-info {
+    background-color: #eae9eeff;
+    color: #5b4bd4;
+}
+
+.sts-btn-info:hover {
+    background-color: #5b4bd4;
+    color: white;
+}
+
+/* Modal informasi khusus */
+#modalInfoSTS .modal-dialog {
+    max-width: 800px;
+}
+
+/* Container informasi */
+.sts-info-container {
+    padding: 0.5rem;
+}
+
+/* Card informasi */
+.sts-info-card {
+    display: flex;
+    align-items: flex-start;
+    background: linear-gradient(
+        135deg,
+        rgba(108, 92, 231, 0.05),
+        rgba(162, 155, 254, 0.05)
+    );
+    border-radius: 12px;
+    padding: 1.5rem;
+    border-left: 4px solid #6c5ce7;
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.sts-info-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(108, 92, 231, 0.1);
+}
+
+.sts-info-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+    flex-shrink: 0;
+}
+
+.sts-info-icon i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.sts-info-content {
+    flex: 1;
+}
+
+.sts-info-title {
+    color: #2b2d42;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.sts-info-text {
+    color: #555;
+    line-height: 1.6;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Tips card */
+.sts-tips-card {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 193, 7, 0.05),
+        rgba(255, 235, 59, 0.05)
+    );
+    border-radius: 12px;
+    padding: 1.5rem;
+    border-left: 4px solid #ffc107;
+    margin-top: 2rem;
+}
+
+.sts-tips-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.sts-tips-header i {
+    font-size: 1.5rem;
+    color: #ffc107;
+}
+
+.sts-tips-header span {
+    color: #2b2d42;
+    font-size: 1.1rem;
+}
+
+.sts-tips-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sts-tips-list li {
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    color: #555;
+    line-height: 1.5;
+}
+
+.sts-tips-list li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #06d6a0;
+    font-weight: bold;
+}
+
+/* Tombol tutup modal */
+.sts-btn-close-info {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 0.7rem 2rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.sts-btn-close-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);
+    color: white;
+}
+
+/* Responsive design untuk modal informasi */
+@media (max-width: 768px) {
+    .sts-info-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .sts-info-icon {
+        margin-right: 0;
+        margin-bottom: 1rem;
+        align-self: center;
+    }
+
+    #modalInfoSTS .modal-dialog {
+        margin: 1rem;
+    }
+
+    .sts-tips-list li {
+        padding-left: 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Animasi untuk modal */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sts-info-card {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.sts-info-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+.sts-info-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+.sts-info-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+.sts-info-card:nth-child(4) {
+    animation-delay: 0.4s;
+}
+.sts-info-card:nth-child(5) {
+    animation-delay: 0.5s;
+}
+.sts-tips-card {
+    animation-delay: 0.6s;
+}
+
+/* Hover effects untuk semua tombol header */
+.sts-btn-header:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.sts-btn-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 92, 231, 0.25);
+}
+
+/* Active state */
+.sts-btn-header:active {
+    transform: translateY(0);
+}
+
+/* Loading state untuk tombol info */
+.sts-btn-info.btn-loading {
+    background-color: #5b4bd4;
+}
+
+/* Animasi untuk icon di modal info */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.sts-info-icon {
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.sts-info-card:hover .sts-info-icon {
+    animation: none;
+    transform: scale(1.1);
+    transition: transform 0.3s ease;
+}
+
+/* Highlight untuk poin penting */
+.sts-info-title {
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.sts-info-title:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 3px;
+    background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+    border-radius: 2px;
+}
+
+/* Hover effects untuk semua tombol header */
+.sts-btn-header:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.sts-btn-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 92, 231, 0.25);
+}
+
+/* Active state */
+.sts-btn-header:active {
+    transform: translateY(0);
+}
+
+/* Loading state untuk tombol info */
+.sts-btn-info.btn-loading {
+    background-color: #5b4bd4;
+}
+
+/* Animasi untuk icon di modal info */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.sts-info-icon {
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.sts-info-card:hover .sts-info-icon {
+    animation: none;
+    transform: scale(1.1);
+    transition: transform 0.3s ease;
+}
+
+/* Highlight untuk poin penting */
+.sts-info-title {
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.sts-info-title:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 3px;
+    background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+    border-radius: 2px;
+}
+
+/* Rupiah input styling */
+.rupiah-input {
+    text-align: right;
+    font-family: "Courier New", monospace;
+    font-weight: 500;
+}
+
+.rupiah-input::placeholder {
+    text-align: left;
+    font-family: inherit;
+    font-weight: normal;
+}
+
+.rupiah-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+}
+
+/* Input group for rupiah */
+.input-group .rupiah-input {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-right: none;
+    font-weight: 500;
+}
+
+/* Animation for table updates */
+@keyframes highlightRow {
+    0% {
+        background-color: rgba(67, 97, 238, 0.1);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.sts-row-updated {
+    animation: highlightRow 2s ease-in-out;
+}
+
+/* Smooth transition for table updates */
+#stsTable tbody {
+    transition: all 0.3s ease;
+}
+
+/* Loading state for table */
+.table-loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+@media (max-width: 992px) {
+    .sts-btn-group-header {
+        flex-wrap: wrap;
+        justify-content: center !important;
+        gap: 10px;
+    }
+
+    .sts-page-header {
+        padding: 2rem 0 8rem 0;
+    }
+
+    .sts-action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .sts-action-buttons .sts-btn-header {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .sts-table-container {
+        padding: 1rem;
+        overflow-x: auto;
+    }
+
+    #stsTable {
+        min-width: 800px;
+    }
+}

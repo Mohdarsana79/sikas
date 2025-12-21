@@ -62,6 +62,14 @@
             </a>
         </li>
 
+        <!-- STS -->
+        <li class="nav-item">
+            <a href="{{ route('sts.index') }}" class="nav-link" data-page="sts">
+                <i class="bi bi-wallet2 nav-icon"></i>
+                <span class="nav-text">STS</span>
+            </a>
+        </li>
+
         <!-- Components -->
         <li class="nav-item">
             <a href="#" class="nav-link" data-toggle="submenu" data-target="laporan-submenu">

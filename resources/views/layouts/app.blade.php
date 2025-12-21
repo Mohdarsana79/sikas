@@ -20,6 +20,7 @@
     <link href="{{ asset('assets/css/main.css') }}" rel="stylesheet">
     <link href="{{ asset('assets/css/auth.css') }}" rel="stylesheet">
     <link href="{{ asset('assets/css/loading.css') }}" rel="stylesheet">
+    @stack('styles')
 
     <!-- Google Fonts -->
     <link href="{{ asset('assets/css/font-family-inter.css') }}" rel="stylesheet">

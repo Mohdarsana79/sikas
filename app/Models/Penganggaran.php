@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Sts;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Penganggaran extends Model
 {
@@ -189,5 +190,10 @@ class Penganggaran extends Model
     public function tandaTerima()
     {
         return $this->hasMany(TandaTerima::class);
+    }
+
+    public function sts()
+    {
+        return $this->hasMany(Sts::class);
     }
 }

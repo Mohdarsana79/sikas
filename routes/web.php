@@ -28,8 +28,10 @@ use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\SetorTunaiController;
 use App\Http\Controllers\SpmthController;
 use App\Http\Controllers\SptjController;
+use App\Http\Controllers\StsController;
 use App\Http\Controllers\TandaTerimaController;
 use Illuminate\Support\Facades\Route;
+
 
 // Redirect root to login
 Route::get('/', function () {
@@ -511,4 +513,19 @@ Route::middleware(['auth'])->prefix('sptj')->group(function () {
 
 Route::middleware(['auth'])->prefix('laporan-realisasi')->group(function () {
     Route::get('/', [LaporanRealisasiController::class, 'index'])->name('laporan-realisasi.index');
+});
+
+Route::middleware(['auth'])->prefix('sts')->group(function () {
+    Route::get('/', [StsController::class, 'index'])->name('sts.index');
+    Route::post('/', [StsController::class, 'store'])->name('sts.store');
+    Route::get('/{id}', [StsController::class, 'show'])->name('sts.show');
+    Route::put('/{id}', [StsController::class, 'update'])->name('sts.update');
+    Route::post('/{id}/bayar', [StsController::class, 'bayar'])->name('sts.bayar');
+    Route::put('/{id}/bayar', [StsController::class, 'updateBayar'])->name('sts.updateBayar');
+    Route::delete('/{id}', [StsController::class, 'destroy'])->name('sts.destroy');
+
+    // Route API untuk penganggaran
+    Route::get('/api/penganggaran', [StsController::class, 'getPenganggaran'])
+        ->name('sts.penganggaran');
+    Route::get('/api/data', [StsController::class, 'apiData'])->name('sts.api.data');
 });

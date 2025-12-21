@@ -1,11 +1,21 @@
 import './bootstrap';
 import BkuManager from './managers/BkuManager';
+import StsManager from './managers/StsManager';
 
 // Inisialisasi ketika document ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Document ready - Application loaded');
+    
     // Inisialisasi BkuManager jika modal tersedia
     if (document.getElementById('transactionModal')) {
         window.bkuManager = new BkuManager();
+        console.log('✅ BkuManager initialized');
+    }
+    
+    // Inisialisasi StsManager jika ada tabel STS
+    if (document.getElementById('stsTable')) {
+        window.stsManager = new StsManager();
+        console.log('✅ StsManager initialized');
     }
     
     // Attach event untuk search results
@@ -25,6 +35,9 @@ document.addEventListener('DOMContentLoaded', function() {
             window.bkuManager.updateSaldoDisplay(response.saldo_update);
         }
     });
-    // Logika lain yang sudah ada...
-    console.log('Document ready - BKU application loaded');
+    
+    // Tambahkan event untuk tombol back STS
+    document.querySelector('.sts-btn-back')?.addEventListener('click', function() {
+        window.history.back();
+    });
 });
